@@ -348,6 +348,85 @@ def publish_to_shopify():
         log_error(f"Shopify publishing failed: {e}", "report")
         return False
 
+def generate_geo_data(output_format='json'):
+    """
+    Generate geographic data for tournaments
+    Returns GeoJSON for mapping or regular JSON for analysis
+    """
+    from database_utils import get_session
+    from tournament_models import Tournament
+    from collections import defaultdict
+    import json
+    
+    geo_data = []
+    city_stats = defaultdict(int)
+    
+    with get_session() as session:
+        # Get all tournaments with geo data
+        tournaments = session.query(Tournament).filter(
+            Tournament.lat.isnot(None),
+            Tournament.lng.isnot(None)
+        ).all()
+        
+        for t in tournaments:
+            try:
+                lat = float(t.lat)
+                lng = float(t.lng)
+                
+                geo_entry = {
+                    'id': t.id,
+                    'name': t.name,
+                    'lat': lat,
+                    'lng': lng,
+                    'city': t.city,
+                    'state': t.addr_state,
+                    'venue': t.venue_name,
+                    'address': t.venue_address,
+                    'attendees': t.num_attendees or 0,
+                    'date': t.start_at,
+                    'slug': t.short_slug or t.slug
+                }
+                
+                geo_data.append(geo_entry)
+                
+                # Track city statistics
+                if t.city:
+                    city_stats[t.city] += 1
+                    
+            except (ValueError, TypeError):
+                continue
+    
+    if output_format == 'geojson':
+        # Return GeoJSON format for mapping
+        features = []
+        for entry in geo_data:
+            features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [entry['lng'], entry['lat']]
+                },
+                "properties": {
+                    "name": entry['name'],
+                    "city": entry['city'],
+                    "venue": entry['venue'],
+                    "attendees": entry['attendees'],
+                    "date": entry['date']
+                }
+            })
+        
+        return {
+            "type": "FeatureCollection",
+            "features": features
+        }
+    else:
+        # Return regular JSON with stats
+        return {
+            'tournaments': geo_data,
+            'city_stats': dict(city_stats),
+            'total_with_geo': len(geo_data)
+        }
+
 if __name__ == "__main__":
     print("Testing tournament reporting...")
     

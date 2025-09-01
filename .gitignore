@@ -78,3 +78,10 @@ alembic.ini.local
 # Cache
 .cache/
 *.cache
+
+# Generated data files
+tournament_geo_data.json
+tournament_map.geojson
+collect_geo_data.py
+*.geojson
+*_generated.json
