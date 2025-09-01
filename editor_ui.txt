@@ -1,0 +1,2 @@
+INFO  [main] Starting organization name editor UI
+ERROR [main] Editor UI error: 'MainEditorUI' object has no attribute 'iagnostics'

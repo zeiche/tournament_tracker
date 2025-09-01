@@ -1,0 +1,2 @@
+get debug ./foo.py 2>&1 > o.txt
+
