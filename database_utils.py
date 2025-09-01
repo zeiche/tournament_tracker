@@ -18,7 +18,9 @@ def init_db(database_url=None):
     global engine, Session
     
     if database_url is None:
-        database_url = os.getenv('DATABASE_URL', 'sqlite:///tournament_tracker.db')
+        # Use absolute path for database to work from any directory
+        db_path = os.path.join(os.path.dirname(__file__), 'tournament_tracker.db')
+        database_url = os.getenv('DATABASE_URL', f'sqlite:///{db_path}')
     
     engine = create_engine(database_url, echo=False)
     Session = scoped_session(sessionmaker(bind=engine))
@@ -33,7 +35,8 @@ def init_db(database_url=None):
 def get_session():
     """Context manager for database sessions"""
     if Session is None:
-        raise RuntimeError("Database not initialized. Call init_db() first.")
+        # Auto-initialize if not already done
+        init_db()
     
     session = Session()
     try:
@@ -291,7 +294,7 @@ def get_attendance_rankings(limit=None):
             rankings.append({
                 'display_name': org.display_name,
                 'normalized_key': org.normalized_key,
-                'tournament_count': org.tournament_count,
+                'tournament_count': len(org.attendance_records),
                 'total_attendance': org.total_attendance,
                 'contacts': [contact.contact_value for contact in org.contacts]
             })

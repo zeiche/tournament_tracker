@@ -19,7 +19,7 @@ from database_queue import get_queue, commit_queue, queue_stats, batch_operation
 
 # start.gg GraphQL queries
 SOCAL_TOURNAMENTS_QUERY = """
-query SocalTournaments($coordinates: String!, $radius: String!, $after: Timestamp, $before: Timestamp) {
+query SocalTournaments($coordinates: String!, $radius: String!, $after: Timestamp, $before: Timestamp, $page: Int) {
     tournaments(query: {
         filter: {
             videogameIds: [1386]
@@ -32,7 +32,14 @@ query SocalTournaments($coordinates: String!, $radius: String!, $after: Timestam
             beforeDate: $before
         }
         perPage: 50
+        page: $page
     }) {
+        pageInfo {
+            total
+            totalPages
+            page
+            perPage
+        }
         nodes {
             id
             endAt
@@ -134,61 +141,81 @@ class StartGGSyncClient:
         
         log_info(f"StartGG client initialized for {current_year}", "startgg")
     
-    def fetch_tournaments(self, year_filter=True):
-        """Fetch tournaments from start.gg API"""
+    def fetch_tournaments(self, year_filter=True, max_pages=10):
+        """Fetch tournaments from start.gg API with pagination"""
         log_info(f"Fetching SoCal tournaments from start.gg", "startgg")
         
-        variables = {
-            "coordinates": self.coordinates,
-            "radius": self.radius
-        }
+        all_tournaments = []
+        page = 1
+        total_pages = 1
         
-        # Add current year date filtering if enabled
-        if year_filter:
-            variables["after"] = self.current_year_start
-            variables["before"] = self.current_year_end
-            log_debug(f"Filtering for {self.current_year} tournaments only", "startgg")
+        while page <= total_pages and page <= max_pages:
+            variables = {
+                "coordinates": self.coordinates,
+                "radius": self.radius,
+                "page": page
+            }
+            
+            # Add current year date filtering if enabled
+            if year_filter:
+                variables["after"] = self.current_year_start
+                variables["before"] = self.current_year_end
+                if page == 1:
+                    log_debug(f"Filtering for {self.current_year} tournaments only", "startgg")
+            
+            payload = {
+                "query": SOCAL_TOURNAMENTS_QUERY,
+                "variables": variables
+            }
+            
+            # Make the API call with rate limiting
+            start_time = time.time()
+            
+            try:
+                response = requests.post(self.api_url, json=payload, headers=self.headers)
+                
+                # Rate limiting - single sleep per API call
+                time.sleep(1)
+                self.api_stats['rate_limit_sleeps'] += 1
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                if 'errors' in data:
+                    log_error(f"start.gg API error: {data['errors']}", "startgg")
+                    raise RuntimeError(f"start.gg API error: {data['errors']}")
+                
+                tournament_data = data.get('data', {}).get('tournaments', {})
+                tournaments = tournament_data.get('nodes', [])
+                page_info = tournament_data.get('pageInfo', {})
+                
+                # Update pagination info
+                if page == 1:
+                    total_pages = page_info.get('totalPages', 1)
+                    total_count = page_info.get('total', 0)
+                    log_info(f"Found {total_count} tournaments across {total_pages} pages", "startgg")
+                
+                all_tournaments.extend(tournaments)
+                
+                # Update stats
+                api_time = time.time() - start_time
+                self.api_stats['api_calls'] += 1
+                self.api_stats['api_time'] += api_time
+                
+                year_info = f" ({self.current_year} only)" if year_filter else ""
+                log_api_call(f"tournaments{year_info} page {page}", api_time, success=True, context="startgg")
+                log_debug(f"Fetched page {page}/{total_pages}: {len(tournaments)} tournaments", "startgg")
+                
+                page += 1
+                
+            except Exception as e:
+                api_time = time.time() - start_time
+                self.api_stats['api_calls'] += 1
+                log_api_call(f"tournaments page {page}", api_time, success=False, context="startgg")
+                raise
         
-        payload = {
-            "query": SOCAL_TOURNAMENTS_QUERY,
-            "variables": variables
-        }
-        
-        # Make the API call with rate limiting
-        start_time = time.time()
-        
-        try:
-            response = requests.post(self.api_url, json=payload, headers=self.headers)
-            
-            # Rate limiting - single sleep per API call
-            time.sleep(1)
-            self.api_stats['rate_limit_sleeps'] += 1
-            
-            response.raise_for_status()
-            data = response.json()
-            
-            if 'errors' in data:
-                log_error(f"start.gg API error: {data['errors']}", "startgg")
-                raise RuntimeError(f"start.gg API error: {data['errors']}")
-            
-            tournaments = data.get('data', {}).get('tournaments', {}).get('nodes', [])
-            
-            # Update stats
-            api_time = time.time() - start_time
-            self.api_stats['api_calls'] += 1
-            self.api_stats['api_time'] += api_time
-            
-            year_info = f" ({self.current_year} only)" if year_filter else ""
-            log_api_call(f"tournaments{year_info}", api_time, success=True, context="startgg")
-            log_info(f"Fetched {len(tournaments)} tournaments from start.gg", "startgg")
-            
-            return tournaments
-            
-        except Exception as e:
-            api_time = time.time() - start_time
-            self.api_stats['api_calls'] += 1
-            log_api_call("tournaments", api_time, success=False, context="startgg")
-            raise
+        log_info(f"Fetched {len(all_tournaments)} tournaments from start.gg", "startgg")
+        return all_tournaments
     
     def fetch_standings(self, tournament_id):
         """Fetch top 8 standings for a specific tournament"""
@@ -333,9 +360,21 @@ class TournamentSyncProcessor:
             'sync_timestamp': int(time.time())
         }
         
-        # Queue tournament create/update
+        # Simply replace/create tournament with latest data from start.gg
         from tournament_models import Tournament
-        queue.create(Tournament, **tournament_record)
+        from database_utils import get_session
+        
+        # Use proper session management for updates
+        with get_session() as session:
+            existing = session.query(Tournament).get(tournament_id)
+            if existing:
+                # Replace all fields with current start.gg data
+                for key, value in tournament_record.items():
+                    setattr(existing, key, value)
+                # Session will auto-commit when context exits
+            else:
+                # Create new tournament via queue
+                queue.create(Tournament, **tournament_record)
         
         # Process organization and attendance
         self._process_tournament_organization(queue, tournament_data)

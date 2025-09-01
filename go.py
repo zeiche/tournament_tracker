@@ -40,12 +40,33 @@ def main():
     parser.add_argument('--edit-contacts', action='store_true', help='Launch web editor for contact management')
     parser.add_argument('--editor-port', type=int, default=8081, help='Port for web editor (default: 8081)')
     
+    # Service management options
+    parser.add_argument('--setup-discord', metavar='TOKEN', help='Setup Discord bot service with token')
+    parser.add_argument('--setup-services', metavar='TOKEN', help='Setup both web and Discord services')
+    parser.add_argument('--service-status', action='store_true', help='Check status of services')
+    
     args = parser.parse_args()
     
     # Handle help case FIRST - before any database operations
     if len(sys.argv) == 1:
         parser.print_help()
         return
+    
+    # Handle service management first (before database operations)
+    if args.setup_discord:
+        import subprocess
+        result = subprocess.run(['/home/ubuntu/claude/setup_services.sh', 'setup-discord', args.setup_discord])
+        return result.returncode
+    
+    if args.setup_services:
+        import subprocess
+        result = subprocess.run(['/home/ubuntu/claude/setup_services.sh', 'setup-all', args.setup_services])
+        return result.returncode
+    
+    if args.service_status:
+        import subprocess
+        result = subprocess.run(['/home/ubuntu/claude/setup_services.sh', 'status'])
+        return result.returncode
     
     try:
         # Create TournamentTracker for database operations

@@ -7,6 +7,7 @@ Common functions for generating consistent HTML across the application
 import html
 from datetime import datetime, timezone, timedelta
 from log_utils import log_debug
+from tournament_stylesheet import get_themed_style_tag, get_css_stylesheet
 
 def load_template(template_name):
     """Load HTML template from current directory"""
@@ -17,130 +18,20 @@ def load_template(template_name):
         return None
 
 def get_page_header(title, subtitle=None):
-    """Generate consistent page header HTML"""
+    """Generate consistent page header HTML using centralized styles"""
     header = f"""<!DOCTYPE html>
 <html>
 <head>
     <title>{html.escape(title)}</title>
     <meta charset="utf-8">
-    <style>
-        body {{
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-        }}
-        h1 {{
-            text-align: center;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }}
-        h2 {{
-            color: #333;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background: white;
-            box-shadow: 0 6px 25px rgba(0,0,0,0.15);
-            border-radius: 12px;
-            overflow: hidden;
-        }}
-        thead tr {{
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            color: white;
-        }}
-        th, td {{
-            padding: 12px 15px;
-            text-align: left;
-        }}
-        tbody tr {{
-            border-bottom: 1px solid #ddd;
-        }}
-        tbody tr:hover {{
-            background-color: #f5f5f5;
-        }}
-        .nav-links {{
-            margin: 20px 0;
-            text-align: center;
-        }}
-        .nav-links a {{
-            color: #667eea;
-            text-decoration: none;
-            padding: 10px 20px;
-            margin: 0 10px;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            display: inline-block;
-            transition: all 0.3s;
-        }}
-        .nav-links a:hover {{
-            background: #667eea;
-            color: white;
-        }}
-        .stats-box {{
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin: 20px 0;
-        }}
-        .action-link {{
-            color: #667eea;
-            text-decoration: none;
-            font-weight: bold;
-        }}
-        .action-link:hover {{
-            text-decoration: underline;
-        }}
-        form {{
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin: 20px 0;
-        }}
-        input[type="text"], select {{
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-        }}
-        input[type="submit"] {{
-            background: #667eea;
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-right: 10px;
-        }}
-        input[type="submit"]:hover {{
-            background: #5563d1;
-        }}
-        .cancel-link {{
-            color: #666;
-            text-decoration: none;
-            padding: 12px 30px;
-            display: inline-block;
-        }}
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {get_themed_style_tag()}
 </head>
 <body>
     <h1>{html.escape(title)}</h1>"""
     
     if subtitle:
-        header += f"\n    <p style='text-align: center; color: #666; margin-top: -10px;'>{html.escape(subtitle)}</p>"
+        header += f"\n    <p class='subtitle'>{html.escape(subtitle)}</p>"
     
     return header
 

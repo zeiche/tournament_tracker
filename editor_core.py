@@ -49,10 +49,19 @@ def get_unnamed_tournaments():
         unnamed = []
         for t in tournaments:
             if is_contact_unnamed(t.primary_contact):
-                unnamed.append(t)
+                # Extract needed data while session is active
+                unnamed.append({
+                    'id': t.id,
+                    'name': t.name,
+                    'primary_contact': t.primary_contact,
+                    'num_attendees': t.num_attendees or 0,
+                    'venue_name': t.venue_name,
+                    'city': t.city,
+                    'short_slug': t.short_slug
+                })
         
         # Sort by attendance (highest first)
-        unnamed.sort(key=lambda x: x.num_attendees or 0, reverse=True)
+        unnamed.sort(key=lambda x: x['num_attendees'], reverse=True)
         log_info(f"Found {len(unnamed)} tournaments with unnamed contacts")
         return unnamed
 

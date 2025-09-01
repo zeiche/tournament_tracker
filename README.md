@@ -1,10 +1,10 @@
 # Tournament Tracker
 
-A Python application for tracking and managing Fighting Game Community (FGC) tournaments in Southern California.
+A Python application for tracking and managing Fighting Game Community (FGC) tournaments in Southern California. Features start.gg synchronization, web-based organization management, and a natural language Discord bot interface.
 
 ## Overview
 
-This system synchronizes tournament data from start.gg, maintains a local SQLite database, and provides reporting functionality for tournament attendance and rankings.
+This system synchronizes tournament data from start.gg, maintains a local SQLite database, provides reporting functionality for tournament attendance and rankings, and includes both web and Discord interfaces for data access.
 
 ## Quick Start
 
@@ -16,81 +16,109 @@ This system synchronizes tournament data from start.gg, maintains a local SQLite
 ./go.py --sync
 
 # Generate console report
-./go.py --console
+./go.py --console --limit 10
 
 # Generate HTML report
 ./go.py --html report.html
 
 # Start interactive mode
 ./go.py --interactive
+
+# Setup services (one-time setup)
+./setup_services.sh setup-all YOUR_DISCORD_TOKEN
 ```
 
-## Web Interfaces
+## Services
 
-### Database Editor (Port 8081)
+The system includes two persistent services that automatically start on boot:
+
+| Service | Port | Purpose | Access |
+|---------|------|---------|--------|
+| tournament-web | 8081 | Organization name editor | http://localhost:8081 |
+| discord-bot | N/A | Natural language interface | Discord (try-hard#8718) |
+| webhook-server | 8080 | GitHub webhooks | Internal only |
+
+### Web Editor (Port 8081)
+
 Web-based interface for managing tournament organizations and fixing naming issues.
 
 ```bash
-# Start the web editor
-python3 web_editor.py
+# Service runs automatically, or start manually:
+./go.py --edit-contacts
 
-# Access via browser or lynx
-lynx http://localhost:8081
+# Access via browser
+http://localhost:8081
 ```
 
 **Features:**
 - View tournaments with unnamed contacts (emails/Discord links)
+- Edit organization display names
+- Consolidate duplicate organizations
 - Map contacts to proper organization names
-- View all organizations
-- Edit tournament-organization associations
 
-### Webhook Server (Port 8080)
-Receives GitHub webhooks for automatic updates.
+### Discord Bot
+
+Natural language interface to tournament data. Just ask questions in plain English:
+
+- "show me the top 10 organizations"
+- "what are the tournament stats?"
+- "tell me about SoCal FGC"
+- "list organizations by attendance"
+
+**Admin Commands:**
+- `!sync` - Sync from start.gg (admin only)
+- `!restart` - Restart bot (admin only)
+
+### Service Management
 
 ```bash
-# Already running as systemd service
-sudo systemctl status webhook-server
+# Check all services
+./setup_services.sh status
+./go.py --service-status
 
-# Manual start if needed
-python3 /home/ubuntu/webhook_server.py
+# Manage individual services
+sudo systemctl status tournament-web
+sudo systemctl status discord-bot
+sudo systemctl restart tournament-web
+sudo systemctl restart discord-bot
+
+# View logs
+sudo journalctl -u tournament-web -f
+sudo journalctl -u discord-bot -f
 ```
 
 ## Project Structure
 
 ```
 tournament_tracker/
-├── go.py                    # Main CLI entry point
-├── tournament_tracker.py    # Core application class
-├── tournament_models.py     # SQLAlchemy database models
-├── database_utils.py        # Database management utilities
-├── startgg_sync.py         # start.gg API synchronization
-├── tournament_report.py    # Report generation (HTML/console)
-├── web_editor.py          # Web-based database editor
-├── editor.py              # Legacy curses-based TUI editor
-├── tournament_tracker.db  # SQLite database
-└── alembic/              # Database migrations
+├── go.py                      # Main CLI entry point
+├── tournament_tracker.py      # Core application class
+├── tournament_models.py       # SQLAlchemy database models
+├── database_utils.py          # Database utilities (auto-initializes)
+├── startgg_sync.py           # start.gg API synchronization
+├── tournament_report.py      # Report generation
+├── editor_web.py            # Web-based organization editor
+├── tournament_tracker.db    # SQLite database
+└── alembic/                # Database migrations
+
+../
+├── discord_conversational.py  # Natural language Discord bot
+├── setup_services.sh         # Service management script
+└── .env.discord             # Discord bot configuration
 ```
 
-## Current Issues
+## Data Flow
 
-1. **Organization Naming**: Many tournaments are identified by contact info (email/Discord) instead of proper organization names
-2. **Duplicates**: Some organizations appear multiple times in the database
-3. **Data Quality**: Need to map contacts like "tryhardsbackyard@gmail.com" to "BACKYARD TRY-HARDS"
-
-## Services
-
-| Service | Port | Purpose | Status |
-|---------|------|---------|--------|
-| webhook-server | 8080 | GitHub webhooks | Running (systemd) |
-| web_editor | 8081 | Database management | Running (manual) |
+1. **Import**: start.gg API → Tournaments imported with `primaryContact` as organization name
+2. **Cleanup**: Web editor (8081) → Edit `display_name` to proper organization names
+3. **Access**: Discord bot or CLI → Shows edited display names
 
 ## Database Management
 
-### Using Web Interface
+### Using Web Interface (Recommended)
 1. Open browser to http://localhost:8081
-2. Click "View Unnamed Tournaments"
-3. Edit each tournament to assign proper organization name
-4. Use existing organizations or create new ones
+2. Click on organizations to edit their display names
+3. Changes are saved immediately
 
 ### Using Interactive Mode
 ```bash
@@ -100,61 +128,105 @@ tournament_tracker/
 
 ### Direct Database Access
 ```bash
-sqlite3 tournament_tracker.db
+sqlite3 tournament_tracker/tournament_tracker.db
 .tables  # Show all tables
 .schema  # Show table structures
 ```
 
 ## Dependencies
 
-- Python 3.12+
-- SQLAlchemy
-- httpx
-- alembic
-- requests
-
-All dependencies installed via apt:
 ```bash
+# Install all dependencies
+pip3 install --break-system-packages sqlalchemy alembic httpx discord.py
+
+# Or individually via apt (partial support)
 sudo apt install python3-sqlalchemy python3-httpx python3-alembic
+```
+
+## Common Tasks
+
+### Initial Setup
+```bash
+# Clone repository
+cd /home/ubuntu/claude/tournament_tracker
+
+# Install dependencies
+pip3 install --break-system-packages sqlalchemy alembic httpx discord.py
+
+# Setup Discord bot (replace with your token)
+./setup_services.sh setup-all YOUR_DISCORD_BOT_TOKEN
+
+# Initial data sync
+./go.py --sync
+
+# Edit organization names
+./go.py --edit-contacts
+```
+
+### Daily Operations
+```bash
+# Sync new tournaments
+./go.py --sync
+
+# Check statistics
+./go.py --stats
+
+# View rankings
+./go.py --console --limit 20
+
+# Or use Discord bot naturally
 ```
 
 ## Logs
 
 - Tournament tracker: `tournament_tracker.log`
+- Web editor: `editor_web.log`
+- Discord bot: `discord_bot.log`
 - Webhook server: `/var/log/webhook-server.log`
-- Web editor: `web_editor.log`
-
-## Maintenance
-
-### Restart Services
-```bash
-# Webhook server (systemd)
-sudo systemctl restart webhook-server
-
-# Web editor (manual)
-pkill -f web_editor.py
-python3 web_editor.py &
-```
-
-### Check Status
-```bash
-./go.py --stats  # Database statistics
-ps aux | grep -E "webhook|web_editor"  # Running processes
-```
 
 ## Attendance Rankings
 
-Current standings (as of last sync):
-- BACKYARD TRY-HARDS: #6 with 663 attendance
+View live rankings:
+- Console: `./go.py --console`
+- Discord: Ask "show top organizations"
+- Web: https://backyardtryhards.com/pages/attendance
 
-View live rankings at: https://backyardtryhards.com/pages/attendance
+## Troubleshooting
+
+### Services not running
+```bash
+./setup_services.sh status
+sudo systemctl restart tournament-web
+sudo systemctl restart discord-bot
+```
+
+### Database issues
+```bash
+# Check database integrity
+sqlite3 tournament_tracker.db "PRAGMA integrity_check;"
+
+# Reset and resync
+./go.py --sync
+```
+
+### Discord bot not responding
+```bash
+# Check logs
+sudo journalctl -u discord-bot -n 50
+
+# Verify token in .env.discord
+cat /home/ubuntu/claude/.env.discord
+
+# Restart
+sudo systemctl restart discord-bot
+```
 
 ## Contributing
 
 1. Test changes locally first
 2. Use the webhook server for automatic deployment
-3. Update CHANGELOG.md with significant changes
-4. Keep organization names consistent with official tournament listings
+3. Keep organization names consistent with official tournament listings
+4. Update documentation when adding features
 
 ## Contact
 

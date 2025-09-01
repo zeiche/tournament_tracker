@@ -11,6 +11,7 @@ from collections import defaultdict
 from database_utils import get_attendance_rankings, get_summary_stats
 from log_utils import log_info, log_debug, log_error
 from html_utils import load_template, get_timestamp
+from tournament_stylesheet import get_inline_styles, format_rank_badge
 
 def get_display_name(primary_contact, data, org_names):
     """Get the best display name for a contact group"""
@@ -89,25 +90,35 @@ def format_html_table(attendance_tracker, org_names):
         return generate_fallback_html(sorted_orgs, org_names, total_orgs, total_tournaments, grand_total_attendance, last_updated)
 
 def generate_fallback_html(sorted_orgs, org_names, total_orgs, total_tournaments, grand_total_attendance, last_updated):
-    """Generate fallback HTML when template is not available"""
-    html = f"""<div style="max-width:900px;margin:0 auto;padding:20px;font-family:sans-serif;">
-<h1 style="text-align:center;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:25px;border-radius:12px;">
-SoCal FGC Tournament Attendance</h1>
-<table style="width:100%;border-collapse:collapse;margin:20px 0;background:white;box-shadow:0 6px 25px rgba(0,0,0,0.15);border-radius:12px;overflow:hidden;">
-<thead><tr style="background:linear-gradient(135deg,#2c3e50,#34495e);color:white;">
-<th style="padding:15px 12px;text-align:center;">#</th>
-<th style="padding:15px 12px;">Organization</th>
-<th style="padding:15px 12px;text-align:center;">Tournaments</th>
-<th style="padding:15px 12px;text-align:center;">Attendance</th>
+    """Generate fallback HTML when template is not available using centralized styles"""
+    styles = get_inline_styles()
+    
+    html = f"""<div style="{styles['container']}">
+<h1 style="{styles['h1']}">SoCal FGC Tournament Attendance</h1>
+<table style="{styles['table']}">
+<thead><tr style="{styles['thead_tr']}">
+<th style="{styles['th']}">#</th>
+<th style="{styles['th_left']}">Organization</th>
+<th style="{styles['th']}">Tournaments</th>
+<th style="{styles['th']}">Attendance</th>
 </tr></thead><tbody>"""
     
     for rank, (primary_contact, data) in enumerate(sorted_orgs, 1):
         org_name = get_display_name(primary_contact, data, org_names)
         
-        style = "background:linear-gradient(135deg,#ff6b6b,#ee5a52);color:white;border-radius:6px;padding:6px 8px;" if rank <= 3 else ""
-        html += f"<tr><td style='padding:12px;text-align:center;{style}'>{rank}</td><td style='padding:12px;'>{org_name}</td><td style='padding:12px;text-align:center;'>{len(data['tournaments'])}</td><td style='padding:12px;text-align:center;font-weight:bold;'>{data['total_attendance']:,}</td></tr>"
+        # Use centralized rank formatting
+        rank_display = format_rank_badge(rank) if rank <= 3 else str(rank)
+        
+        html += f"""<tr>
+<td style='{styles["td_center"]}'>{rank_display}</td>
+<td style='{styles["td"]}'>{org_name}</td>
+<td style='{styles["td_center"]}'>{len(data['tournaments'])}</td>
+<td style='{styles["td_bold"]}'>{data['total_attendance']:,}</td>
+</tr>"""
     
-    html += f"</tbody></table><p style='text-align:center;color:#666;'>Last updated: {last_updated}<br><small>Data courtesy of start.gg</small></p></div>"
+    html += f"""</tbody></table>
+<p style='{styles["footer_text"]}'>Last updated: {last_updated}<br><small>Data courtesy of start.gg</small></p>
+</div>"""
     
     return html
 

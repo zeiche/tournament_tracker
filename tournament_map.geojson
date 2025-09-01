@@ -1,0 +1,855 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.2846672,
+          34.1375879
+        ]
+      },
+      "properties": {
+        "name": "Extraordinaire Arcade Q4 Tournament Series 2025",
+        "city": "San Bernardino",
+        "attendees": 9,
+        "venue": null,
+        "id": "820883"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0990153,
+          33.9541483
+        ]
+      },
+      "properties": {
+        "name": "LIMIT/BREAK #32: CHOSEN ANEW",
+        "city": "Pico Rivera",
+        "attendees": 3,
+        "venue": null,
+        "id": "821884"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.9446938,
+          34.0876503
+        ]
+      },
+      "properties": {
+        "name": "Wizard Nite Smash #2",
+        "city": "West Covina",
+        "attendees": 1,
+        "venue": null,
+        "id": "818678"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.1161944,
+          33.8642222
+        ]
+      },
+      "properties": {
+        "name": "Eye of the Storm #13 FGC at Mayfair",
+        "city": "Lakewood",
+        "attendees": 23,
+        "venue": null,
+        "id": "817537"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0991163,
+          33.954221
+        ]
+      },
+      "properties": {
+        "name": "Wild Smash Wednesday #153",
+        "city": "Pico Rivera",
+        "attendees": 0,
+        "venue": null,
+        "id": "823130"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.8338898,
+          33.6888762
+        ]
+      },
+      "properties": {
+        "name": "Coopers Irvine SSBU #131",
+        "city": "Irvine",
+        "attendees": 0,
+        "venue": null,
+        "id": "823430"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.3738382,
+          34.1640823
+        ]
+      },
+      "properties": {
+        "name": "Smash Wednesday #39 Casual Smash Ultimate w/ Drinking Rules",
+        "city": "Los Angeles",
+        "attendees": 0,
+        "venue": null,
+        "id": "820521"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.9410279,
+          34.1039123
+        ]
+      },
+      "properties": {
+        "name": "LAN Hero Monday #84",
+        "city": "Irwindale",
+        "attendees": 1,
+        "venue": null,
+        "id": "822773"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.6748808,
+          33.5732957
+        ]
+      },
+      "properties": {
+        "name": "Soul Melter Smash #62 - Powered by Gamer LatAm",
+        "city": "Laguna Hills",
+        "attendees": 0,
+        "venue": null,
+        "id": "823094"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.7065409,
+          34.1022065
+        ]
+      },
+      "properties": {
+        "name": "Claremont Clash #99.5",
+        "city": "Claremont",
+        "attendees": 4,
+        "venue": null,
+        "id": "822733"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0701549,
+          33.9720443
+        ]
+      },
+      "properties": {
+        "name": "Stein Sunday! Smash tournament!",
+        "city": "Whittier",
+        "attendees": 0,
+        "venue": null,
+        "id": "820537"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.2928249,
+          34.4697288
+        ]
+      },
+      "properties": {
+        "name": "Do or Di #13 - $100 Pot Bonus",
+        "city": "Hesperia",
+        "attendees": 8,
+        "venue": null,
+        "id": "821492"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.2833215,
+          33.7376104
+        ]
+      },
+      "properties": {
+        "name": "Port Town Beatdown #9",
+        "city": "Los Angeles",
+        "attendees": 1,
+        "venue": null,
+        "id": "823408"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.3172886,
+          34.1746046
+        ]
+      },
+      "properties": {
+        "name": "TRY-HARDS & Cal TERNA @ GAME REALMS",
+        "city": "Burbank",
+        "attendees": 37,
+        "venue": null,
+        "id": "816694"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.2434798,
+          34.2133604
+        ]
+      },
+      "properties": {
+        "name": "VIKING VERSUS",
+        "city": "Glendale",
+        "attendees": 7,
+        "venue": null,
+        "id": "816701"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0833706,
+          34.5790982
+        ]
+      },
+      "properties": {
+        "name": "Gameplay Palmdale",
+        "city": "Palmdale",
+        "attendees": 3,
+        "venue": null,
+        "id": "815637"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.7519535,
+          34.0575944
+        ]
+      },
+      "properties": {
+        "name": "THE SHOP SMASH SHOWDOWN",
+        "city": "Pomona",
+        "attendees": 11,
+        "venue": null,
+        "id": "813854"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.9410279,
+          34.1039123
+        ]
+      },
+      "properties": {
+        "name": "SMASHUP FRIDAY #1",
+        "city": "Irwindale",
+        "attendees": 11,
+        "venue": null,
+        "id": "823086"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.3750336,
+          33.9842971
+        ]
+      },
+      "properties": {
+        "name": "Game Lab Smash #188 (CRT Melee & Mario Strikers)",
+        "city": "Riverside",
+        "attendees": 19,
+        "venue": null,
+        "id": "815985"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.8200304,
+          34.0585684
+        ]
+      },
+      "properties": {
+        "name": "SSBU @ CPP F25 #1",
+        "city": "Pomona",
+        "attendees": 13,
+        "venue": null,
+        "id": "822463"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.1906183,
+          34.0361953
+        ]
+      },
+      "properties": {
+        "name": "Runback Thursdays  @ BYOG !!",
+        "city": "Los Angeles",
+        "attendees": 20,
+        "venue": null,
+        "id": "822855"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -119.039442,
+          34.21625
+        ]
+      },
+      "properties": {
+        "name": "Tip the Scales 132",
+        "city": "Camarillo",
+        "attendees": 7,
+        "venue": null,
+        "id": "823312"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0991163,
+          33.954221
+        ]
+      },
+      "properties": {
+        "name": "Wild Smash Wednesday #152",
+        "city": "Pico Rivera",
+        "attendees": 29,
+        "venue": null,
+        "id": "820772"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.8338898,
+          33.6888762
+        ]
+      },
+      "properties": {
+        "name": "Coopers Irvine SSBU #130",
+        "city": "Irvine",
+        "attendees": 16,
+        "venue": null,
+        "id": "821016"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.9410279,
+          34.1039123
+        ]
+      },
+      "properties": {
+        "name": "LAN Hero Monday #83",
+        "city": "Irwindale",
+        "attendees": 10,
+        "venue": null,
+        "id": "820875"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.1902976,
+          33.7829358
+        ]
+      },
+      "properties": {
+        "name": "GGC X Trademark #2",
+        "city": "Long Beach",
+        "attendees": 20,
+        "venue": null,
+        "id": "815557"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.2833215,
+          33.7376104
+        ]
+      },
+      "properties": {
+        "name": "Port Town Beatdown #8",
+        "city": "Los Angeles",
+        "attendees": 8,
+        "venue": null,
+        "id": "820379"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.3750336,
+          33.9842971
+        ]
+      },
+      "properties": {
+        "name": "Jabroni Jamboree 6 (Jabroni Returns)($300 Pot Bonus)",
+        "city": "Riverside",
+        "attendees": 16,
+        "venue": null,
+        "id": "815748"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0990153,
+          33.9541483
+        ]
+      },
+      "properties": {
+        "name": "LIMIT/BREAK #31: Fresh Start, New Day",
+        "city": "Pico Rivera",
+        "attendees": 29,
+        "venue": null,
+        "id": "820781"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.3750336,
+          33.9842971
+        ]
+      },
+      "properties": {
+        "name": "Game Lab Smash #187",
+        "city": "Riverside",
+        "attendees": 27,
+        "venue": null,
+        "id": "815981"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.1817943,
+          34.0545471
+        ]
+      },
+      "properties": {
+        "name": "Smash @ The Vault XI",
+        "city": "Redlands",
+        "attendees": 17,
+        "venue": null,
+        "id": "817153"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.1906183,
+          34.0361953
+        ]
+      },
+      "properties": {
+        "name": "Runback Thursday #26",
+        "city": "Los Angeles",
+        "attendees": 15,
+        "venue": null,
+        "id": "820485"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0991163,
+          33.954221
+        ]
+      },
+      "properties": {
+        "name": "Wild Smash Wednesday #151",
+        "city": "Pico Rivera",
+        "attendees": 57,
+        "venue": null,
+        "id": "818420"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.8338898,
+          33.6888762
+        ]
+      },
+      "properties": {
+        "name": "Coopers Irvine SSBU #129",
+        "city": "Irvine",
+        "attendees": 24,
+        "venue": null,
+        "id": "818716"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.9207156,
+          34.3963519
+        ]
+      },
+      "properties": {
+        "name": "Try-Hards @ Red Engine: Brew Battles #16",
+        "city": "Fillmore",
+        "attendees": 7,
+        "venue": null,
+        "id": "819269"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.1074672,
+          34.1209904
+        ]
+      },
+      "properties": {
+        "name": "Shark Tank #159: Fist Bump the World",
+        "city": "San Marino",
+        "attendees": 46,
+        "venue": null,
+        "id": "815596"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.9410279,
+          34.1039123
+        ]
+      },
+      "properties": {
+        "name": "LAN_Hero Monday at The Barracks #82 Under New Management",
+        "city": "Irwindale",
+        "attendees": 12,
+        "venue": null,
+        "id": "818301"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.3750336,
+          33.9842971
+        ]
+      },
+      "properties": {
+        "name": "Super Game Lab Smash #10 (Crew Battle?)",
+        "city": "Riverside",
+        "attendees": 90,
+        "venue": null,
+        "id": "815999"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.3750336,
+          33.9842971
+        ]
+      },
+      "properties": {
+        "name": "Game Lab Smash #186 (Ft. Melee & Smash 4)",
+        "city": "Riverside",
+        "attendees": 25,
+        "venue": null,
+        "id": "815974"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.1906183,
+          34.0361953
+        ]
+      },
+      "properties": {
+        "name": "Runback Thursday\u2019s #25",
+        "city": "Los Angeles",
+        "attendees": 14,
+        "venue": null,
+        "id": "817842"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -119.039442,
+          34.21625
+        ]
+      },
+      "properties": {
+        "name": "Tip The Scales 131",
+        "city": "Camarillo",
+        "attendees": 12,
+        "venue": null,
+        "id": "818395"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0991163,
+          33.954221
+        ]
+      },
+      "properties": {
+        "name": "Wild Smash Wednesday #150 - $150 in pot bonuses!",
+        "city": "Pico Rivera",
+        "attendees": 43,
+        "venue": null,
+        "id": "816118"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.8338898,
+          33.6888762
+        ]
+      },
+      "properties": {
+        "name": "Coopers Irvine SSBU #128",
+        "city": "Irvine",
+        "attendees": 21,
+        "venue": null,
+        "id": "816274"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.1074672,
+          34.1209904
+        ]
+      },
+      "properties": {
+        "name": "Shark Tank #158: International Waters",
+        "city": "San Marino",
+        "attendees": 35,
+        "venue": null,
+        "id": "815590"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.9410279,
+          34.1039123
+        ]
+      },
+      "properties": {
+        "name": "LAN_Hero Mondays @ The Barracks (Ft. HylianDave) #81",
+        "city": "Irwindale",
+        "attendees": 28,
+        "venue": null,
+        "id": "816056"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.6748808,
+          33.5732957
+        ]
+      },
+      "properties": {
+        "name": "Soul Melter Smash #61 - Powered by Gamer LatAm",
+        "city": "Laguna Hills",
+        "attendees": 22,
+        "venue": null,
+        "id": "816360"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.7127297,
+          34.1055136
+        ]
+      },
+      "properties": {
+        "name": "Claremont Clash #99",
+        "city": "Claremont",
+        "attendees": 5,
+        "venue": null,
+        "id": "812010"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.4438562,
+          34.2182417
+        ]
+      },
+      "properties": {
+        "name": "Hero Invitational 2",
+        "city": "Los Angeles",
+        "attendees": 17,
+        "venue": null,
+        "id": "805252"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -118.0797009,
+          33.9731835
+        ]
+      },
+      "properties": {
+        "name": "LIMIT/BREAK #30: \uff33\uff35\uff30\uff25\uff32\uff0f\uff2e\uff2f\uff36\uff21",
+        "city": "Whittier",
+        "attendees": 29,
+        "venue": null,
+        "id": "815671"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.3750336,
+          33.9842971
+        ]
+      },
+      "properties": {
+        "name": "Game Lab Smash #185 (Road to Super GLS)",
+        "city": "Riverside",
+        "attendees": 28,
+        "venue": null,
+        "id": "815958"
+      }
+    }
+  ]
+}
