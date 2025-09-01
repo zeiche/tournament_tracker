@@ -19,6 +19,7 @@ Tournament Tracker is a Python application for tracking and managing Fighting Ga
 ./go.py --html report.html        # Generate HTML report
 ./go.py --fetch-standings          # Fetch top 8 standings for major tournaments
 ./go.py --interactive              # Run interactive mode
+./go.py --edit-contacts            # Launch web editor for contact management
 ```
 
 ### Testing
@@ -29,8 +30,9 @@ python3 startgg_test.py
 
 ### Database Management
 ```bash
-# Run the TUI editor for managing contacts/organizations
-python3 editor.py
+# Web editor for managing contacts/organizations (preferred)
+./go.py --edit-contacts
+# Access at http://localhost:8081 with browser or lynx
 
 # Database migrations (using Alembic)
 alembic upgrade head
@@ -49,7 +51,9 @@ alembic upgrade head
 - **tournament_report.py**: HTML and console report generation
 - **database_queue.py**: Queue-based database operations for performance
 - **log_utils.py**: Centralized logging system with context support
-- **editor.py**: Curses-based TUI for editing tournament contacts
+- **html_utils.py**: Shared HTML generation utilities for consistent UI
+- **editor_core.py**: Core business logic for editing tournament contacts
+- **editor_web.py**: Web interface for contact management (replaces old editor.py)
 - **shopify_query.py**: Shopify integration for merchandise data
 - **shopify_publish.py**: Publishing tournament data to Shopify
 

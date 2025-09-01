@@ -10,6 +10,7 @@ import time
 from collections import defaultdict
 from database_utils import get_attendance_rankings, get_summary_stats
 from log_utils import log_info, log_debug, log_error
+from html_utils import load_template, get_timestamp
 
 def get_display_name(primary_contact, data, org_names):
     """Get the best display name for a contact group"""
@@ -35,13 +36,6 @@ def get_display_name(primary_contact, data, org_names):
     # Otherwise return the primary contact
     return primary_contact
 
-def load_template(template_name):
-    """Load HTML template from current directory"""
-    try:
-        with open(template_name, "r") as f:
-            return f.read()
-    except FileNotFoundError:
-        return None
 
 def format_html_table(attendance_tracker, org_names):
     """Generate complete HTML table from attendance data using templates"""
@@ -58,14 +52,8 @@ def format_html_table(attendance_tracker, org_names):
     grand_total_attendance = sum(org[1]["total_attendance"] for org in sorted_orgs)
     total_tournaments = sum(len(org[1]["tournaments"]) for org in sorted_orgs)
     
-    # Generate Pacific time timestamp
-    from datetime import timezone, timedelta
-    pacific_offset = timedelta(hours=-7)  # August is PDT
-    pacific_tz = timezone(pacific_offset)
-    
-    utc_now = datetime.datetime.now(timezone.utc)
-    pacific_time = utc_now.astimezone(pacific_tz)
-    last_updated = pacific_time.strftime("%B %d, %Y at %I:%M %p Pacific")
+    # Get timestamp using shared utility
+    last_updated = get_timestamp()
     
     html_template = load_template("tournament_table.html")
     

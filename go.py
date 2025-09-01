@@ -36,6 +36,10 @@ def main():
     parser.add_argument('--interactive', '-i', action='store_true', help='Start interactive mode')
     parser.add_argument('--database-url', help='Database URL (default: SQLite)')
     
+    # Editor options
+    parser.add_argument('--edit-contacts', action='store_true', help='Launch web editor for contact management')
+    parser.add_argument('--editor-port', type=int, default=8081, help='Port for web editor (default: 8081)')
+    
     args = parser.parse_args()
     
     # Handle help case FIRST - before any database operations
@@ -73,6 +77,12 @@ def main():
         if args.interactive:
             from go_interactive import start_interactive_mode
             start_interactive_mode(database_url=args.database_url)
+        
+        if args.edit_contacts:
+            # Ensure database is initialized
+            tracker._ensure_db_initialized()
+            from editor_web import run_server
+            run_server(port=args.editor_port)
             
     except KeyboardInterrupt:
         print("\nInterrupted by user")

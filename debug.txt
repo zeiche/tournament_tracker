@@ -1,4 +1,7 @@
 INFO  [tracker] Starting Tournament Tracker
 INFO  [operations] Starting tournament_tracker_session
-INFO  [tracker] Starting Tournament Tracker
-INFO  [operations] Starting tournament_tracker_session
+INFO  [tracker] Initializing database connection
+INFO  Starting web editor on http://127.0.0.1:8081
+INFO  Found 50 tournaments with unnamed contacts
+INFO  Found 50 tournaments with unnamed contacts
+INFO  Found 50 tournaments with unnamed contacts
