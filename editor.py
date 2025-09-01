@@ -1,4 +1,4 @@
-i#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 contact_editor.py - Multi-column Curses TUI for primary contact cleanup
 Shows tournaments with UN-NAMED primary contacts that need organization names
