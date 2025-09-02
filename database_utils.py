@@ -6,7 +6,7 @@ import os
 import re
 from datetime import datetime
 from contextlib import contextmanager
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, case, or_, desc
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 # Global session registry
@@ -520,4 +520,101 @@ def run_deduplication():
         
     else:
         print("No organizations were merged")
+
+
+def get_player_rankings(limit=50, event_type='all', min_tournaments=2):
+    """
+    Get player rankings based on placement points
+    
+    Args:
+        limit: Number of top players to return
+        event_type: 'all', 'singles', 'doubles', or specific event name
+        min_tournaments: Minimum tournaments to qualify for ranking
+    
+    Returns:
+        List of dicts with player rankings
+    """
+    from tournament_models import Player, TournamentPlacement
+    
+    # Points system for placements
+    PLACEMENT_POINTS = {
+        1: 100,  # 1st place
+        2: 70,   # 2nd place  
+        3: 50,   # 3rd place
+        4: 35,   # 4th place
+        5: 25,   # 5th-6th
+        6: 25,
+        7: 15,   # 7th-8th
+        8: 15
+    }
+    
+    with get_session() as session:
+        # Build query
+        query = session.query(
+            Player,
+            func.sum(
+                case(
+                    *[(TournamentPlacement.placement == p, PLACEMENT_POINTS[p]) 
+                      for p in PLACEMENT_POINTS.keys()],
+                    else_=0
+                )
+            ).label('total_points'),
+            func.count(TournamentPlacement.id).label('tournament_count'),
+            func.sum(case((TournamentPlacement.placement == 1, 1), else_=0)).label('first_places'),
+            func.sum(case((TournamentPlacement.placement == 2, 1), else_=0)).label('second_places'),
+            func.sum(case((TournamentPlacement.placement == 3, 1), else_=0)).label('third_places')
+        ).join(
+            TournamentPlacement
+        )
+        
+        # Filter by event type
+        if event_type == 'singles':
+            # Filter for singles events
+            query = query.filter(
+                ~TournamentPlacement.event_name.ilike('%doubles%'),
+                ~TournamentPlacement.event_name.ilike('%teams%'),
+                ~TournamentPlacement.event_name.ilike('%crew%'),
+                ~TournamentPlacement.event_name.ilike('%2v2%'),
+                ~TournamentPlacement.event_name.ilike('%tag%')
+            )
+        elif event_type == 'doubles':
+            # Filter for doubles/teams events
+            query = query.filter(
+                or_(
+                    TournamentPlacement.event_name.ilike('%doubles%'),
+                    TournamentPlacement.event_name.ilike('%teams%'),
+                    TournamentPlacement.event_name.ilike('%2v2%'),
+                    TournamentPlacement.event_name.ilike('%tag%')
+                )
+            )
+        elif event_type != 'all':
+            # Filter by specific event name
+            query = query.filter(TournamentPlacement.event_name.ilike(f'%{event_type}%'))
+        
+        # Group by player and filter by minimum tournaments
+        query = query.group_by(Player.id)
+        query = query.having(func.count(TournamentPlacement.id) >= min_tournaments)
+        
+        # Order by total points
+        query = query.order_by(desc('total_points'))
+        query = query.limit(limit)
+        
+        results = query.all()
+        
+        rankings = []
+        for rank, (player, points, tournaments, firsts, seconds, thirds) in enumerate(results, 1):
+            rankings.append({
+                'rank': rank,
+                'player_id': player.id,
+                'gamer_tag': player.gamer_tag,
+                'name': player.name,
+                'total_points': int(points),
+                'tournament_count': tournaments,
+                'first_places': firsts,
+                'second_places': seconds,
+                'third_places': thirds,
+                'avg_points': round(points / tournaments, 1) if tournaments > 0 else 0
+            })
+        
+        return rankings
 

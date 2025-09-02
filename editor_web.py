@@ -25,6 +25,8 @@ from log_utils import log_info
 from shopify_query import get_legacy_attendance_data
 from tournament_report import get_display_name
 from database_utils import get_summary_stats
+from conversational_search import search as conversational_search, get_suggestions
+import json
 
 class EditorWebHandler(BaseHTTPRequestHandler):
     """Web handler using shared HTML utilities"""
@@ -35,12 +37,32 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         
         if parsed.path == '/':
             self.serve_home()
+        elif parsed.path == '/search':
+            self.serve_search()
+        elif parsed.path == '/api/search':
+            query_params = urllib.parse.parse_qs(parsed.query)
+            query = query_params.get('q', [''])[0]
+            self.serve_search_api(query)
+        elif parsed.path == '/api/suggestions':
+            query_params = urllib.parse.parse_qs(parsed.query)
+            partial = query_params.get('q', [''])[0]
+            self.serve_suggestions_api(partial)
         elif parsed.path == '/unnamed':
             self.serve_unnamed()
         elif parsed.path == '/organizations':
             self.serve_organizations()
         elif parsed.path == '/attendance':
             self.serve_attendance_report()
+        elif parsed.path == '/heatmap' or parsed.path.startswith('/heatmap/'):
+            # Extract year from path if provided
+            if parsed.path == '/heatmap' or parsed.path == '/heatmap/':
+                year = 2025
+            else:
+                try:
+                    year = int(parsed.path.split('/')[-1])
+                except ValueError:
+                    year = 2025
+            self.serve_heatmap(year)
         elif parsed.path.startswith('/edit/'):
             tournament_id = int(parsed.path.split('/')[-1])
             self.serve_edit_form(tournament_id)
@@ -85,6 +107,7 @@ class EditorWebHandler(BaseHTTPRequestHandler):
     def serve_home(self):
         """Serve the home page using shared utilities"""
         nav_links = [
+            ('/search', '🚀 Universal Search'),
             ('/attendance', 'Attendance Report'),
             ('/unnamed', 'View Unnamed Tournaments'),
             ('/organizations', 'View All Organizations')
@@ -392,6 +415,163 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(page.encode())
     
+    def serve_heatmap(self):
+        """Serve an interactive heat map of 2025 tournaments"""
+        from database_utils import get_session
+        from tournament_models import Tournament
+        import json
+        from datetime import datetime
+        
+        nav_links = [
+            ('/', 'Home'),
+            ('/unnamed', 'Edit Unnamed'),
+            ('/organizations', 'Organizations'),
+            ('/attendance', 'Attendance Report'),
+            ('/heatmap', 'Heat Map')
+        ]
+        
+        # Get 2025 tournament data
+        heat_data = []
+        with get_session() as session:
+            tournaments = session.query(Tournament).filter(
+                Tournament.lat.isnot(None),
+                Tournament.lng.isnot(None),
+                Tournament.start_at.like('2025%')
+            ).all()
+            
+            for t in tournaments:
+                try:
+                    lat = float(t.lat)
+                    lng = float(t.lng)
+                    heat_data.append({
+                        'lat': lat,
+                        'lng': lng,
+                        'name': t.name or 'Unknown',
+                        'venue': t.venue_name or 'Unknown',
+                        'city': t.city or 'Unknown',
+                        'attendance': t.num_attendees or 0,
+                        'date': t.start_at or 'Unknown'
+                    })
+                except (ValueError, TypeError):
+                    continue
+        
+        # Generate the interactive map HTML
+        content = f'''
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+        
+        <div id="map" style="height: 600px; width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></div>
+        
+        <div class="stats-grid" style="margin-top: 20px;">
+            <div class="stat-card">
+                <h3>Total Tournaments</h3>
+                <p class="stat-value">{len(heat_data)}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Attendance</h3>
+                <p class="stat-value">{sum(t["attendance"] for t in heat_data):,}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Unique Venues</h3>
+                <p class="stat-value">{len(set(t["venue"] for t in heat_data))}</p>
+            </div>
+        </div>
+        
+        <script>
+        var heatData = {json.dumps(heat_data)};
+        
+        // Initialize map centered on SoCal
+        var map = L.map('map').setView([33.8, -117.9], 9);
+        
+        // Add dark tile layer
+        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }}).addTo(map);
+        
+        // Add heat layer
+        var heatPoints = heatData.map(function(t) {{
+            return [t.lat, t.lng, Math.log10(Math.max(t.attendance, 1))];
+        }});
+        
+        if (heatPoints.length > 0) {{
+            L.heatLayer(heatPoints, {{
+                radius: 20,
+                blur: 15,
+                gradient: {{
+                    0.0: 'blue',
+                    0.25: 'cyan',
+                    0.5: 'lime',
+                    0.75: 'yellow',
+                    1.0: 'red'
+                }}
+            }}).addTo(map);
+        }}
+        
+        // Add markers for each tournament
+        heatData.forEach(function(t) {{
+            var color = t.attendance > 100 ? 'red' : 
+                       t.attendance > 50 ? 'orange' : 'blue';
+            
+            var marker = L.circleMarker([t.lat, t.lng], {{
+                radius: Math.sqrt(t.attendance) / 2,
+                fillColor: color,
+                color: 'white',
+                weight: 1,
+                opacity: 0.8,
+                fillOpacity: 0.4
+            }}).addTo(map);
+            
+            marker.bindPopup(
+                '<b>' + t.name + '</b><br>' +
+                'Venue: ' + t.venue + '<br>' +
+                'City: ' + t.city + '<br>' +
+                'Attendance: ' + t.attendance + '<br>' +
+                'Date: ' + t.date
+            );
+        }});
+        </script>
+        
+        <style>
+        .stats-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }}
+        .stat-card {{
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }}
+        .stat-card h3 {{
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 14px;
+        }}
+        .stat-value {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #212529;
+            margin: 0;
+        }}
+        </style>
+        '''
+        
+        page = wrap_page(
+            content,
+            title="2025 Tournament Heat Map",
+            subtitle="Interactive visualization of SoCal FGC tournaments",
+            nav_links=nav_links
+        )
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(page.encode())
+    
     def serve_edit_org_form(self, org_id):
         """Serve edit form for an organization"""
         from database_utils import get_session
@@ -538,6 +718,418 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         except Exception as e:
             log_info(f"Error updating organization {org_id}: {e}")
             return False
+    
+    def serve_search(self):
+        """Serve the conversational search page"""
+        # Space-age search interface
+        content = """
+        <style>
+            .search-container {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 20px;
+                padding: 40px;
+                margin: 20px 0;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            
+            .search-title {
+                color: white;
+                text-align: center;
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            }
+            
+            .search-subtitle {
+                color: rgba(255,255,255,0.9);
+                text-align: center;
+                font-size: 1.2em;
+                margin-bottom: 30px;
+            }
+            
+            .search-box {
+                position: relative;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            
+            #searchInput {
+                width: 100%;
+                padding: 20px 60px 20px 25px;
+                font-size: 1.3em;
+                border: none;
+                border-radius: 50px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                transition: all 0.3s;
+            }
+            
+            #searchInput:focus {
+                outline: none;
+                box-shadow: 0 10px 50px rgba(0,0,0,0.4);
+                transform: translateY(-2px);
+            }
+            
+            .search-button {
+                position: absolute;
+                right: 5px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+                border: none;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                cursor: pointer;
+                transition: all 0.3s;
+                color: white;
+                font-size: 1.5em;
+            }
+            
+            .search-button:hover {
+                transform: translateY(-50%) scale(1.1);
+                box-shadow: 0 5px 20px rgba(238,90,82,0.4);
+            }
+            
+            .suggestions {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border-radius: 15px;
+                margin-top: 10px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                display: none;
+                z-index: 1000;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+            
+            .suggestion-item {
+                padding: 15px 25px;
+                cursor: pointer;
+                transition: background 0.2s;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            
+            .suggestion-item:hover {
+                background: #f8f9fa;
+            }
+            
+            .suggestion-item:last-child {
+                border-bottom: none;
+            }
+            
+            .example-queries {
+                text-align: center;
+                margin-top: 30px;
+                color: rgba(255,255,255,0.9);
+            }
+            
+            .example-chip {
+                display: inline-block;
+                background: rgba(255,255,255,0.2);
+                padding: 8px 16px;
+                border-radius: 20px;
+                margin: 5px;
+                cursor: pointer;
+                transition: all 0.3s;
+                backdrop-filter: blur(10px);
+            }
+            
+            .example-chip:hover {
+                background: rgba(255,255,255,0.3);
+                transform: translateY(-2px);
+            }
+            
+            #results {
+                margin-top: 30px;
+            }
+            
+            .result-card {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 15px 0;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                transition: all 0.3s;
+            }
+            
+            .result-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+            
+            .result-type {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 15px;
+                font-size: 0.85em;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }
+            
+            .type-organization {
+                background: #e3f2fd;
+                color: #1976d2;
+            }
+            
+            .type-tournament {
+                background: #f3e5f5;
+                color: #7b1fa2;
+            }
+            
+            .type-venue {
+                background: #e8f5e9;
+                color: #388e3c;
+            }
+            
+            .result-title {
+                font-size: 1.3em;
+                font-weight: bold;
+                margin: 10px 0;
+            }
+            
+            .result-details {
+                color: #666;
+                line-height: 1.6;
+            }
+            
+            .search-stats {
+                text-align: center;
+                color: #666;
+                margin: 20px 0;
+                font-style: italic;
+            }
+            
+            .loading {
+                text-align: center;
+                padding: 40px;
+                color: #999;
+            }
+            
+            .loading::after {
+                content: '';
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid #667eea;
+                border-radius: 50%;
+                border-top-color: transparent;
+                animation: spin 0.8s linear infinite;
+                margin-left: 10px;
+            }
+            
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
+        
+        <div class="search-container">
+            <h2 class="search-title">🚀 Universal Search</h2>
+            <p class="search-subtitle">Just type what you're looking for - I understand natural language!</p>
+            
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Try: tournaments with over 100 people, or SoCal FGC, or recent events..."
+                    autocomplete="off"
+                >
+                <button class="search-button" onclick="performSearch()">🔍</button>
+                <div class="suggestions" id="suggestions"></div>
+            </div>
+            
+            <div class="example-queries">
+                <div class="example-chip" onclick="setQuery('tournaments with over 100 attendees')">
+                    tournaments with over 100 attendees
+                </div>
+                <div class="example-chip" onclick="setQuery('top organizations by attendance')">
+                    top organizations by attendance
+                </div>
+                <div class="example-chip" onclick="setQuery('venues with most events')">
+                    venues with most events
+                </div>
+                <div class="example-chip" onclick="setQuery('recent tournaments in 2025')">
+                    recent tournaments in 2025
+                </div>
+            </div>
+        </div>
+        
+        <div id="results"></div>
+        
+        <script>
+            let searchTimeout;
+            let suggestTimeout;
+            
+            function setQuery(query) {
+                document.getElementById('searchInput').value = query;
+                performSearch();
+            }
+            
+            function performSearch() {
+                const query = document.getElementById('searchInput').value;
+                if (!query) return;
+                
+                document.getElementById('results').innerHTML = '<div class="loading">Searching the universe</div>';
+                document.getElementById('suggestions').style.display = 'none';
+                
+                fetch('/api/search?q=' + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(data => {
+                        displayResults(data);
+                    })
+                    .catch(error => {
+                        document.getElementById('results').innerHTML = 
+                            '<div class="result-card">Error: ' + error + '</div>';
+                    });
+            }
+            
+            function displayResults(data) {
+                const resultsDiv = document.getElementById('results');
+                
+                if (data.count === 0) {
+                    resultsDiv.innerHTML = '<div class="result-card">No results found. Try a different query!</div>';
+                    return;
+                }
+                
+                let html = '<div class="search-stats">Found ' + data.count + ' results for "' + 
+                          data.query + '"</div>';
+                
+                data.results.forEach(result => {
+                    html += '<div class="result-card">';
+                    html += '<span class="result-type type-' + result.type + '">' + 
+                           result.type.toUpperCase() + '</span>';
+                    
+                    if (result.type === 'organization') {
+                        html += '<div class="result-title">' + result.name + '</div>';
+                        html += '<div class="result-details">';
+                        html += 'Total Attendance: <strong>' + result.total_attendance.toLocaleString() + '</strong><br>';
+                        html += 'Tournaments: <strong>' + result.tournament_count + '</strong><br>';
+                        html += 'Average: <strong>' + Math.round(result.avg_attendance) + '</strong> per event';
+                        html += ' <a href="/edit_org/' + result.id + '" style="margin-left: 20px;">Edit</a>';
+                        html += '</div>';
+                    } else if (result.type === 'tournament') {
+                        html += '<div class="result-title">' + result.name + '</div>';
+                        html += '<div class="result-details">';
+                        html += 'Attendance: <strong>' + result.attendance + '</strong><br>';
+                        html += 'Venue: ' + result.venue + '<br>';
+                        if (result.date !== 'Unknown') {
+                            html += 'Date: ' + new Date(result.date).toLocaleDateString();
+                        }
+                        html += '</div>';
+                    } else if (result.type === 'venue') {
+                        html += '<div class="result-title">' + result.name + '</div>';
+                        html += '<div class="result-details">';
+                        html += 'Total Events: <strong>' + result.event_count + '</strong><br>';
+                        html += 'Total Attendance: <strong>' + result.total_attendance.toLocaleString() + '</strong><br>';
+                        html += 'Average: <strong>' + Math.round(result.avg_attendance) + '</strong> per event';
+                        html += '</div>';
+                    }
+                    
+                    html += '</div>';
+                });
+                
+                resultsDiv.innerHTML = html;
+            }
+            
+            // Auto-suggestions as you type
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                clearTimeout(suggestTimeout);
+                const query = e.target.value;
+                
+                if (query.length < 2) {
+                    document.getElementById('suggestions').style.display = 'none';
+                    return;
+                }
+                
+                suggestTimeout = setTimeout(() => {
+                    fetch('/api/suggestions?q=' + encodeURIComponent(query))
+                        .then(response => response.json())
+                        .then(suggestions => {
+                            displaySuggestions(suggestions);
+                        });
+                }, 300);
+            });
+            
+            function displaySuggestions(suggestions) {
+                const suggestDiv = document.getElementById('suggestions');
+                
+                if (suggestions.length === 0) {
+                    suggestDiv.style.display = 'none';
+                    return;
+                }
+                
+                let html = '';
+                suggestions.forEach(suggestion => {
+                    html += '<div class="suggestion-item" onclick="setQuery(\\'' + 
+                           suggestion.replace(/'/g, "\\\\'") + '\\')">' + suggestion + '</div>';
+                });
+                
+                suggestDiv.innerHTML = html;
+                suggestDiv.style.display = 'block';
+            }
+            
+            // Enter key to search
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+            
+            // Click outside to hide suggestions
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.search-box')) {
+                    document.getElementById('suggestions').style.display = 'none';
+                }
+            });
+        </script>
+        """
+        
+        page = wrap_page(
+            content,
+            'Universal Search',
+            nav_links=[
+                ('/', 'Home'),
+                ('/attendance', 'Attendance Report'),
+                ('/organizations', 'Organizations')
+            ]
+        )
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(page.encode())
+    
+    def serve_search_api(self, query):
+        """API endpoint for search"""
+        try:
+            results = conversational_search(query)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(results).encode())
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
+    
+    def serve_suggestions_api(self, partial):
+        """API endpoint for search suggestions"""
+        try:
+            suggestions = get_suggestions(partial)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(suggestions).encode())
+        except Exception as e:
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps([]).encode())
 
 def run_server(port=8081, host='127.0.0.1'):
     """Run the web server - to be called from go.py"""

@@ -578,8 +578,13 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
             log_info(f"Fetching standings for top {standings_limit} tournaments", "sync")
             
             # Sort by attendance and take top tournaments
+            # Filter out tournaments with None attendees
+            valid_tournaments = [
+                t for t in tournaments 
+                if t.get('numAttendees') is not None and t.get('numAttendees', 0) > 30
+            ]
             major_tournaments = sorted(
-                [t for t in tournaments if t.get('numAttendees', 0) > 30],
+                valid_tournaments,
                 key=lambda x: x.get('numAttendees', 0),
                 reverse=True
             )[:standings_limit]

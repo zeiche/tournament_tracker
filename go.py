@@ -44,6 +44,14 @@ def main():
     parser.add_argument('--setup-discord', metavar='TOKEN', help='Setup Discord bot service with token')
     parser.add_argument('--setup-services', metavar='TOKEN', help='Setup both web and Discord services')
     parser.add_argument('--service-status', action='store_true', help='Check status of services')
+    parser.add_argument('--restart-discord', action='store_true', help='Restart Discord bot service')
+    parser.add_argument('--restart-services', action='store_true', help='Restart all services')
+    
+    # AI interface options
+    parser.add_argument('--ai-chat', action='store_true', help='Launch terminal AI chat interface')
+    parser.add_argument('--ai-web', action='store_true', help='Launch web-based AI chat interface')
+    parser.add_argument('--ai-web-port', type=int, default=8082, help='Port for AI web chat (default: 8082)')
+    parser.add_argument('--ai-ask', metavar='QUESTION', help='Ask AI a single question')
     
     args = parser.parse_args()
     
@@ -67,6 +75,54 @@ def main():
         import subprocess
         result = subprocess.run(['/home/ubuntu/claude/setup_services.sh', 'status'])
         return result.returncode
+    
+    if args.restart_discord:
+        import subprocess
+        print("Restarting Discord bot...")
+        result = subprocess.run(['sudo', 'systemctl', 'restart', 'discord-bot'])
+        if result.returncode == 0:
+            print("✅ Discord bot restarted successfully")
+        else:
+            print("❌ Failed to restart Discord bot")
+        return result.returncode
+    
+    if args.restart_services:
+        import subprocess
+        print("Restarting all services...")
+        subprocess.run(['sudo', 'systemctl', 'restart', 'tournament-web'])
+        result = subprocess.run(['sudo', 'systemctl', 'restart', 'discord-bot'])
+        if result.returncode == 0:
+            print("✅ All services restarted successfully")
+        else:
+            print("❌ Failed to restart services")
+        return result.returncode
+    
+    # Handle AI interface options
+    if args.ai_chat:
+        print("Launching AI chat interface...")
+        import subprocess
+        result = subprocess.run([sys.executable, 'ai_curses_chat.py'])
+        return result.returncode
+    
+    if args.ai_web:
+        print(f"Starting AI web chat on port {args.ai_web_port}...")
+        print(f"Access at: http://localhost:{args.ai_web_port}")
+        import subprocess
+        env = os.environ.copy()
+        env['AI_CHAT_PORT'] = str(args.ai_web_port)
+        result = subprocess.run([sys.executable, 'ai_web_chat.py'], env=env)
+        return result.returncode
+    
+    if args.ai_ask:
+        from ai_service import get_ai_service, ChannelType
+        ai = get_ai_service()
+        if not ai.enabled:
+            print("⚠️  AI service not enabled. Set ANTHROPIC_API_KEY to enable.")
+            return 1
+        print("Getting AI response...")
+        response = ai.get_response_sync(args.ai_ask, ChannelType.GENERAL)
+        print("\n" + response)
+        return 0
     
     try:
         # Create TournamentTracker for database operations
