@@ -10,7 +10,7 @@ from database_utils import get_session
 from tournament_models import Tournament
 from log_utils import log_info, log_error
 
-def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150):
+def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_map_background=True):
     """
     Generate a static heat map image of tournament locations
     Focused on Southern California region
@@ -20,8 +20,10 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150):
         import matplotlib.cm as cm
         from matplotlib.colors import LinearSegmentedColormap
         from scipy.stats import gaussian_kde
-    except ImportError:
-        log_error("matplotlib or scipy not installed. Run: pip3 install matplotlib scipy", "heatmap")
+        if use_map_background:
+            import contextily as ctx
+    except ImportError as e:
+        log_error(f"Missing dependencies: {e}. Run: pip3 install matplotlib scipy contextily", "heatmap")
         return False
     
     log_info("Generating static heat map", "heatmap")
@@ -63,13 +65,31 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150):
     
     log_info(f"Processing {len(lats)} tournament locations", "heatmap")
     
-    # Create figure with dark background
-    fig, ax = plt.subplots(figsize=(16, 12), facecolor='#1a1a1a')
-    ax.set_facecolor('#1a1a1a')
+    # Create figure
+    if use_map_background:
+        fig, ax = plt.subplots(figsize=(16, 12), facecolor='white')
+        ax.set_facecolor('white')
+    else:
+        fig, ax = plt.subplots(figsize=(16, 12), facecolor='#1a1a1a')
+        ax.set_facecolor('#1a1a1a')
     
     # Set map boundaries (SoCal region)
     lng_min, lng_max = -119, -116
     lat_min, lat_max = 32.5, 34.5
+    
+    # Add map background if requested
+    if use_map_background:
+        try:
+            # Add OpenStreetMap tiles as background
+            ctx.add_basemap(ax, 
+                          crs='EPSG:4326',  # Lat/lng coordinate system
+                          source=ctx.providers.CartoDB.Positron,  # Light map style
+                          zoom=10,
+                          alpha=0.9)
+            log_info("Added map background", "heatmap")
+        except Exception as e:
+            log_error(f"Could not add map background: {e}", "heatmap")
+            use_map_background = False  # Fall back to no background
     
     # Create density estimation
     xy = np.vstack([lngs, lats])
@@ -87,18 +107,32 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150):
         density = np.zeros_like(xx)
         density[len(density)//2, len(density[0])//2] = 1
     
-    # Create custom colormap (dark to bright heat)
-    colors = ['#000033', '#000055', '#0000ff', '#0055ff', '#00ffff', 
-              '#55ff00', '#ffff00', '#ff5500', '#ff0000', '#ffffff']
+    # Create custom colormap
+    if use_map_background:
+        # Red/orange heat colors for map background
+        colors = ['#00000000', '#ff000033', '#ff330066', '#ff660099',
+                 '#ff9900cc', '#ffcc00ee', '#ffff00ff']
+        cmap_alpha = 0.5
+    else:
+        # Original blue/white colors for dark background
+        colors = ['#000033', '#000055', '#0000ff', '#0055ff', '#00ffff', 
+                 '#55ff00', '#ffff00', '#ff5500', '#ff0000', '#ffffff']
+        cmap_alpha = 0.8
+        
     n_bins = 256
     cmap = LinearSegmentedColormap.from_list('tournament_heat', colors, N=n_bins)
     
     # Plot heat map
     im = ax.imshow(np.rot90(density), extent=[lng_min, lng_max, lat_min, lat_max],
-                   cmap=cmap, alpha=0.8, aspect='auto')
+                   cmap=cmap, alpha=cmap_alpha, aspect='auto')
     
     # Plot individual tournaments as points
-    scatter = ax.scatter(lngs, lats, c='white', s=weights, alpha=0.3, edgecolors='cyan', linewidth=0.5)
+    if use_map_background:
+        scatter = ax.scatter(lngs, lats, c='red', s=weights, alpha=0.4, 
+                           edgecolors='darkred', linewidth=0.5)
+    else:
+        scatter = ax.scatter(lngs, lats, c='white', s=weights, alpha=0.3, 
+                           edgecolors='cyan', linewidth=0.5)
     
     # Add city labels for reference
     cities = {

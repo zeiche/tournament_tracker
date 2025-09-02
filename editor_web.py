@@ -54,15 +54,21 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         elif parsed.path == '/attendance':
             self.serve_attendance_report()
         elif parsed.path == '/heatmap' or parsed.path.startswith('/heatmap/'):
-            # Extract year from path if provided
-            if parsed.path == '/heatmap' or parsed.path == '/heatmap/':
-                year = 2025
+            # Check if it's a specific file request
+            if parsed.path.startswith('/heatmap/') and parsed.path.count('/') == 2:
+                filename = parsed.path.split('/')[-1]
+                # Serve the actual heatmap file
+                self.serve_heatmap_file(filename)
             else:
-                try:
-                    year = int(parsed.path.split('/')[-1])
-                except ValueError:
+                # Original year-based heatmap
+                if parsed.path == '/heatmap' or parsed.path == '/heatmap/':
                     year = 2025
-            self.serve_heatmap(year)
+                else:
+                    try:
+                        year = int(parsed.path.split('/')[-1])
+                    except ValueError:
+                        year = 2025
+                self.serve_heatmap(year)
         elif parsed.path.startswith('/edit/'):
             tournament_id = int(parsed.path.split('/')[-1])
             self.serve_edit_form(tournament_id)
@@ -103,6 +109,47 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                 self.send_error(500)
         else:
             self.send_error(404)
+    
+    def serve_heatmap_file(self, filename):
+        """Serve a specific heatmap file"""
+        import os
+        import mimetypes
+        
+        # Security: only allow specific files
+        allowed_files = [
+            'tournament_heatmap.png',
+            'tournament_heatmap_with_map.png', 
+            'attendance_heatmap.png',
+            'tournament_heatmap.html'
+        ]
+        
+        if filename not in allowed_files:
+            self.send_error(404, "File not found")
+            return
+        
+        filepath = f'/home/ubuntu/claude/tournament_tracker/{filename}'
+        
+        if not os.path.exists(filepath):
+            self.send_error(404, "File not found")
+            return
+        
+        # Determine content type
+        content_type, _ = mimetypes.guess_type(filename)
+        if not content_type:
+            content_type = 'application/octet-stream'
+        
+        # Send file
+        try:
+            with open(filepath, 'rb') as f:
+                content = f.read()
+            
+            self.send_response(200)
+            self.send_header('Content-type', content_type)
+            self.send_header('Content-length', len(content))
+            self.end_headers()
+            self.wfile.write(content)
+        except Exception as e:
+            self.send_error(500, f"Error serving file: {e}")
     
     def serve_home(self):
         """Serve the home page using shared utilities"""
@@ -1001,7 +1048,19 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                     html += '<span class="result-type type-' + result.type + '">' + 
                            result.type.toUpperCase() + '</span>';
                     
-                    if (result.type === 'organization') {
+                    if (result.type === 'visualization' || result.type === 'resource') {
+                        html += '<div class="result-title">' + result.title + '</div>';
+                        html += '<div class="result-details">';
+                        html += result.description + '<br><br>';
+                        if (result.filename && result.filename.endsWith('.png')) {
+                            html += '<a href="' + result.url + '" target="_blank">';
+                            html += '<img src="' + result.url + '" style="max-width: 500px; border: 2px solid #333; border-radius: 8px; margin-top: 10px;">';
+                            html += '</a>';
+                        } else if (result.filename && result.filename.endsWith('.html')) {
+                            html += '<a href="' + result.url + '" target="_blank" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">Open Interactive View</a>';
+                        }
+                        html += '</div>';
+                    } else if (result.type === 'organization') {
                         html += '<div class="result-title">' + result.name + '</div>';
                         html += '<div class="result-details">';
                         html += 'Total Attendance: <strong>' + result.total_attendance.toLocaleString() + '</strong><br>';

@@ -1,73 +1,11 @@
-INFO  [tracker] Starting Tournament Tracker
-INFO  [operations] Starting tournament_tracker_session
-INFO  [tracker] Initializing database connection
-INFO  Starting Sync tournaments from start.gg...
-INFO  [tracker] Starting tournament sync (page_size: 250)
-INFO  [sync] Starting start.gg synchronization
-INFO  [startgg] StartGG client initialized for 2025
-INFO  Starting Fetch tournaments from start.gg...
-INFO  [startgg] Fetching SoCal tournaments from start.gg
-INFO  [startgg] Found 535 tournaments across 11 pages
-INFO  [startgg] tournaments (2025 only) page 1 - SUCCESS (3.06s)
-INFO  [startgg] tournaments (2025 only) page 2 - SUCCESS (2.88s)
-INFO  [startgg] tournaments (2025 only) page 3 - SUCCESS (2.62s)
-INFO  [startgg] tournaments (2025 only) page 4 - SUCCESS (2.79s)
-INFO  [startgg] tournaments (2025 only) page 5 - SUCCESS (3.01s)
-INFO  [startgg] tournaments (2025 only) page 6 - SUCCESS (3.05s)
-INFO  [startgg] tournaments (2025 only) page 7 - SUCCESS (2.89s)
-INFO  [startgg] tournaments (2025 only) page 8 - SUCCESS (3.08s)
-INFO  [startgg] tournaments (2025 only) page 9 - SUCCESS (2.91s)
-INFO  [startgg] tournaments (2025 only) page 10 - SUCCESS (2.67s)
-INFO  [startgg] Fetched 500 tournaments from start.gg
-INFO  Completed Fetch tournaments from start.gg (28.98s)
-INFO  Starting Process tournaments to database...
-INFO  [sync] Processing 500 tournaments
-ERROR [sync] Failed to process tournament 808564: '<=' not supported between instances of 'NoneType' and 'int'
-ERROR [sync] Failed to process tournament 791446: '<=' not supported between instances of 'NoneType' and 'int'
-ERROR [sync] Failed to process tournament 776206: '<=' not supported between instances of 'NoneType' and 'int'
-ERROR [sync] Failed to process tournament 759678: '<=' not supported between instances of 'NoneType' and 'int'
-ERROR [sync] Failed to process tournament 743331: '<=' not supported between instances of 'NoneType' and 'int'
-INFO  [queue] Page 1: 489 records
-INFO  [sync] Tournament processing completed - 495 processed
-INFO  Completed Process tournaments to database (17.19s)
-INFO  [sync] Fetching standings for top 5 tournaments
-INFO  [startgg] standings/783645 - SUCCESS (1.62s)
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-INFO  [queue] Page 1: 4 records
-INFO  [startgg] standings/787933 - SUCCESS (1.54s)
-INFO  [queue] Page 1: 32 records
-INFO  [startgg] standings/772236 - SUCCESS (1.50s)
-INFO  [queue] Page 1: 8 records
-INFO  [startgg] standings/749589 - SUCCESS (1.72s)
-ERROR [sync] Failed to process standing: 'NoneType' object has no attribute 'get'
-INFO  [queue] Page 1: 22 records
-INFO  [startgg] standings/768246 - SUCCESS (1.60s)
-INFO  [queue] Page 1: 16 records
-INFO  [sync] ============================================================
-INFO  [sync] SYNCHRONIZATION COMPLETED
-INFO  [sync] ============================================================
-INFO  [sync] API calls: 15
-INFO  [sync] Tournaments processed: 495
-INFO  [sync] Organizations created: 0
-INFO  [sync] Attendance records: 0
-INFO  [sync] Processing time: 54.62s
-INFO  [sync] Success rate: 99.0%
-INFO  [sync] ============================================================
-INFO  [tracker] Sync completed successfully!
-INFO  [tracker]    API calls: 15
-INFO  [tracker]    Tournaments processed: 495
-INFO  [tracker]    Organizations created: 0
-INFO  [tracker]    Processing time: 54.62s
-INFO  [tracker]    Success rate: 99.0%
-INFO  Completed Sync tournaments from start.gg (54.65s)
+INFO  [heatmap] Generating static heat map
+INFO  [heatmap] Processing 475 tournament locations
+INFO  [heatmap] Heat map saved to tournament_heatmap.png
+INFO  [heatmap] Generating static heat map
+INFO  [heatmap] Processing 475 tournament locations
+INFO  [heatmap] Added map background
+INFO  [heatmap] Heat map saved to tournament_heatmap_with_map.png
+INFO  [heatmap] Generating attendance density map
+INFO  [heatmap] Attendance density map saved to attendance_heatmap.png
+INFO  [heatmap] Generating interactive heat map
+INFO  [heatmap] Interactive heat map saved to tournament_heatmap.html

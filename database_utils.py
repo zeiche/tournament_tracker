@@ -536,16 +536,16 @@ def get_player_rankings(limit=50, event_type='all', min_tournaments=2):
     """
     from tournament_models import Player, TournamentPlacement
     
-    # Points system for placements
+    # Points system for placements - simple descending
     PLACEMENT_POINTS = {
-        1: 100,  # 1st place
-        2: 70,   # 2nd place  
-        3: 50,   # 3rd place
-        4: 35,   # 4th place
-        5: 25,   # 5th-6th
-        6: 25,
-        7: 15,   # 7th-8th
-        8: 15
+        1: 8,  # 1st place
+        2: 7,  # 2nd place  
+        3: 6,  # 3rd place
+        4: 5,  # 4th place
+        5: 4,  # 5th place
+        6: 3,  # 6th place
+        7: 2,  # 7th place
+        8: 1   # 8th place
     }
     
     with get_session() as session:

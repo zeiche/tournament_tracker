@@ -130,6 +130,67 @@ class ConversationalSearch:
                 'count': len(results)
             }
     
+    def _discover_resources(self) -> Dict[str, List[Dict]]:
+        """Discover all available resources (files, visualizations, reports, etc.)"""
+        import os
+        
+        resources = {
+            'visualizations': [],
+            'reports': [],
+            'data_files': [],
+            'services': []
+        }
+        
+        # Define available resources with metadata
+        resource_definitions = {
+            'visualizations': [
+                ('tournament_heatmap.png', 'Tournament Heat Map', 'Geographic density of tournament locations', ['heat', 'map', 'location', 'density', 'geographic']),
+                ('tournament_heatmap_with_map.png', 'Tournament Heat Map with Streets', 'Heat map overlaid on street map', ['heat', 'map', 'street', 'location']),
+                ('attendance_heatmap.png', 'Attendance Heat Map', 'Tournament attendance patterns', ['attendance', 'heat', 'map', 'pattern']),
+                ('tournament_heatmap.html', 'Interactive Heat Map', 'Zoomable interactive map', ['interactive', 'map', 'zoom'])
+            ],
+            'reports': [
+                ('tournament_report.html', 'Tournament Report', 'Full tournament statistics report', ['report', 'statistics', 'summary']),
+                ('attendance_report.csv', 'Attendance Data', 'Raw attendance data export', ['attendance', 'data', 'csv', 'export'])
+            ],
+            'services': [
+                ('web_editor', 'Organization Editor', 'Web interface for editing organizations', ['edit', 'organization', 'web']),
+                ('discord_bot', 'Discord Bot', 'Natural language Discord interface', ['discord', 'bot', 'chat'])
+            ]
+        }
+        
+        # Check which resources actually exist
+        base_path = '/home/ubuntu/claude/tournament_tracker/'
+        
+        for category, items in resource_definitions.items():
+            for item in items:
+                if category == 'services':
+                    # Services are always "available" as concepts
+                    name, title, description, keywords = item
+                    resources[category].append({
+                        'name': name,
+                        'title': title,
+                        'description': description,
+                        'keywords': keywords,
+                        'type': 'service'
+                    })
+                else:
+                    filename, title, description, keywords = item
+                    filepath = os.path.join(base_path, filename)
+                    if os.path.exists(filepath):
+                        resources[category].append({
+                            'filename': filename,
+                            'title': title,
+                            'description': description,
+                            'keywords': keywords,
+                            'path': filepath,
+                            'url': f'/resource/{filename}' if category == 'visualizations' else None,
+                            'exists': True,
+                            'type': category.rstrip('s')  # Remove plural
+                        })
+        
+        return resources
+    
     def _search_organizations(self, params: Dict) -> List[Dict]:
         """Search for organizations"""
         query = self.session.query(Organization)
@@ -281,17 +342,61 @@ class ConversationalSearch:
         return results[:30]
     
     def _general_search(self, params: Dict) -> List[Dict]:
-        """Perform a general search across all entities"""
+        """Perform a general search across all entities and resources"""
         all_results = []
+        query_lower = params['original_query'].lower()
+        search_terms = params['filters'].get('search_terms', [])
         
-        # Search everything and combine
+        # First, check available resources for matches
+        resources = self._discover_resources()
+        for category, items in resources.items():
+            for resource in items:
+                # Check if any search terms match the resource keywords
+                keywords = resource.get('keywords', [])
+                title_lower = resource.get('title', '').lower()
+                desc_lower = resource.get('description', '').lower()
+                
+                # Score the match
+                score = 0
+                for term in search_terms:
+                    if term in keywords:
+                        score += 3  # High score for keyword match
+                    if term in title_lower:
+                        score += 2  # Medium score for title match
+                    if term in desc_lower:
+                        score += 1  # Low score for description match
+                
+                # Also check full query against title/description
+                if 'heat' in query_lower and 'map' in query_lower and 'heat' in keywords:
+                    score += 5  # Boost for heat map queries
+                
+                if score > 0:
+                    # Add resource to results
+                    result = {
+                        'type': resource.get('type', 'resource'),
+                        'title': resource.get('title'),
+                        'description': resource.get('description'),
+                        'score': score
+                    }
+                    
+                    # Add URL for visualizations
+                    if resource.get('filename'):
+                        result['filename'] = resource['filename']
+                        result['url'] = f"/heatmap/{resource['filename']}"
+                    
+                    all_results.append(result)
+        
+        # Search database entities
         all_results.extend(self._search_organizations(params))
         all_results.extend(self._search_tournaments(params))
         all_results.extend(self._search_venues(params))
         
-        # Sort by relevance (for now, by attendance/popularity)
+        # Sort by relevance (score for resources, attendance for entities)
         all_results.sort(
-            key=lambda x: x.get('attendance', x.get('total_attendance', 0)), 
+            key=lambda x: (
+                x.get('score', 0) * 1000 +  # Prioritize scored resources
+                x.get('attendance', x.get('total_attendance', 0))
+            ), 
             reverse=True
         )
         
