@@ -12,7 +12,7 @@ from collections import defaultdict
 # Import our centralized modules
 from log_utils import log_info, log_debug, log_error, log_api_call, LogContext
 from database_utils import (
-    init_db, get_or_create_organization, record_attendance, 
+    init_db, record_attendance, 
     normalize_contact, get_summary_stats
 )
 from database_queue import get_queue, commit_queue, queue_stats, batch_operations
@@ -347,7 +347,7 @@ class TournamentSyncProcessor:
             'owner_name': tournament_data.get('owner', {}).get('name'),
             'primary_contact': tournament_data.get('primaryContact'),
             'primary_contact_type': tournament_data.get('primaryContactType'),
-            'normalized_contact': normalize_contact(tournament_data.get('primaryContact')),
+            # normalized_contact column removed from database
             'short_slug': tournament_data.get('shortSlug'),
             'slug': tournament_data.get('slug'),
             'url': tournament_data.get('url'),
@@ -387,34 +387,10 @@ class TournamentSyncProcessor:
         if not primary_contact or num_attendees <= 0:
             return
         
-        normalized_contact = normalize_contact(primary_contact)
-        if not normalized_contact:
-            return
-        
-        # Create organization creation callback
-        def create_org(session, norm_key, raw_contact):
-            from tournament_models import Organization
-            
-            # Get or create organization
-            org = session.query(Organization).filter_by(normalized_key=norm_key).first()
-            if not org:
-                display_name = raw_contact if '@' not in raw_contact and 'discord' not in raw_contact.lower() else raw_contact
-                org = Organization(
-                    normalized_key=norm_key,
-                    display_name=display_name
-                )
-                session.add(org)
-                session.flush()  # Get the ID
-                self.sync_stats['organizations_created'] += 1
-            
-            # Contact and attendance recording removed - data is now in tournament.num_attendees
-        
-        # Queue the organization creation
-        queue.custom(
-            create_org,
-            norm_key=normalized_contact,
-            raw_contact=primary_contact
-        )
+        # Organization creation disabled - normalized_key column no longer exists
+        # Organizations are now created through the identify_orgs_simple.py script
+        # after sync completes
+        pass
     
     def process_standings(self, standings_data, tournament_id):
         """Process top 8 standings data"""

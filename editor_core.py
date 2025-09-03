@@ -40,16 +40,33 @@ def is_contact_unnamed(contact):
     return False
 
 def get_unnamed_tournaments():
-    """Get all tournaments with unnamed contacts"""
+    """Get all tournaments with unnamed contacts (excluding those that match organizations)"""
+    from database_utils import normalize_contact
+    
     with get_session() as session:
         tournaments = session.query(Tournament).filter(
             Tournament.primary_contact != None
         ).all()
         
+        # Get all organization contacts for matching
+        orgs = session.query(Organization).all()
+        org_contacts_normalized = set()
+        for org in orgs:
+            for contact in org.contacts:
+                value = contact.get('value', '')
+                if value:
+                    org_contacts_normalized.add(normalize_contact(value))
+        
         unnamed = []
         for t in tournaments:
+            # Skip if contact matches an organization
+            if t.primary_contact:
+                normalized = normalize_contact(t.primary_contact)
+                if normalized in org_contacts_normalized:
+                    continue  # This tournament belongs to an organization
+            
+            # Only include if it's truly unnamed
             if is_contact_unnamed(t.primary_contact):
-                # Extract needed data while session is active
                 unnamed.append({
                     'id': t.id,
                     'name': t.name,
@@ -89,7 +106,7 @@ def get_or_create_organization(name, contact_email=None, contact_discord=None):
         # Create new organization
         org = Organization()
         org.display_name = name
-        org.normalized_key = normalize_contact(name)
+        # normalized_key no longer exists
         session.add(org)
         session.commit()
         

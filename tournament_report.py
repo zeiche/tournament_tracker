@@ -307,21 +307,21 @@ def get_legacy_attendance_data():
     org_names = {}
     
     for rank, org_data in enumerate(rankings, 1):
-        key = org_data['normalized_key']
+        # Use display_name as key since normalized_key doesn't exist
+        key = org_data['display_name']
         
         # Attendance tracker format
         attendance_tracker[key] = {
             'tournaments': [],  # Could populate if needed
-            'total_attendance': org_data['total_attendance'],
-            'contacts': org_data['contacts']
+            'total_attendance': org_data.get('total_attendance', 0),
+            'contacts': []  # No contacts in rankings anymore
         }
         
-        # Organization names format (only if display name differs from key)
-        if org_data['display_name'] != key:
-            org_names[f"org_{rank}"] = {
-                'display_name': org_data['display_name'],
-                'contacts': org_data['contacts']
-            }
+        # Organization names format - always include for now
+        org_names[f"org_{rank}"] = {
+            'display_name': org_data['display_name'],
+            'contacts': []
+        }
     
     return attendance_tracker, org_names
 

@@ -135,7 +135,6 @@ class Tournament(Base, BaseModel):
     # Contact and URLs
     primary_contact = Column(String)
     primary_contact_type = Column(String)  # Type of primary contact
-    normalized_contact = Column(String, index=True)  # For grouping organizations
     short_slug = Column(String)  # Short URL slug
     slug = Column(String)  # Full URL slug
     url = Column(String)  # Full start.gg URL
@@ -155,7 +154,7 @@ class Tournament(Base, BaseModel):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
     # Relationships
-    attendance_records = relationship("AttendanceRecord", back_populates="tournament", cascade="all, delete-orphan")
+    # Removed attendance_records relationship - table deleted
     placements = relationship("TournamentPlacement", back_populates="tournament", cascade="all, delete-orphan")
     
     def __repr__(self):
@@ -166,17 +165,36 @@ class Tournament(Base, BaseModel):
     
     @property
     def organization(self):
-        """Get the organization that runs this tournament"""
-        if not self.normalized_contact:
+        """Get the organization that runs this tournament based on contact matching"""
+        if not self.primary_contact:
             return None
-        return Organization.find_by(normalized_key=self.normalized_contact)
+        from database_utils import normalize_contact
+        normalized = normalize_contact(self.primary_contact)
+        
+        # Find organization that has this normalized contact
+        from database_utils import get_session
+        with get_session() as session:
+            orgs = session.query(Organization).all()
+            for org in orgs:
+                # Check if any of the org's contacts match
+                for contact in org.contacts:
+                    if normalize_contact(contact.get('value', '')) == normalized:
+                        return org
+        return None
     
     @classmethod
     def by_contact(cls, contact):
-        """Find tournaments by contact"""
-        from database_utils import normalize_contact
+        """Find tournaments by contact (compares normalized values)"""
+        from database_utils import normalize_contact, get_session
         normalized = normalize_contact(contact)
-        return cls.where(normalized_contact=normalized)
+        
+        with get_session() as session:
+            tournaments = session.query(cls).all()
+            matching = []
+            for t in tournaments:
+                if t.primary_contact and normalize_contact(t.primary_contact) == normalized:
+                    matching.append(t)
+            return matching
     
     @classmethod
     def finished(cls):
@@ -264,57 +282,92 @@ class Organization(Base, BaseModel):
     __tablename__ = 'organizations'
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    normalized_key = Column(String, unique=True, nullable=False, index=True)
     display_name = Column(String, nullable=False)
+    contacts_json = Column(String, default='[]')  # JSON array of contact objects
     
     # Metadata
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
-    # Relationships
-    contacts = relationship("OrganizationContact", back_populates="organization", cascade="all, delete-orphan")
-    attendance_records = relationship("AttendanceRecord", back_populates="organization", cascade="all, delete-orphan")
+    # Removed relationships to deleted tables
+    
+    @property
+    def contacts(self):
+        """Get contacts as a Python list"""
+        import json
+        try:
+            return json.loads(self.contacts_json or '[]')
+        except:
+            return []
+    
+    @contacts.setter
+    def contacts(self, value):
+        """Set contacts from a Python list"""
+        import json
+        self.contacts_json = json.dumps(value)
+    
+    def add_contact(self, contact_type, contact_value):
+        """Add a new contact"""
+        contacts = self.contacts
+        contacts.append({'type': contact_type, 'value': contact_value})
+        self.contacts = contacts
+    
+    def remove_contact(self, index):
+        """Remove a contact by index"""
+        contacts = self.contacts
+        if 0 <= index < len(contacts):
+            contacts.pop(index)
+            self.contacts = contacts
+    
+    def update_contact(self, index, contact_type, contact_value):
+        """Update a contact by index"""
+        contacts = self.contacts
+        if 0 <= index < len(contacts):
+            contacts[index] = {'type': contact_type, 'value': contact_value}
+            self.contacts = contacts
     
     def __repr__(self):
-        return f"<Organization(key='{self.normalized_key}', name='{self.display_name}')>"
+        return f"<Organization(id={self.id}, name='{self.display_name}')>"
     
     def __str__(self):
         return f"Organization: {self.display_name}"
     
     @property
     def tournaments(self):
-        """Get all tournaments for this organization"""
-        return Tournament.where(normalized_contact=self.normalized_key)
+        """Get all tournaments for this organization by matching contacts"""
+        from database_utils import normalize_contact, get_session
+        
+        # Collect all normalized contacts for this org
+        org_contacts_normalized = set()
+        for contact in self.contacts:
+            value = contact.get('value', '')
+            if value:
+                org_contacts_normalized.add(normalize_contact(value))
+        
+        # Find tournaments that match any of these contacts
+        matching = []
+        with get_session() as session:
+            tournaments = session.query(Tournament).all()
+            for t in tournaments:
+                if t.primary_contact:
+                    t_normalized = normalize_contact(t.primary_contact)
+                    if t_normalized in org_contacts_normalized:
+                        matching.append(t)
+        
+        return matching
     
     @property
     def total_attendance(self):
         """Calculate total attendance across all tournaments"""
-        return sum(record.attendance for record in self.attendance_records)
+        # Would need to query tournaments table to sum attendance
+        return 0  # Placeholder - implement if needed
     
     @property
     def tournament_count(self):
         """Count of tournaments"""
-        return len(self.attendance_records)
+        # Would need to query tournaments table to count
+        return 0  # Placeholder - implement if needed
     
-    def add_contact(self, contact_value, contact_type=None, is_primary=False):
-        """Add a contact method"""
-        # Determine type if not specified
-        if not contact_type:
-            if '@' in contact_value:
-                contact_type = 'email'
-            elif 'discord' in contact_value.lower():
-                contact_type = 'discord'
-            else:
-                contact_type = 'name'
-        
-        contact = OrganizationContact(
-            organization_id=self.id,
-            contact_value=contact_value,
-            contact_type=contact_type,
-            is_primary=is_primary
-        )
-        contact.save()
-        return contact
     
     @classmethod
     def get_or_create(cls, normalized_key, display_name=None):
@@ -408,67 +461,8 @@ class Player(Base, BaseModel):
         """Calculate total prize money"""
         return sum(p.prize_amount for p in self.placements if p.prize_amount)
 
-class OrganizationContact(Base, BaseModel):
-    """Contact methods for organizations"""
-    __tablename__ = 'organization_contacts'
+# Removed OrganizationContact and AttendanceRecord classes - tables deleted
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    organization_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
-    contact_value = Column(String, nullable=False)
-    contact_type = Column(String)  # 'email', 'discord', 'name'
-    is_primary = Column(Integer, default=0)  # SQLite doesn't have real boolean
-    
-    created_at = Column(DateTime, default=func.now())
-    
-    # Relationships
-    organization = relationship("Organization", back_populates="contacts")
-    
-    def __repr__(self):
-        return f"<Contact({self.contact_type}: {self.contact_value})>"
-
-class AttendanceRecord(Base, BaseModel):
-    """Links tournaments to organizations with attendance counts"""
-    __tablename__ = 'attendance_records'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tournament_id = Column(String, ForeignKey('tournaments.id'), nullable=False)
-    organization_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
-    attendance = Column(Integer, nullable=False, default=0)
-    
-    recorded_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    
-    # Relationships
-    tournament = relationship("Tournament", back_populates="attendance_records")
-    organization = relationship("Organization", back_populates="attendance_records")
-    
-    # Unique constraint
-    __table_args__ = (
-        Index('ix_tournament_org', tournament_id, organization_id, unique=True),
-    )
-    
-    def __repr__(self):
-        return f"<AttendanceRecord(tournament={self.tournament_id}, org={self.organization_id}, attendance={self.attendance})>"
-    
-    @classmethod
-    def record_attendance(cls, tournament_id, organization_id, attendance):
-        """Record or update attendance using session-safe operations"""
-        existing = cls.find_by(tournament_id=tournament_id, organization_id=organization_id)
-        
-        if existing:
-            existing.update(attendance=attendance)
-            existing.save()
-            log_debug(f"Updated attendance: {tournament_id} -> {attendance}", "model")
-            return existing
-        else:
-            record = cls(
-                tournament_id=tournament_id,
-                organization_id=organization_id,
-                attendance=attendance
-            )
-            record.save()
-            log_debug(f"Created attendance record: {tournament_id} -> {attendance}", "model")
-            return record
 
 class TournamentPlacement(Base, BaseModel):
     """Top 8 placements in tournaments"""

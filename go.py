@@ -128,6 +128,9 @@ def main():
     parser.add_argument('--ai-ask', metavar='QUESTION', help='Ask AI a single question')
     parser.add_argument('--heatmap', action='store_true', help='Generate and display heat map visualizations')
     
+    # Organization identification
+    parser.add_argument('--identify-orgs', action='store_true', help='Identify organizations from tournament naming patterns')
+    
     args = parser.parse_args()
     
     # Handle help case FIRST - before any database operations
@@ -279,6 +282,11 @@ def main():
         print("\n" + response)
         return 0
     
+    if args.identify_orgs:
+        print("Launching Organization Identification Tool...")
+        result = subprocess.run([sys.executable, 'identify_orgs_simple.py'])
+        return result.returncode
+    
     if args.heatmap:
         print("🗺️  Generating Tournament Heat Maps...\n")
         from tournament_heatmap import generate_static_heatmap, generate_attendance_heatmap, generate_interactive_heatmap
@@ -336,6 +344,22 @@ def main():
             )
             if not success and not args.interactive:
                 sys.exit(1)
+            
+            # After sync, check for unnamed contacts and try to identify organizations
+            if success and args.sync:
+                print("\n" + "="*60)
+                print("Checking for new unnamed contacts...")
+                print("="*60)
+                
+                from identify_orgs_simple import analyze_and_auto_create
+                try:
+                    newly_identified = analyze_and_auto_create(auto_mode=True, confidence_threshold=0.8)
+                    if newly_identified > 0:
+                        print(f"✓ Automatically identified and created {newly_identified} organizations")
+                    else:
+                        print("No new organizations identified with high confidence")
+                except Exception as e:
+                    print(f"Could not run organization identification: {e}")
         
         # Generate outputs
         if args.console:

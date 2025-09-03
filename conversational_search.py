@@ -7,7 +7,7 @@ Understands natural language queries and returns relevant results
 import re
 from typing import List, Dict, Any, Tuple
 from database_utils import get_session
-from tournament_models import Tournament, Organization, AttendanceRecord
+from tournament_models import Tournament, Organization
 from sqlalchemy import or_, and_, func
 import json
 

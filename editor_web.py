@@ -51,6 +51,8 @@ class EditorWebHandler(BaseHTTPRequestHandler):
             self.serve_unnamed()
         elif parsed.path == '/organizations':
             self.serve_organizations()
+        elif parsed.path == '/create_org':
+            self.serve_create_org_form()
         elif parsed.path == '/attendance':
             self.serve_attendance_report()
         elif parsed.path == '/heatmap' or parsed.path.startswith('/heatmap/'):
@@ -72,6 +74,15 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         elif parsed.path.startswith('/edit/'):
             tournament_id = int(parsed.path.split('/')[-1])
             self.serve_edit_form(tournament_id)
+        elif parsed.path.startswith('/edit_contact_group'):
+            # Parse tournament IDs from query string
+            query = urllib.parse.parse_qs(parsed.query)
+            ids = query.get('ids', [''])[0]
+            if ids:
+                tournament_ids = [int(id) for id in ids.split(',')]
+                self.serve_edit_contact_group(tournament_ids)
+            else:
+                self.send_error(400, "No tournament IDs provided")
         elif parsed.path.startswith('/edit_org/'):
             org_id = int(parsed.path.split('/')[-1])
             self.serve_edit_org_form(org_id)
@@ -95,6 +106,18 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                 self.end_headers()
             else:
                 self.send_error(500)
+        elif parsed.path == '/create_org':
+            # Handle organization creation
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            params = urllib.parse.parse_qs(post_data.decode('utf-8'))
+            
+            if self.create_organization(params):
+                self.send_response(303)
+                self.send_header('Location', '/organizations')
+                self.end_headers()
+            else:
+                self.send_error(500)
         elif parsed.path.startswith('/update_org/'):
             org_id = int(parsed.path.split('/')[-1])
             content_length = int(self.headers['Content-Length'])
@@ -103,10 +126,85 @@ class EditorWebHandler(BaseHTTPRequestHandler):
             
             if self.update_organization(org_id, params):
                 self.send_response(303)
+                self.send_header('Location', f'/edit_org/{org_id}')
+                self.end_headers()
+            else:
+                self.send_error(500)
+        elif parsed.path.startswith('/add_contact/'):
+            org_id = int(parsed.path.split('/')[-1])
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            params = urllib.parse.parse_qs(post_data.decode('utf-8'))
+            
+            if self.add_organization_contact(org_id, params):
+                self.send_response(303)
+                self.send_header('Location', f'/edit_org/{org_id}')
+                self.end_headers()
+            else:
+                self.send_error(500)
+        elif parsed.path.startswith('/remove_contact/'):
+            parts = parsed.path.split('/')
+            org_id = int(parts[-2])
+            contact_index = int(parts[-1])
+            
+            if self.remove_organization_contact(org_id, contact_index):
+                self.send_response(303)
+                self.send_header('Location', f'/edit_org/{org_id}')
+                self.end_headers()
+            else:
+                self.send_error(500)
+        elif parsed.path.startswith('/delete_org/'):
+            org_id = int(parsed.path.split('/')[-1])
+            
+            if self.delete_organization(org_id):
+                self.send_response(303)
                 self.send_header('Location', '/organizations')
                 self.end_headers()
             else:
                 self.send_error(500)
+        elif parsed.path == '/update_contact_group':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            params = urllib.parse.parse_qs(post_data.decode('utf-8'))
+            
+            ids = params.get('ids', [''])[0]
+            new_contact = params.get('new_contact', [''])[0]
+            
+            if ids and new_contact:
+                tournament_ids = [int(id) for id in ids.split(',')]
+                if self.update_contact_group(tournament_ids, new_contact):
+                    self.send_response(303)
+                    self.send_header('Location', '/unnamed')
+                    self.end_headers()
+                else:
+                    self.send_error(500)
+            else:
+                self.send_error(400, "Missing required parameters")
+        elif parsed.path == '/assign_to_organization':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            params = urllib.parse.parse_qs(post_data.decode('utf-8'))
+            
+            tournament_ids = params.get('tournament_ids', [''])[0]
+            org_id = params.get('org_id', [''])[0]
+            
+            if tournament_ids and org_id:
+                # Parse all tournament IDs from comma-separated groups
+                all_ids = []
+                for group in tournament_ids.split(','):
+                    if ',' in group:  # Multiple IDs in a group
+                        all_ids.extend([int(id) for id in group.split(',')])
+                    else:
+                        all_ids.append(int(group))
+                
+                if self.assign_to_organization(all_ids, int(org_id)):
+                    self.send_response(303)
+                    self.send_header('Location', '/unnamed')
+                    self.end_headers()
+                else:
+                    self.send_error(500)
+            else:
+                self.send_error(400, "Missing required parameters")
         else:
             self.send_error(404)
     
@@ -197,8 +295,35 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         self.wfile.write(page.encode())
     
     def serve_unnamed(self):
-        """Serve list of unnamed tournaments using shared table formatter"""
+        """Serve list of unnamed tournaments grouped by contact"""
         tournaments = get_unnamed_tournaments()
+        
+        # Group tournaments by primary_contact
+        grouped = {}
+        for t in tournaments:
+            contact = t['primary_contact'] or 'No Contact'
+            if contact not in grouped:
+                grouped[contact] = {
+                    'contact': contact,
+                    'tournaments': [],
+                    'total_attendance': 0,
+                    'count': 0,
+                    'cities': set(),
+                    'slugs': [],  # Collect all slugs
+                    'tournament_ids': []  # Collect all IDs for editing
+                }
+            grouped[contact]['tournaments'].append(t)
+            grouped[contact]['total_attendance'] += t['num_attendees']
+            grouped[contact]['count'] += 1
+            grouped[contact]['tournament_ids'].append(t['id'])
+            if t['city']:
+                grouped[contact]['cities'].add(t['city'])
+            if t.get('short_slug'):
+                grouped[contact]['slugs'].append(t['short_slug'])
+        
+        # Convert to list and sort by total attendance
+        contact_groups = list(grouped.values())
+        contact_groups.sort(key=lambda x: x['total_attendance'], reverse=True)
         
         # Navigation
         nav_links = [
@@ -208,35 +333,144 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         
         # Stats box
         stats = {
-            'Total Unnamed': len(tournaments),
+            'Unique Contacts': len(contact_groups),
+            'Total Tournaments': len(tournaments),
             'Total Attendance': sum(t['num_attendees'] for t in tournaments)
         }
         content = format_stats_box("Summary", stats)
         
-        # Format table data
-        headers = ['ID', 'Tournament Name', 'Current Contact', 'Attendance', 'City', 'Action']
+        # Add JavaScript for checkbox handling
+        content += '''
+        <script>
+        function toggleAllCheckboxes() {
+            var selectAll = document.getElementById('selectAll');
+            var checkboxes = document.getElementsByClassName('contact-checkbox');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = selectAll.checked;
+            }
+        }
         
-        # Custom row formatter for action links
-        def row_formatter(tournament):
+        function assignToOrganization() {
+            var checkboxes = document.getElementsByClassName('contact-checkbox');
+            var selectedIds = [];
+            for (var i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].checked) {
+                    selectedIds.push(checkboxes[i].value);
+                }
+            }
+            
+            if (selectedIds.length === 0) {
+                alert('Please select at least one contact group');
+                return;
+            }
+            
+            var orgSelect = document.getElementById('org-select');
+            var orgId = orgSelect.value;
+            
+            if (!orgId) {
+                alert('Please select an organization');
+                return;
+            }
+            
+            // Submit form
+            document.getElementById('ids-input').value = selectedIds.join(',');
+            document.getElementById('assign-form').submit();
+        }
+        </script>
+        '''
+        
+        # Format table data with checkboxes - we'll build the table manually to avoid escaping
+        # headers = ['Select All', 'Contact', 'Tournaments', 'Total Attendance', 'Start.gg Slugs', 'Cities', 'Action']
+        
+        # Custom row formatter for grouped data with checkboxes
+        def row_formatter(group):
+            cities = ', '.join(sorted(group['cities'])) if group['cities'] else 'N/A'
+            # Truncate cities if too long
+            if len(cities) > 40:
+                cities = cities[:37] + '...'
+            
+            # Format slugs as links
+            slug_links = []
+            for slug in group['slugs'][:3]:  # Show first 3 slugs
+                slug_links.append(f'<a href="https://start.gg/{slug}" target="_blank" style="color: #667eea;">{slug}</a>')
+            if len(group['slugs']) > 3:
+                slug_links.append(f'+{len(group["slugs"]) - 3} more')
+            slugs_html = ', '.join(slug_links) if slug_links else 'N/A'
+            
+            # Create edit link that passes all tournament IDs
+            ids_param = ','.join(str(id) for id in group['tournament_ids'])
+            
             return f"""
             <tr>
-                <td>{tournament['id']}</td>
-                <td>{html.escape(tournament['name'])}</td>
-                <td>{html.escape(tournament['primary_contact'] or '')}</td>
-                <td>{tournament['num_attendees']}</td>
-                <td>{html.escape(tournament['city'] or 'N/A')}</td>
-                <td><a href="/edit/{tournament['id']}" class="action-link">Edit</a></td>
+                <td><input type="checkbox" class="contact-checkbox" value="{ids_param}"></td>
+                <td>{html.escape(group['contact'])}</td>
+                <td>{group['count']}</td>
+                <td>{group['total_attendance']:,}</td>
+                <td>{slugs_html}</td>
+                <td>{html.escape(cities)}</td>
+                <td><a href="/edit_contact_group?ids={ids_param}" class="action-link">Edit</a></td>
             </tr>"""
         
-        if tournaments:
-            content += format_table(headers, tournaments, row_formatter)
+        if contact_groups:
+            # Build table manually to avoid HTML escaping in headers
+            content += '''
+            <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes()"></th>
+                    <th>Contact</th>
+                    <th>Tournaments</th>
+                    <th>Total Attendance</th>
+                    <th>Start.gg Slugs</th>
+                    <th>Cities</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            '''
+            
+            # Add rows using the formatter
+            for group in contact_groups:
+                content += row_formatter(group)
+            
+            content += '</tbody></table>'
+            
+            # Add organization dropdown and assign button
+            content += '''
+            <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <h3>Bulk Assign to Organization</h3>
+                <form id="assign-form" method="POST" action="/assign_to_organization">
+                    <input type="hidden" id="ids-input" name="tournament_ids">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="org-select" name="org_id" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">-- Select Organization --</option>
+            '''
+            
+            # Get organizations for dropdown
+            from database_utils import get_session
+            from tournament_models import Organization
+            with get_session() as session:
+                orgs = session.query(Organization).order_by(Organization.display_name).all()
+                for org in orgs:
+                    content += f'<option value="{org.id}">{html.escape(org.display_name)}</option>'
+            
+            content += '''
+                        </select>
+                        <button type="button" onclick="assignToOrganization()" 
+                                style="background: #667eea; color: white; padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                            Assign Selected
+                        </button>
+                    </div>
+                </form>
+            </div>
+            '''
         else:
             content += '<p>No unnamed tournaments found!</p>'
         
         page = wrap_page(
             content,
-            title="Unnamed Tournaments",
-            subtitle=f"{len(tournaments)} tournaments need organization names",
+            title="Unnamed Tournaments by Contact",
+            subtitle=f"{len(contact_groups)} unique contacts need organization names",
             nav_links=nav_links
         )
         
@@ -245,49 +479,155 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(page.encode())
     
+    def serve_create_org_form(self):
+        """Serve the create organization form"""
+        nav_links = [
+            ('/', 'Home'),
+            ('/organizations', 'Back to Organizations')
+        ]
+        
+        content = '''
+        <h2>Create New Organization</h2>
+        <form method="POST" action="/create_org">
+            <div style="margin-bottom: 15px;">
+                <label for="display_name" style="display: block; margin-bottom: 5px;">Organization Name:</label>
+                <input type="text" id="display_name" name="display_name" required 
+                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <small style="color: #666;">The name to show in reports</small>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <input type="submit" value="Create Organization" 
+                       style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
+                <a href="/organizations" style="margin-left: 10px; color: #666;">Cancel</a>
+            </div>
+        </form>
+        '''
+        
+        page = wrap_page(
+            content,
+            title="Create Organization",
+            nav_links=nav_links
+        )
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(page.encode())
+    
+    def create_organization(self, params):
+        """Create a new organization"""
+        try:
+            from tournament_models import Organization
+            from database_utils import get_session
+            
+            display_name = params.get('display_name', [''])[0]
+            
+            if not display_name:
+                return False
+            
+            with get_session() as session:
+                # Check if organization with same name already exists
+                existing = session.query(Organization).filter_by(display_name=display_name).first()
+                if existing:
+                    return False
+                
+                # Create new organization
+                org = Organization(
+                    display_name=display_name
+                )
+                session.add(org)
+                session.commit()
+                
+            return True
+        except Exception as e:
+            log_info(f"Error creating organization: {e}")
+            return False
+    
     def serve_organizations(self):
         """Serve list of all organizations using shared table formatter"""
-        orgs = Organization.all()
+        from database_utils import get_session
+        from tournament_models import Organization
+        
+        # Get organizations with session
+        with get_session() as session:
+            orgs = session.query(Organization).all()
+            
+            # Extract data while session is active
+            org_data = []
+            for org in orgs:
+                # Get contact summary
+                contacts = org.contacts
+                email_count = sum(1 for c in contacts if c.get('type') == 'email')
+                discord_count = sum(1 for c in contacts if c.get('type') == 'discord')
+                
+                # Get tournament count without using the property
+                # Count tournaments that match this org's contacts
+                tournament_count = 0
+                
+                org_data.append({
+                    'id': org.id,
+                    'display_name': org.display_name,
+                    'email_count': email_count,
+                    'discord_count': discord_count,
+                    'tournament_count': tournament_count
+                })
         
         # Navigation
         nav_links = [
             ('/', 'Home'),
-            ('/unnamed', 'View Unnamed Tournaments')
+            ('/unnamed', 'View Unnamed Tournaments'),
+            ('/attendance', 'Attendance Report')
         ]
         
-        # Stats box
+        # Stats box with create button
         stats = {
-            'Total Organizations': len(orgs)
+            'Total Organizations': len(org_data)
         }
         content = format_stats_box("Summary", stats)
         
-        # Format table with custom row formatter for action links
-        headers = ['ID', 'Name', 'Email', 'Discord', 'Action']
+        # Add create organization button
+        content += '''
+        <div style="margin: 20px 0;">
+            <a href="/create_org" class="nav-links" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                + Create New Organization
+            </a>
+        </div>
+        '''
+        
+        # Format table with organization info
+        headers = ['ID', 'Display Name', 'Contacts', 'Tournaments', 'Actions']
         
         # Custom row formatter for action links
         def org_row_formatter(org):
-            # Get contact info from relationships
-            email = ''
-            discord = ''
-            for contact in org.contacts:
-                if contact.contact_type == 'email' and not email:
-                    email = contact.contact_value
-                elif contact.contact_type == 'discord' and not discord:
-                    discord = contact.contact_value
+            # Build contact summary
+            contact_summary = []
+            if org['email_count'] > 0:
+                contact_summary.append(f"{org['email_count']} email")
+            if org['discord_count'] > 0:
+                contact_summary.append(f"{org['discord_count']} discord")
+            contact_str = ', '.join(contact_summary) if contact_summary else 'No contacts'
             
             return f"""
             <tr>
-                <td>{org.id}</td>
-                <td>{html.escape(org.display_name)}</td>
-                <td>{html.escape(email or 'N/A')}</td>
-                <td>{html.escape(discord or 'N/A')}</td>
-                <td><a href="/edit_org/{org.id}" class="action-link">Edit</a></td>
+                <td>{org['id']}</td>
+                <td>{html.escape(org['display_name'])}</td>
+                <td>{contact_str}</td>
+                <td>{org['tournament_count']}</td>
+                <td>
+                    <a href="/edit_org/{org['id']}" class="action-link">Edit</a>
+                    <form method="POST" action="/delete_org/{org['id']}" style="display: inline-block; margin-left: 10px;"
+                          onsubmit="return confirm('Are you sure you want to delete {html.escape(org['display_name'])}?');">
+                        <input type="submit" value="Delete" 
+                               style="background: #dc3545; color: white; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                    </form>
+                </td>
             </tr>"""
         
-        if orgs:
-            content += format_table(headers, orgs, org_row_formatter)
+        if org_data:
+            content += format_table(headers, org_data, org_row_formatter)
         else:
-            content += '<p>No organizations found.</p>'
+            content += '<p>No organizations found. <a href="/create_org">Create one</a>!</p>'
         
         page = wrap_page(
             content,
@@ -619,9 +959,123 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(page.encode())
     
+    def serve_edit_contact_group(self, tournament_ids):
+        """Serve edit form for a group of tournaments with same contact"""
+        from database_utils import get_session
+        from tournament_models import Tournament
+        
+        with get_session() as session:
+            tournaments = []
+            contact = None
+            
+            # Get all tournaments
+            for tid in tournament_ids:
+                t = session.get(Tournament, tid)
+                if t:
+                    if contact is None:
+                        contact = t.primary_contact
+                    tournaments.append({
+                        'id': t.id,
+                        'name': t.name,
+                        'primary_contact': t.primary_contact,
+                        'num_attendees': t.num_attendees or 0,
+                        'venue_name': t.venue_name,
+                        'city': t.city,
+                        'short_slug': t.short_slug
+                    })
+            
+            if not tournaments:
+                self.send_error(404, "No tournaments found")
+                return
+            
+            # Navigation
+            nav_links = [
+                ('/', 'Home'),
+                ('/unnamed', 'Back to Unnamed List')
+            ]
+            
+            # Summary box
+            total_attendance = sum(t['num_attendees'] for t in tournaments)
+            cities = sorted(set(t['city'] for t in tournaments if t['city']))
+            
+            content = f"""
+            <div class="stats-box">
+                <h2>Edit Contact Group</h2>
+                <p><strong>Current Contact:</strong> {html.escape(contact or 'No Contact')}</p>
+                <p><strong>Total Tournaments:</strong> {len(tournaments)}</p>
+                <p><strong>Total Attendance:</strong> {total_attendance:,}</p>
+                <p><strong>Cities:</strong> {', '.join(cities) if cities else 'N/A'}</p>
+            </div>
+            
+            <!-- Update All Form -->
+            <div class="stats-box">
+                <h3>Update All Tournaments</h3>
+                <form method="POST" action="/update_contact_group" style="margin-bottom: 20px;">
+                    <input type="hidden" name="ids" value="{','.join(str(tid) for tid in tournament_ids)}">
+                    <div style="margin-bottom: 15px;">
+                        <label for="new_contact">New Organization Name (for all {len(tournaments)} tournaments):</label>
+                        <input type="text" name="new_contact" 
+                               value="{html.escape(contact or '')}"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <input type="submit" value="Update All Tournaments" 
+                           style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
+                </form>
+            </div>
+            
+            <!-- Tournament List -->
+            <div class="stats-box">
+                <h3>Tournaments in this Group</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="text-align: left; padding: 10px; border-bottom: 2px solid #ddd;">Tournament</th>
+                            <th style="text-align: left; padding: 10px; border-bottom: 2px solid #ddd;">Attendance</th>
+                            <th style="text-align: left; padding: 10px; border-bottom: 2px solid #ddd;">City</th>
+                            <th style="text-align: left; padding: 10px; border-bottom: 2px solid #ddd;">Start.gg</th>
+                            <th style="text-align: left; padding: 10px; border-bottom: 2px solid #ddd;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            """
+            
+            for i, t in enumerate(tournaments):
+                row_style = 'background-color: #f9f9f9;' if i % 2 == 0 else ''
+                slug_link = f'<a href="https://start.gg/{t["short_slug"]}" target="_blank">{t["short_slug"]}</a>' if t['short_slug'] else 'N/A'
+                content += f"""
+                    <tr style="{row_style}">
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">{html.escape(t['name'])}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">{t['num_attendees']:,}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">{html.escape(t['city'] or 'N/A')}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">{slug_link}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                            <a href="/edit/{t['id']}" class="action-link">Edit Individual</a>
+                        </td>
+                    </tr>
+                """
+            
+            content += """
+                    </tbody>
+                </table>
+            </div>
+            """
+            
+            page = wrap_page(
+                content,
+                title="Edit Contact Group",
+                subtitle=f"Managing {len(tournaments)} tournaments for {html.escape(contact or 'Unknown Contact')}",
+                nav_links=nav_links
+            )
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(page.encode())
+    
     def serve_edit_org_form(self, org_id):
         """Serve edit form for an organization"""
         from database_utils import get_session
+        import json
         
         with get_session() as session:
             org = session.query(Organization).get(org_id)
@@ -629,14 +1083,8 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                 self.send_error(404)
                 return
             
-            # Get existing contacts
-            email = ''
-            discord = ''
-            for contact in org.contacts:
-                if contact.contact_type == 'email':
-                    email = contact.contact_value
-                elif contact.contact_type == 'discord':
-                    discord = contact.contact_value
+            # Get existing contacts list
+            contacts = org.contacts
             
             # Navigation
             nav_links = [
@@ -644,49 +1092,92 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                 ('/organizations', 'Back to Organizations')
             ]
             
-            # Organization details
+            # Organization details and edit form
             content = f"""
             <div class="stats-box">
-                <h2>Organization Details</h2>
-                <ul>
-                    <li><strong>ID:</strong> {org.id}</li>
-                    <li><strong>Display Name:</strong> {html.escape(org.display_name)}</li>
-                    <li><strong>Created:</strong> {org.created_at.strftime('%Y-%m-%d %H:%M:%S') if org.created_at else 'Unknown'}</li>
-                </ul>
+                <h2>Edit Organization</h2>
+                
+                <!-- Basic Info Form -->
+                <form method="POST" action="/update_org/{org_id}" style="margin-bottom: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <label for="display_name">Display Name:</label>
+                        <input type="text" name="display_name" value="{html.escape(org.display_name)}" 
+                               required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <input type="submit" value="Update Name" 
+                           style="background: #667eea; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+                </form>
             </div>
+            
+            <!-- Contacts Management -->
+            <div class="stats-box">
+                <h3>Contacts</h3>
+                
+                <!-- List existing contacts -->
+                <div style="margin-bottom: 20px;">
             """
             
-            # Form fields
-            fields = [
-                {
-                    'type': 'text',
-                    'name': 'display_name',
-                    'label': 'Display Name',
-                    'value': org.display_name,
-                    'required': True
-                },
-                {
-                    'type': 'text',
-                    'name': 'email',
-                    'label': 'Email',
-                    'value': email,
-                    'placeholder': 'organizer@example.com'
-                },
-                {
-                    'type': 'text',
-                    'name': 'discord',
-                    'label': 'Discord',
-                    'value': discord,
-                    'placeholder': 'username#1234 or @username'
-                },
-                {
-                    'type': 'submit',
-                    'label': 'Update Organization'
-                }
-            ]
+            if contacts:
+                content += '''<table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #f0f0f0;">
+                        <th style="text-align: left; padding: 10px; border-bottom: 2px solid #ddd; width: 20%;">Type</th>
+                        <th style="text-align: left; padding: 10px; border-bottom: 2px solid #ddd; width: 60%;">Value</th>
+                        <th style="text-align: left; padding: 10px; border-bottom: 2px solid #ddd; width: 20%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>'''
+                for i, contact in enumerate(contacts):
+                    contact_type = contact.get('type', '')
+                    contact_value = contact.get('value', '')
+                    # Alternate row colors
+                    row_style = 'background-color: #f9f9f9;' if i % 2 == 0 else ''
+                    content += f'''
+                    <tr style="{row_style}">
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">{html.escape(contact_type.title())}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">{html.escape(contact_value)}</td>
+                        <td style="border-bottom: 1px solid #eee;">
+                            <form method="POST" action="/remove_contact/{org_id}/{i}" style="display: inline-block; margin: 0;">
+                                <input type="submit" value="Remove" 
+                                       style="background: #dc3545; color: white; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                            </form>
+                        </td>
+                    </tr>
+                    '''
+                content += '</tbody></table>'
+            else:
+                content += '<p style="color: #666;">No contacts added yet.</p>'
             
-            content += '<h2>Edit Organization</h2>'
-            content += format_form(f'/update_org/{org_id}', fields=fields)
+            # Add new contact form
+            content += f'''
+                </div>
+                
+                <!-- Add new contact form -->
+                <h4>Add New Contact</h4>
+                <form method="POST" action="/add_contact/{org_id}">
+                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <div style="flex: 0 0 150px;">
+                            <label for="contact_type">Type:</label>
+                            <select name="contact_type" required 
+                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="email">Email</option>
+                                <option value="discord">Discord</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label for="contact_value">Value:</label>
+                            <input type="text" name="contact_value" required 
+                                   placeholder="Enter email or discord" 
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <input type="submit" value="Add Contact" 
+                                   style="background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            '''
             content += f'<p><a href="/organizations" class="cancel-link">Cancel</a></p>'
             
             page = wrap_page(
@@ -702,13 +1193,12 @@ class EditorWebHandler(BaseHTTPRequestHandler):
             self.wfile.write(page.encode())
     
     def update_organization(self, org_id, params):
-        """Update organization and its contacts"""
+        """Update organization display name"""
         from database_utils import get_session
-        from tournament_models import Contact
         
         try:
             with get_session() as session:
-                org = session.query(Organization).get(org_id)
+                org = session.get(Organization, org_id)
                 if not org:
                     return False
                 
@@ -716,55 +1206,155 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                 new_name = params.get('display_name', [''])[0]
                 if new_name:
                     org.display_name = new_name
+                    session.commit()
                 
-                # Update or create email contact
-                email = params.get('email', [''])[0]
-                email_contact = None
-                for contact in org.contacts:
-                    if contact.contact_type == 'email':
-                        email_contact = contact
-                        break
-                
-                if email:
-                    if email_contact:
-                        email_contact.contact_value = email
-                    else:
-                        new_contact = Contact(
-                            organization_id=org.id,
-                            contact_type='email',
-                            contact_value=email
-                        )
-                        session.add(new_contact)
-                elif email_contact:
-                    session.delete(email_contact)
-                
-                # Update or create discord contact
-                discord = params.get('discord', [''])[0]
-                discord_contact = None
-                for contact in org.contacts:
-                    if contact.contact_type == 'discord':
-                        discord_contact = contact
-                        break
-                
-                if discord:
-                    if discord_contact:
-                        discord_contact.contact_value = discord
-                    else:
-                        new_contact = Contact(
-                            organization_id=org.id,
-                            contact_type='discord',
-                            contact_value=discord
-                        )
-                        session.add(new_contact)
-                elif discord_contact:
-                    session.delete(discord_contact)
-                
-                session.commit()
-                log_info(f"Updated organization {org_id}: {new_name}")
                 return True
         except Exception as e:
-            log_info(f"Error updating organization {org_id}: {e}")
+            log_info(f"Error updating organization: {e}")
             return False
+    
+    def add_organization_contact(self, org_id, params):
+        """Add a contact to an organization"""
+        from database_utils import get_session
+        
+        try:
+            with get_session() as session:
+                org = session.get(Organization, org_id)
+                if not org:
+                    return False
+                
+                contact_type = params.get('contact_type', [''])[0]
+                contact_value = params.get('contact_value', [''])[0]
+                
+                if contact_type and contact_value:
+                    org.add_contact(contact_type, contact_value)
+                    session.commit()
+                    return True
+                
+                return False
+        except Exception as e:
+            log_info(f"Error adding contact: {e}")
+            return False
+    
+    def remove_organization_contact(self, org_id, contact_index):
+        """Remove a contact from an organization"""
+        from database_utils import get_session
+        
+        try:
+            with get_session() as session:
+                org = session.get(Organization, org_id)
+                if not org:
+                    return False
+                
+                org.remove_contact(contact_index)
+                session.commit()
+                return True
+        except Exception as e:
+            log_info(f"Error removing contact: {e}")
+            return False
+    
+    def update_contact_group(self, tournament_ids, new_contact):
+        """Update contact for multiple tournaments"""
+        from database_utils import get_session
+        from tournament_models import Tournament
+        
+        try:
+            with get_session() as session:
+                updated = 0
+                for tid in tournament_ids:
+                    tournament = session.get(Tournament, tid)
+                    if tournament:
+                        tournament.primary_contact = new_contact
+                        updated += 1
+                
+                if updated > 0:
+                    session.commit()
+                    log_info(f"Updated contact for {updated} tournaments to: {new_contact}")
+                    return True
+                return False
+        except Exception as e:
+            log_info(f"Error updating contact group: {e}")
+            return False
+    
+    def delete_organization(self, org_id):
+        """Delete an organization from the database"""
+        from database_utils import get_session
+        from tournament_models import Organization
+        
+        try:
+            with get_session() as session:
+                org = session.get(Organization, org_id)
+                if not org:
+                    log_info(f"Organization {org_id} not found for deletion")
+                    return False
+                
+                org_name = org.display_name
+                session.delete(org)
+                session.commit()
+                log_info(f"Deleted organization: {org_name} (ID: {org_id})")
+                return True
+        except Exception as e:
+            log_info(f"Error deleting organization: {e}")
+            return False
+    
+    def assign_to_organization(self, tournament_ids, org_id):
+        """Add contacts from selected tournament groups to the organization's contact list"""
+        from database_utils import get_session, normalize_contact
+        from tournament_models import Tournament, Organization
+        
+        try:
+            with get_session() as session:
+                # Get the organization
+                org = session.get(Organization, org_id)
+                if not org:
+                    log_info(f"Organization {org_id} not found")
+                    return False
+                
+                # Get current contacts and their normalized forms to avoid duplicates
+                existing_contacts = org.contacts
+                existing_normalized = set()
+                for contact in existing_contacts:
+                    value = contact.get('value', '')
+                    if value:
+                        existing_normalized.add(normalize_contact(value))
+                
+                # Collect unique contacts from all selected tournaments
+                contacts_to_add = {}  # Use dict to track unique normalized -> (type, value)
+                for tid in tournament_ids:
+                    tournament = session.get(Tournament, tid)
+                    if tournament and tournament.primary_contact:
+                        contact_value = tournament.primary_contact
+                        normalized = normalize_contact(contact_value)
+                        
+                        # Skip if already exists in organization
+                        if normalized not in existing_normalized:
+                            # Determine contact type
+                            if '@' in contact_value and '.' in contact_value:
+                                contact_type = 'email'
+                            elif 'discord:' in contact_value.lower() or '#' in contact_value:
+                                contact_type = 'discord'
+                            else:
+                                contact_type = 'email'  # Default to email
+                            
+                            contacts_to_add[normalized] = (contact_type, contact_value)
+                
+                # Add new contacts to organization
+                added_count = 0
+                for normalized, (contact_type, contact_value) in contacts_to_add.items():
+                    org.add_contact(contact_type, contact_value)
+                    added_count += 1
+                
+                if added_count > 0:
+                    session.commit()
+                    log_info(f"Added {added_count} contacts to organization '{org.display_name}'")
+                    return True
+                else:
+                    log_info(f"No new contacts to add (all already exist in organization)")
+                    return True  # Still success, just nothing to add
+        except Exception as e:
+            log_info(f"Error assigning to organization: {e}")
+            return False
+    
     
     def serve_search(self):
         """Serve the conversational search page"""

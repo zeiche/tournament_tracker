@@ -316,57 +316,21 @@ def create_sample_data():
                     # Create tournament
                     queue.create(Tournament, **tournament_data)
                     
-                    # Create organization and attendance
-                    normalized_key = tournament_data['normalized_contact']
-                    if normalized_key:
-                        def create_org_and_attendance(session, norm_key, raw_contact, tourney_id, attendance):
-                            # Get or create organization
-                            org = session.query(Organization).filter_by(normalized_key=norm_key).first()
-                            if not org:
-                                display_name = raw_contact if '@' not in raw_contact and 'discord' not in raw_contact.lower() else raw_contact
-                                org = Organization(
-                                    normalized_key=norm_key,
-                                    display_name=display_name
-                                )
-                                session.add(org)
-                                session.flush()
-                            
-                            # Add contact
-                            existing_contact = session.query(OrganizationContact).filter_by(
-                                organization_id=org.id,
-                                contact_value=raw_contact
-                            ).first()
-                            
-                            if not existing_contact:
-                                contact_type = 'email' if '@' in raw_contact else 'discord' if 'discord' in raw_contact.lower() else 'name'
-                                contact = OrganizationContact(
-                                    organization_id=org.id,
-                                    contact_value=raw_contact,
-                                    contact_type=contact_type
-                                )
-                                session.add(contact)
-                            
-                            # Record attendance
-                            existing_attendance = session.query(AttendanceRecord).filter_by(
-                                tournament_id=tourney_id,
-                                organization_id=org.id
-                            ).first()
-                            
-                            if not existing_attendance:
-                                attendance_record = AttendanceRecord(
-                                    tournament_id=tourney_id,
-                                    organization_id=org.id,
-                                    attendance=attendance
-                                )
-                                session.add(attendance_record)
-                        
-                        queue.custom(
-                            create_org_and_attendance,
-                            norm_key=normalized_key,
-                            raw_contact=tournament_data['primary_contact'],
-                            tourney_id=tournament_data['id'],
-                            attendance=tournament_data['num_attendees']
-                        )
+                    # Create organization and attendance - DISABLED (normalized_key no longer exists)
+                    # normalized_key = tournament_data['normalized_contact']
+                    # if normalized_key:
+                    #     def create_org_and_attendance(session, norm_key, raw_contact, tourney_id, attendance):
+                    #         # Get or create organization
+                    #         org = session.query(Organization).filter_by(normalized_key=norm_key).first()
+                    #         if not org:
+                    #             display_name = raw_contact if '@' not in raw_contact and 'discord' not in raw_contact.lower() else raw_contact
+                    #             org = Organization(
+                    #                 normalized_key=norm_key,
+                    #                 display_name=display_name
+                    #             )
+                    #             session.add(org)
+                    #             session.flush()
+                    # Rest of code disabled - references removed tables
             
             log_info("Sample data created successfully", "sample")
             

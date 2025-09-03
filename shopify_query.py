@@ -5,8 +5,8 @@ Fixed to use centralized database functions and logging
 import os
 
 # Import centralized systems
-from log_utils import log_info, log_debug, log_error, LogContext
-from database_utils import get_attendance_rankings
+from log_utils import log_info, log_debug, log_error, log_warn, LogContext
+from database_utils import get_attendance_rankings, get_summary_stats
 
 def get_legacy_attendance_data():
     """
@@ -29,21 +29,21 @@ def get_legacy_attendance_data():
         log_debug(f"Processing {len(rankings)} organizations for legacy format", "shopify")
         
         for rank, org_data in enumerate(rankings, 1):
-            key = org_data['normalized_key']
+            # Use display_name as the key since we don't have normalized_key anymore
+            key = org_data['display_name']
             
             # Attendance tracker format
             attendance_tracker[key] = {
                 'tournaments': list(range(org_data.get('tournament_count', 0))),  # Fake list for count
                 'total_attendance': org_data.get('total_attendance', 0),
-                'contacts': org_data.get('contacts', [])
+                'contacts': []  # We don't have contacts in the rankings anymore
             }
             
-            # Organization names format (only if display name differs from key)
-            if org_data['display_name'] != key:
-                org_names[f"org_{rank}"] = {
-                    'display_name': org_data['display_name'],
-                    'contacts': org_data['contacts']
-                }
+            # Organization names format - always include for now
+            org_names[f"org_{rank}"] = {
+                'display_name': org_data['display_name'],
+                'contacts': []
+            }
         
         log_info(f"Legacy format created: {len(attendance_tracker)} attendance entries, {len(org_names)} org names", "shopify")
         

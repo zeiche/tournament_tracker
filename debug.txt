@@ -1,11 +1,9 @@
-INFO  [heatmap] Generating static heat map
-INFO  [heatmap] Processing 475 tournament locations
-INFO  [heatmap] Heat map saved to tournament_heatmap.png
-INFO  [heatmap] Generating static heat map
-INFO  [heatmap] Processing 475 tournament locations
-INFO  [heatmap] Added map background
-INFO  [heatmap] Heat map saved to tournament_heatmap_with_map.png
-INFO  [heatmap] Generating attendance density map
-INFO  [heatmap] Attendance density map saved to attendance_heatmap.png
-INFO  [heatmap] Generating interactive heat map
-INFO  [heatmap] Interactive heat map saved to tournament_heatmap.html
+INFO  [tracker] Starting Tournament Tracker
+INFO  [operations] Starting tournament_tracker_session
+INFO  [tracker] Initializing database connection
+INFO  Starting web editor on http://0.0.0.0:8081
+INFO  [shopify] Converting tournament data to legacy Shopify format
+INFO  Starting Convert to legacy format...
+INFO  [shopify] Legacy format created: 89 attendance entries, 89 org names
+INFO  Completed Convert to legacy format (0.74s)
+INFO  Found 155 tournaments with unnamed contacts

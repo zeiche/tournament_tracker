@@ -119,12 +119,9 @@ def get_all_organizations():
         orgs = session.query(Organization).all()
         return [_org_to_dict(org) for org in orgs]
 
-def find_organization_by_key(normalized_key):
-    """Find organization by normalized key"""
-    with get_session() as session:
-        from tournament_models import Organization
-        org = session.query(Organization).filter_by(normalized_key=normalized_key).first()
-        return _org_to_dict(org) if org else None
+# DEPRECATED - normalized_key no longer exists
+# def find_organization_by_key(normalized_key):
+#     pass
 
 def get_organizations_by_attendance(limit=None):
     """Get organizations ranked by attendance"""
@@ -135,8 +132,8 @@ def get_organizations_by_attendance(limit=None):
             Organization,
             func.sum(Tournament.num_attendees).label('total_attendance'),
             func.count(Tournament.id).label('tournament_count')
-        ).join(
-            Tournament, Tournament.normalized_contact == Organization.normalized_key
+        ).outerjoin(
+            Tournament, Tournament.primary_contact.like('%' + Organization.display_name + '%')
         ).group_by(Organization.id).order_by(
             func.sum(Tournament.num_attendees).desc()
         )
@@ -153,33 +150,20 @@ def get_organizations_by_attendance(limit=None):
             org_dicts.append(org_dict)
         return org_dicts
 
-def save_organization_name(normalized_key, new_display_name):
+def save_organization_name(org_id, new_display_name):
     """Save organization display name change"""
     with get_session() as session:
         from tournament_models import Organization
-        org = session.query(Organization).filter_by(normalized_key=normalized_key).first()
+        org = session.get(Organization, org_id)
         if org:
             org.display_name = new_display_name
+            session.commit()
             return True
         return False
 
-def get_or_create_organization(normalized_key, display_name=None):
-    """Get existing organization or create new one"""
-    with get_session() as session:
-        from tournament_models import Organization
-        org = session.query(Organization).filter_by(normalized_key=normalized_key).first()
-        
-        if not org:
-            if not display_name:
-                display_name = normalized_key
-            
-            org = Organization(
-                normalized_key=normalized_key,
-                display_name=display_name
-            )
-            session.add(org)
-        
-        return _org_to_dict(org)
+# DEPRECATED - use editor_core.get_or_create_organization instead
+# def get_or_create_organization(normalized_key, display_name=None):
+#     pass
 
 def _org_to_dict(org):
     """Convert organization model to dictionary"""
@@ -188,11 +172,10 @@ def _org_to_dict(org):
         
     return {
         'id': org.id,
-        'normalized_key': org.normalized_key,
         'display_name': org.display_name,
-        'tournament_count': org.tournament_count,
-        'total_attendance': org.total_attendance,
-        'contacts': [contact.contact_value for contact in org.contacts],
+        'tournament_count': getattr(org, 'tournament_count', 0),
+        'total_attendance': getattr(org, 'total_attendance', 0),
+        'contacts': org.contacts if hasattr(org, 'contacts') else [],
         'created_at': org.created_at,
         'updated_at': org.updated_at
     }
@@ -229,11 +212,25 @@ def get_tournaments_by_contact(normalized_contact):
         tournaments = session.query(Tournament).filter_by(normalized_contact=normalized_contact).all()
         return [_tournament_to_dict(t) for t in tournaments]
 
-def get_tournament_slugs(normalized_key):
-    """Get tournament slugs for start.gg lookup"""
+# DEPRECATED - normalized_contact no longer exists
+# def get_tournament_slugs(normalized_key):
+#     pass
+
+def get_tournament_slugs_by_org(org_id):
+    """Get tournament slugs for an organization"""
     with get_session() as session:
-        from tournament_models import Tournament
-        tournaments = session.query(Tournament).filter_by(normalized_contact=normalized_key).all()
+        from tournament_models import Tournament, Organization
+        org = session.query(Organization).filter_by(id=org_id).first()
+        if not org:
+            return []
+        tournaments = []
+        # Find tournaments that match any of the org's contacts
+        for contact in org.contacts:
+            if contact.get('value'):
+                matching = session.query(Tournament).filter(
+                    Tournament.primary_contact.like(f"%{contact['value']}%")
+                ).all()
+                tournaments.extend(matching)
         
         finished_tournaments = []
         for t in tournaments:
@@ -293,31 +290,61 @@ def get_attendance_rankings(limit=None):
     """Get attendance rankings for reporting"""
     with get_session() as session:
         from tournament_models import Organization, Tournament
-        # Sum attendance from tournaments grouped by organization
-        query = session.query(
-            Organization,
-            func.sum(Tournament.num_attendees).label('total_attendance'),
-            func.count(Tournament.id).label('tournament_count')
-        ).join(
-            Tournament, Tournament.normalized_contact == Organization.normalized_key
-        ).group_by(Organization.id).order_by(
-            func.sum(Tournament.num_attendees).desc()
-        )
+        
+        # Get all tournaments to calculate attendance
+        all_tournaments = session.query(Tournament).all()
+        
+        # Group tournaments by their matching organizations
+        org_attendance = {}
+        
+        for tournament in all_tournaments:
+            # Find which org this tournament belongs to (if any)
+            org_match = None
+            primary_contact = tournament.primary_contact
+            
+            if primary_contact:
+                # Check all organizations for a matching contact
+                orgs = session.query(Organization).all()
+                for org in orgs:
+                    for contact in org.contacts:
+                        if contact.get('value') and contact['value'].lower() in primary_contact.lower():
+                            org_match = org.display_name
+                            break
+                    if org_match:
+                        break
+            
+            # If no org match, use primary contact as org name
+            if not org_match:
+                org_match = primary_contact or 'Unknown'
+            
+            # Add to totals
+            if org_match not in org_attendance:
+                org_attendance[org_match] = {
+                    'display_name': org_match,
+                    'tournament_count': 0,
+                    'total_attendance': 0,
+                    'tournaments': []
+                }
+            
+            org_attendance[org_match]['tournament_count'] += 1
+            org_attendance[org_match]['total_attendance'] += tournament.num_attendees or 0
+            org_attendance[org_match]['tournaments'].append(tournament.name)
+        
+        # Convert to list and calculate averages
+        rankings = []
+        for org_name, data in org_attendance.items():
+            rankings.append({
+                'display_name': data['display_name'],
+                'tournament_count': data['tournament_count'],
+                'total_attendance': data['total_attendance'],
+                'avg_attendance': data['total_attendance'] / data['tournament_count'] if data['tournament_count'] > 0 else 0
+            })
+        
+        # Sort by total attendance
+        rankings.sort(key=lambda x: x['total_attendance'], reverse=True)
         
         if limit:
-            query = query.limit(limit)
-            
-        results = query.all()
-        
-        rankings = []
-        for org, total_attendance, tournament_count in results:
-            rankings.append({
-                'display_name': org.display_name,
-                'normalized_key': org.normalized_key,
-                'tournament_count': tournament_count or 0,
-                'total_attendance': total_attendance or 0,
-                'contacts': []  # Contacts table was removed
-            })
+            rankings = rankings[:limit]
         
         return rankings
 
@@ -401,69 +428,19 @@ def find_duplicate_organizations():
         
         return duplicate_groups
 
-def merge_organizations(primary_normalized_key, duplicate_normalized_keys):
-    """Merge duplicate organizations into primary organization"""
-    with get_session() as session:
-        from tournament_models import Organization, AttendanceRecord, OrganizationContact, Tournament
-        primary_org = session.query(Organization).filter_by(normalized_key=primary_normalized_key).first()
-        if not primary_org:
-            return False, "Primary organization not found"
-        
-        merge_stats = {
-            'attendance_records_moved': 0,
-            'contacts_merged': 0,
-            'organizations_deleted': 0
-        }
-        
-        for dup_key in duplicate_normalized_keys:
-            dup_org = session.query(Organization).filter_by(normalized_key=dup_key).first()
-            if not dup_org:
-                continue
-            
-            # Move attendance records
-            attendance_records = session.query(AttendanceRecord).filter_by(organization_id=dup_org.id).all()
-            for record in attendance_records:
-                # Check if primary org already has record for this tournament
-                existing = session.query(AttendanceRecord).filter_by(
-                    tournament_id=record.tournament_id,
-                    organization_id=primary_org.id
-                ).first()
-                
-                if existing:
-                    # Merge attendance counts
-                    existing.attendance = max(existing.attendance, record.attendance)
-                    session.delete(record)
-                else:
-                    # Move record to primary org
-                    record.organization_id = primary_org.id
-                
-                merge_stats['attendance_records_moved'] += 1
-            
-            # Merge contacts
-            contacts = session.query(OrganizationContact).filter_by(organization_id=dup_org.id).all()
-            for contact in contacts:
-                # Check if primary org already has this contact
-                existing = session.query(OrganizationContact).filter_by(
-                    organization_id=primary_org.id,
-                    contact_value=contact.contact_value
-                ).first()
-                
-                if not existing:
-                    contact.organization_id = primary_org.id
-                    merge_stats['contacts_merged'] += 1
-                else:
-                    session.delete(contact)
-            
-            # Update tournament references
-            tournaments = session.query(Tournament).filter_by(normalized_contact=dup_key).all()
-            for tournament in tournaments:
-                tournament.normalized_contact = primary_normalized_key
-            
-            # Delete duplicate organization
-            session.delete(dup_org)
-            merge_stats['organizations_deleted'] += 1
-        
-        return True, merge_stats
+# DEPRECATED - uses tables and columns that no longer exist
+def merge_organizations_disabled():
+    """Merge functionality disabled - needs reimplementation"""
+    return False, "Merge functionality needs to be reimplemented"
+
+def merge_organizations_old(primary_normalized_key, duplicate_normalized_keys):
+    """DISABLED - references removed tables"""
+    return False, "Function disabled - references removed tables"
+    # Original function commented out:
+    # with get_session() as session:
+    #     from tournament_models import Organization, AttendanceRecord, OrganizationContact, Tournament
+    #     primary_org = session.query(Organization).filter_by(normalized_key=primary_normalized_key).first()
+    # Rest of function disabled
 
 def deduplicate_organizations():
     """Automatic deduplication of organizations"""
@@ -482,10 +459,11 @@ def deduplicate_organizations():
         
         # Use organization with highest attendance as primary
         primary_org = max(orgs, key=lambda x: x['total_attendance'])
-        duplicate_keys = [org['normalized_key'] for org in orgs if org['normalized_key'] != primary_org['normalized_key']]
+        duplicate_keys = [org['display_name'] for org in orgs if org['display_name'] != primary_org['display_name']]
         
         if duplicate_keys:
-            success, stats = merge_organizations(primary_org['normalized_key'], duplicate_keys)
+            # Merge functionality disabled
+            success, stats = False, "Merge disabled"
             if success:
                 total_merged += len(duplicate_keys)
                 merge_results.append({
@@ -513,7 +491,7 @@ def run_deduplication():
         orgs = group['organizations']
         print(f"   {i}. '{group['name_pattern']}' - {len(orgs)} organizations, {group['total_attendance']} total attendance")
         for org in orgs:
-            print(f"      - {org['normalized_key']} ({org['total_attendance']} attendance)")
+            print(f"      - {org['display_name']} ({org['total_attendance']} attendance)")
     
     # Confirm deduplication
     response = input(f"\nMerge {len(duplicate_groups)} duplicate groups? (y/N): ")
