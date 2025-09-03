@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/ubuntu/claude/tournament_tracker/venv/bin/python3
 """
 go - Tournament Tracker Entry Point
 CLI interface for the tournament tracker system

@@ -33,9 +33,9 @@ def get_legacy_attendance_data():
             
             # Attendance tracker format
             attendance_tracker[key] = {
-                'tournaments': [],  # Could populate if needed
-                'total_attendance': org_data['total_attendance'],
-                'contacts': org_data['contacts']
+                'tournaments': list(range(org_data.get('tournament_count', 0))),  # Fake list for count
+                'total_attendance': org_data.get('total_attendance', 0),
+                'contacts': org_data.get('contacts', [])
             }
             
             # Organization names format (only if display name differs from key)

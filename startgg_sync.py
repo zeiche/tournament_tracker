@@ -295,7 +295,6 @@ class TournamentSyncProcessor:
             'tournaments_created': 0,
             'tournaments_updated': 0,
             'organizations_created': 0,
-            'attendance_records_created': 0,
             'standings_processed': 0,
             'processing_errors': 0
         }
@@ -393,8 +392,8 @@ class TournamentSyncProcessor:
             return
         
         # Create organization creation callback
-        def create_org_and_attendance(session, norm_key, raw_contact, tourney_id, attendance):
-            from tournament_models import Organization, OrganizationContact, AttendanceRecord
+        def create_org(session, norm_key, raw_contact):
+            from tournament_models import Organization
             
             # Get or create organization
             org = session.query(Organization).filter_by(normalized_key=norm_key).first()
@@ -408,48 +407,13 @@ class TournamentSyncProcessor:
                 session.flush()  # Get the ID
                 self.sync_stats['organizations_created'] += 1
             
-            # Add contact if it doesn't exist
-            existing_contact = session.query(OrganizationContact).filter_by(
-                organization_id=org.id,
-                contact_value=raw_contact
-            ).first()
-            
-            if not existing_contact:
-                contact_type = 'email' if '@' in raw_contact else 'discord' if 'discord' in raw_contact.lower() else 'name'
-                contact = OrganizationContact(
-                    organization_id=org.id,
-                    contact_value=raw_contact,
-                    contact_type=contact_type,
-                    is_primary=1
-                )
-                session.add(contact)
-            
-            # Record attendance
-            existing_attendance = session.query(AttendanceRecord).filter_by(
-                tournament_id=tourney_id,
-                organization_id=org.id
-            ).first()
-            
-            if existing_attendance:
-                if existing_attendance.attendance != attendance:
-                    existing_attendance.attendance = attendance
-                    existing_attendance.updated_at = datetime.now()
-            else:
-                attendance_record = AttendanceRecord(
-                    tournament_id=tourney_id,
-                    organization_id=org.id,
-                    attendance=attendance
-                )
-                session.add(attendance_record)
-                self.sync_stats['attendance_records_created'] += 1
+            # Contact and attendance recording removed - data is now in tournament.num_attendees
         
-        # Queue the organization and attendance creation
+        # Queue the organization creation
         queue.custom(
-            create_org_and_attendance,
+            create_org,
             norm_key=normalized_contact,
-            raw_contact=primary_contact,
-            tourney_id=tournament_id,
-            attendance=num_attendees
+            raw_contact=primary_contact
         )
     
     def process_standings(self, standings_data, tournament_id):
@@ -615,7 +579,6 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
             'summary': {
                 'tournaments_processed': processor_stats['tournaments_processed'],
                 'organizations_created': processor_stats['organizations_created'],
-                'attendance_records_created': processor_stats['attendance_records_created'],
                 'standings_processed': processor_stats['standings_processed'],
                 'processing_errors': processor_stats['processing_errors'],
                 'total_processing_time': sync_time,
@@ -631,7 +594,6 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
         log_info(f"API calls: {client_stats['api_stats']['api_calls']}", "sync")
         log_info(f"Tournaments processed: {processor_stats['tournaments_processed']}", "sync")
         log_info(f"Organizations created: {processor_stats['organizations_created']}", "sync")
-        log_info(f"Attendance records: {processor_stats['attendance_records_created']}", "sync")
         log_info(f"Processing time: {sync_time:.2f}s", "sync")
         log_info(f"Success rate: {final_stats['summary']['success_rate']:.1f}%", "sync")
         log_info("=" * 60, "sync")

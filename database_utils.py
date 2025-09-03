@@ -129,16 +129,29 @@ def find_organization_by_key(normalized_key):
 def get_organizations_by_attendance(limit=None):
     """Get organizations ranked by attendance"""
     with get_session() as session:
-        from tournament_models import Organization, AttendanceRecord
-        query = session.query(Organization).join(AttendanceRecord).group_by(Organization.id).order_by(
-            func.sum(AttendanceRecord.attendance).desc()
+        from tournament_models import Organization, Tournament
+        # Sum attendance from tournaments grouped by organization
+        query = session.query(
+            Organization,
+            func.sum(Tournament.num_attendees).label('total_attendance'),
+            func.count(Tournament.id).label('tournament_count')
+        ).join(
+            Tournament, Tournament.normalized_contact == Organization.normalized_key
+        ).group_by(Organization.id).order_by(
+            func.sum(Tournament.num_attendees).desc()
         )
         
         if limit:
             query = query.limit(limit)
             
-        orgs = query.all()
-        return [_org_to_dict(org) for org in orgs]
+        results = query.all()
+        org_dicts = []
+        for org, total_attendance, tournament_count in results:
+            org_dict = _org_to_dict(org)
+            org_dict['total_attendance'] = total_attendance or 0
+            org_dict['tournament_count'] = tournament_count or 0
+            org_dicts.append(org_dict)
+        return org_dicts
 
 def save_organization_name(normalized_key, new_display_name):
     """Save organization display name change"""
@@ -263,11 +276,11 @@ def _tournament_to_dict(tournament):
 def get_summary_stats():
     """Get overall summary statistics"""
     with get_session() as session:
-        from tournament_models import Organization, Tournament, Player, AttendanceRecord
+        from tournament_models import Organization, Tournament, Player
         total_orgs = session.query(Organization).count()
         total_tournaments = session.query(Tournament).count()
         total_players = session.query(Player).count()
-        total_attendance = session.query(func.coalesce(func.sum(AttendanceRecord.attendance), 0)).scalar()
+        total_attendance = session.query(func.coalesce(func.sum(Tournament.num_attendees), 0)).scalar()
         
         return {
             'total_organizations': total_orgs,
@@ -279,24 +292,31 @@ def get_summary_stats():
 def get_attendance_rankings(limit=None):
     """Get attendance rankings for reporting"""
     with get_session() as session:
-        from tournament_models import Organization, AttendanceRecord
-        query = session.query(Organization).join(AttendanceRecord).group_by(Organization.id).order_by(
-            func.sum(AttendanceRecord.attendance).desc()
+        from tournament_models import Organization, Tournament
+        # Sum attendance from tournaments grouped by organization
+        query = session.query(
+            Organization,
+            func.sum(Tournament.num_attendees).label('total_attendance'),
+            func.count(Tournament.id).label('tournament_count')
+        ).join(
+            Tournament, Tournament.normalized_contact == Organization.normalized_key
+        ).group_by(Organization.id).order_by(
+            func.sum(Tournament.num_attendees).desc()
         )
         
         if limit:
             query = query.limit(limit)
             
-        orgs = query.all()
+        results = query.all()
         
         rankings = []
-        for org in orgs:
+        for org, total_attendance, tournament_count in results:
             rankings.append({
                 'display_name': org.display_name,
                 'normalized_key': org.normalized_key,
-                'tournament_count': len(org.attendance_records),
-                'total_attendance': org.total_attendance,
-                'contacts': [contact.contact_value for contact in org.contacts]
+                'tournament_count': tournament_count or 0,
+                'total_attendance': total_attendance or 0,
+                'contacts': []  # Contacts table was removed
             })
         
         return rankings

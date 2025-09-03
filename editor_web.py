@@ -1190,7 +1190,7 @@ class EditorWebHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps([]).encode())
 
-def run_server(port=8081, host='127.0.0.1'):
+def run_server(port=8081, host='0.0.0.0'):
     """Run the web server - to be called from go.py"""
     server_address = (host, port)
     httpd = HTTPServer(server_address, EditorWebHandler)
