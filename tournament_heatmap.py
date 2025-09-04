@@ -28,12 +28,13 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
     
     log_info("Generating static heat map", "heatmap")
     
-    # Get tournament data and extract coordinates within session
+    # Get tournament data using new location methods
     lats = []
     lngs = []
     weights = []
     
     with get_session() as session:
+        # Get all tournaments with geographic data
         tournaments = session.query(Tournament).filter(
             Tournament.lat.isnot(None),
             Tournament.lng.isnot(None)
@@ -43,24 +44,17 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
             log_error("No tournaments with geographic data found", "heatmap")
             return False
         
-        # Extract data while in session
+        # Extract data using new methods
         for t in tournaments:
-            try:
-                lat = float(t.lat)
-                lng = float(t.lng)
-                
-                # Focus on SoCal region (rough boundaries)
-                if 32.5 <= lat <= 34.5 and -119 <= lng <= -116:
-                    lats.append(lat)
-                    lngs.append(lng)
-                    # Weight by attendance (log scale to prevent outliers from dominating)
-                    weight = np.log10(max(t.num_attendees or 1, 1))
-                    weights.append(weight)
-            except (ValueError, TypeError):
-                continue
+            if t.has_location and t.coordinates:
+                lat, lng = t.coordinates
+                lats.append(lat)
+                lngs.append(lng)
+                # Use the new get_heatmap_weight() method
+                weights.append(t.get_heatmap_weight())
     
     if not lats:
-        log_error("No valid SoCal tournament locations found", "heatmap")
+        log_error("No valid tournament locations found", "heatmap")
         return False
     
     log_info(f"Processing {len(lats)} tournament locations", "heatmap")
@@ -215,34 +209,32 @@ def generate_interactive_heatmap(output_file='tournament_heatmap.html'):
     heat_data = []
     marker_cluster = MarkerCluster().add_to(m)
     
-    # Get tournament data and process within session
+    # Get tournament data using new location methods
     with get_session() as session:
-        tournaments = session.query(Tournament).filter(
-            Tournament.lat.isnot(None),
-            Tournament.lng.isnot(None)
-        ).all()
+        # Get all tournaments with location data
+        tournaments = Tournament.with_location().all()
         
         if not tournaments:
             log_error("No tournaments with geographic data found", "heatmap")
             return False
         
         for t in tournaments:
-            try:
-                lat = float(t.lat)
-                lng = float(t.lng)
+            if t.has_location and t.coordinates:
+                lat, lng = t.coordinates
                 
-                # Add to heat map data (lat, lng, weight)
-                weight = np.log10(max(t.num_attendees or 1, 1))
+                # Add to heat map data using new methods
+                weight = t.get_heatmap_weight()
                 heat_data.append([lat, lng, weight])
                 
-                # Add marker with popup info
+                # Add marker with popup info using new properties
                 popup_html = f"""
                 <div style='font-family: sans-serif; width: 250px;'>
                     <h4 style='margin: 0 0 10px 0;'>{t.name}</h4>
                     <p style='margin: 5px 0;'><b>Venue:</b> {t.venue_name or 'Unknown'}</p>
-                    <p style='margin: 5px 0;'><b>City:</b> {t.city or 'Unknown'}</p>
+                    <p style='margin: 5px 0;'><b>Address:</b> {t.full_address}</p>
                     <p style='margin: 5px 0;'><b>Attendance:</b> {t.num_attendees or 0:,}</p>
-                    <p style='margin: 5px 0;'><b>Date:</b> {t.start_at or 'Unknown'}</p>
+                    <p style='margin: 5px 0;'><b>Date:</b> {t.start_date.strftime('%Y-%m-%d') if t.start_date else 'Unknown'}</p>
+                    <p style='margin: 5px 0;'><b>Status:</b> {'Finished' if t.is_finished() else 'Upcoming' if t.is_upcoming else 'Active' if t.is_active else 'Past'}</p>
                 </div>
                 """
                 
@@ -260,9 +252,6 @@ def generate_interactive_heatmap(output_file='tournament_heatmap.html'):
                     tooltip=f"{t.name} ({t.num_attendees or 0} attendees)",
                     icon=folium.Icon(color=icon_color, icon='gamepad', prefix='fa')
                 ).add_to(marker_cluster)
-                    
-            except (ValueError, TypeError):
-                continue
     
     # Add heat map layer
     if heat_data:

@@ -90,7 +90,11 @@ class TournamentTracker:
             log_info("Generating HTML tournament report", "tracker")
             
             try:
-                html = format_html_table(limit=limit)
+                # Get data from database in the format expected by format_html_table
+                attendance_tracker, org_names = get_legacy_attendance_data()
+                
+                # Generate HTML
+                html = format_html_table(attendance_tracker, org_names)
                 
                 if output_file:
                     with open(output_file, 'w', encoding='utf-8') as f:

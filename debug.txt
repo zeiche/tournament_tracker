@@ -1,4 +1,2 @@
 INFO  [tracker] Starting Tournament Tracker
 INFO  [operations] Starting tournament_tracker_session
-INFO  [tracker] Initializing database connection
-INFO  Starting web editor on http://0.0.0.0:8081

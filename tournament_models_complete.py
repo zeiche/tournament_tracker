@@ -2133,7 +2133,7 @@ class Player(Base, BaseModel, TimestampMixin):
 # TOURNAMENT PLACEMENT MODEL
 # ============================================================================
 
-class TournamentPlacement(Base, BaseModel):
+class TournamentPlacement(Base, BaseModel, TimestampMixin):
     """Top placements in tournaments with detailed analytics"""
     __tablename__ = 'tournament_placements'
     

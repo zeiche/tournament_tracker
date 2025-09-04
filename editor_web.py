@@ -157,6 +157,19 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                 self.end_headers()
             else:
                 self.send_error(500)
+        elif parsed.path.startswith('/merge_org/'):
+            org_id = int(parsed.path.split('/')[-1])
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            params = urllib.parse.parse_qs(post_data.decode('utf-8'))
+            
+            target_org_id = params.get('target_org_id', [''])[0]
+            if target_org_id and self.merge_organizations(org_id, int(target_org_id)):
+                self.send_response(303)
+                self.send_header('Location', '/organizations')
+                self.end_headers()
+            else:
+                self.send_error(500)
         elif parsed.path.startswith('/delete_org/'):
             org_id = int(parsed.path.split('/')[-1])
             
@@ -1254,8 +1267,8 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         
         # Wrap in page
         page = wrap_page(
-            "Event Statistics",
             content,
+            "Event Statistics",
             nav_links=nav_links
         )
         
@@ -1639,7 +1652,56 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                     </div>
                 </form>
             </div>
+            
+            <!-- Merge Organization -->
+            <div class="stats-box">
+                <h3>Merge Organization</h3>
+                <p style="color: #666; margin-bottom: 15px;">
+                    Merge this organization into another. All tournaments from this organization will be transferred to the selected organization.
+                </p>
             '''
+            
+            # Get all other organizations for merge dropdown
+            all_orgs = session.query(Organization).filter(Organization.id != org_id).order_by(Organization.display_name).all()
+            
+            if all_orgs:
+                content += f'''
+                <form method="POST" action="/merge_org/{org_id}" 
+                      onsubmit="return confirm('Are you sure you want to merge {html.escape(org.display_name)} into the selected organization? This action cannot be undone.');">
+                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label for="target_org_id">Merge into:</label>
+                            <select name="target_org_id" required 
+                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="">-- Select Target Organization --</option>
+                '''
+                
+                for target_org in all_orgs:
+                    # Get tournament count for context
+                    tournament_count = session.query(Tournament).filter(
+                        Tournament.primary_contact == target_org.display_name
+                    ).count()
+                    content += f'''
+                                <option value="{target_org.id}">{html.escape(target_org.display_name)} ({tournament_count} tournaments)</option>
+                    '''
+                
+                content += '''
+                            </select>
+                        </div>
+                        <div>
+                            <input type="submit" value="Merge Organizations" 
+                                   style="background: #ffc107; color: black; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        </div>
+                    </div>
+                </form>
+                '''
+            else:
+                content += '<p style="color: #666;">No other organizations available for merging.</p>'
+            
+            content += '''
+            </div>
+            '''
+            
             content += f'<p><a href="/organizations" class="cancel-link">Cancel</a></p>'
             
             page = wrap_page(
@@ -1757,6 +1819,58 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                 return True
         except Exception as e:
             log_info(f"Error deleting organization: {e}")
+            return False
+    
+    def merge_organizations(self, source_org_id, target_org_id):
+        """Merge source organization into target organization"""
+        from database_utils import get_session
+        from tournament_models import Organization, Tournament
+        
+        try:
+            with get_session() as session:
+                # Get both organizations
+                source_org = session.get(Organization, source_org_id)
+                target_org = session.get(Organization, target_org_id)
+                
+                if not source_org or not target_org:
+                    log_info(f"Organizations not found for merge: source={source_org_id}, target={target_org_id}")
+                    return False
+                
+                source_name = source_org.display_name
+                target_name = target_org.display_name
+                
+                # Update all tournaments from source org to target org
+                tournaments_updated = session.query(Tournament).filter(
+                    Tournament.primary_contact == source_name
+                ).update({Tournament.primary_contact: target_name})
+                
+                # Merge contacts from source to target (avoiding duplicates)
+                if source_org.contacts:
+                    for contact in source_org.contacts:
+                        contact_type = contact.get('type')
+                        contact_value = contact.get('value')
+                        
+                        # Check if this contact already exists in target
+                        if target_org.contacts is None:
+                            target_org.contacts = []
+                        
+                        contact_exists = any(
+                            c.get('type') == contact_type and c.get('value') == contact_value 
+                            for c in target_org.contacts
+                        )
+                        
+                        if not contact_exists and contact_type and contact_value:
+                            target_org.add_contact(contact_type, contact_value)
+                
+                # Delete the source organization
+                session.delete(source_org)
+                session.commit()
+                
+                log_info(f"Merged organization '{source_name}' into '{target_name}'. Updated {tournaments_updated} tournaments.")
+                return True
+                
+        except Exception as e:
+            log_info(f"Error merging organizations: {e}")
             return False
     
     def assign_to_organization(self, tournament_ids, org_id):

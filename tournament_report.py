@@ -311,8 +311,10 @@ def get_legacy_attendance_data():
         key = org_data['display_name']
         
         # Attendance tracker format
+        # Use tournament_count from the rankings data
+        tournament_count = org_data.get('tournament_count', 0)
         attendance_tracker[key] = {
-            'tournaments': [],  # Could populate if needed
+            'tournaments': [''] * tournament_count,  # Create list with correct count
             'total_attendance': org_data.get('total_attendance', 0),
             'contacts': []  # No contacts in rankings anymore
         }
