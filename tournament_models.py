@@ -359,14 +359,12 @@ class Organization(Base, BaseModel):
     @property
     def total_attendance(self):
         """Calculate total attendance across all tournaments"""
-        # Would need to query tournaments table to sum attendance
-        return 0  # Placeholder - implement if needed
+        return sum(t.num_attendees or 0 for t in self.tournaments)
     
     @property
     def tournament_count(self):
         """Count of tournaments"""
-        # Would need to query tournaments table to count
-        return 0  # Placeholder - implement if needed
+        return len(self.tournaments)
     
     
     @classmethod

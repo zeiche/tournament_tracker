@@ -55,6 +55,10 @@ class EditorWebHandler(BaseHTTPRequestHandler):
             self.serve_create_org_form()
         elif parsed.path == '/attendance':
             self.serve_attendance_report()
+        elif parsed.path == '/players':
+            self.serve_player_rankings()
+        elif parsed.path == '/events':
+            self.serve_event_statistics()
         elif parsed.path == '/heatmap' or parsed.path.startswith('/heatmap/'):
             # Check if it's a specific file request
             if parsed.path.startswith('/heatmap/') and parsed.path.count('/') == 2:
@@ -253,9 +257,11 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         """Serve the home page using shared utilities"""
         nav_links = [
             ('/search', '🚀 Universal Search'),
+            ('/players', '🏆 Player Rankings'),
             ('/attendance', 'Attendance Report'),
             ('/unnamed', 'View Unnamed Tournaments'),
-            ('/organizations', 'View All Organizations')
+            ('/organizations', 'View All Organizations'),
+            ('/heatmap', '🗺️ Heat Map')
         ]
         
         # Get summary stats
@@ -275,9 +281,23 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         <div class="stats-box">
             <h3>Available Tools</h3>
             <ul>
+                <li><strong>Player Rankings:</strong> Power rankings based on tournament placements</li>
                 <li><strong>Attendance Report:</strong> View tournament attendance rankings by organization</li>
                 <li><strong>Unnamed Tournaments:</strong> Edit tournaments that need proper organization names</li>
                 <li><strong>All Organizations:</strong> View all organizations in the database</li>
+                <li><strong>Heat Map:</strong> Interactive geographic visualization of tournament locations</li>
+                <li><strong>Universal Search:</strong> Search across all tournaments, organizations, and data</li>
+            </ul>
+        </div>
+        
+        <div class="stats-box">
+            <h3>Visualizations</h3>
+            <ul>
+                <li><a href="/heatmap">🗺️ Interactive Heat Map</a> - Live zoomable map of tournament locations</li>
+                <li><a href="/heatmap/tournament_heatmap.html">📊 Full Interactive Map</a> - Detailed tournament map with popups</li>
+                <li><a href="/heatmap/tournament_heatmap.png">📈 Density Heat Map</a> - Static tournament density visualization</li>
+                <li><a href="/heatmap/tournament_heatmap_with_map.png">🌍 Density with Street Map</a> - Heat map overlaid on street map</li>
+                <li><a href="/heatmap/attendance_heatmap.png">👥 Attendance Heat Map</a> - Attendance-weighted map with street background</li>
             </ul>
         </div>
         """
@@ -551,6 +571,9 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         
         # Get organizations with session
         with get_session() as session:
+            from tournament_models import Tournament
+            from database_utils import normalize_contact
+            
             orgs = session.query(Organization).all()
             
             # Extract data while session is active
@@ -561,9 +584,23 @@ class EditorWebHandler(BaseHTTPRequestHandler):
                 email_count = sum(1 for c in contacts if c.get('type') == 'email')
                 discord_count = sum(1 for c in contacts if c.get('type') == 'discord')
                 
-                # Get tournament count without using the property
-                # Count tournaments that match this org's contacts
+                # Calculate tournament count manually within session
+                # Collect normalized contacts for this org
+                org_contacts_normalized = set()
+                for contact in contacts:
+                    value = contact.get('value', '')
+                    if value:
+                        org_contacts_normalized.add(normalize_contact(value))
+                
+                # Count tournaments that match
                 tournament_count = 0
+                if org_contacts_normalized:
+                    tournaments = session.query(Tournament).all()
+                    for t in tournaments:
+                        if t.primary_contact:
+                            t_normalized = normalize_contact(t.primary_contact)
+                            if t_normalized in org_contacts_normalized:
+                                tournament_count += 1
                 
                 org_data.append({
                     'id': org.id,
@@ -802,8 +839,433 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(page.encode())
     
-    def serve_heatmap(self):
-        """Serve an interactive heat map of 2025 tournaments"""
+    def serve_player_rankings(self):
+        """Serve player rankings page"""
+        from database_utils import get_player_rankings, get_session
+        from tournament_models import Player, TournamentPlacement
+        from sqlalchemy import distinct, func
+        
+        nav_links = [
+            ('/', 'Home'),
+            ('/events', 'Event Statistics'),
+            ('/players', 'Player Rankings'),
+            ('/organizations', 'Organizations'),
+            ('/attendance', 'Attendance Report')
+        ]
+        
+        # Get available event types for filtering
+        with get_session() as session:
+            event_types = session.query(
+                distinct(TournamentPlacement.event_name)
+            ).filter(
+                TournamentPlacement.event_name.isnot(None)
+            ).order_by(
+                TournamentPlacement.event_name
+            ).all()
+            event_types = [e[0] for e in event_types if e[0]]
+        
+        # Get parameters from query string
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        event_filter = params.get('event', ['all'])[0]
+        limit = int(params.get('limit', ['50'])[0])
+        
+        # Get player rankings with proper filtering
+        if event_filter != 'all':
+            # Filter by specific event
+            rankings = get_player_rankings(limit=limit, event_filter=event_filter)
+        else:
+            rankings = get_player_rankings(limit=limit)
+        
+        # Get total player count
+        with get_session() as session:
+            total_players = session.query(Player).count()
+            if event_filter != 'all':
+                total_placements = session.query(TournamentPlacement).filter(
+                    TournamentPlacement.event_name == event_filter
+                ).count()
+            else:
+                total_placements = session.query(TournamentPlacement).count()
+        
+        # Build page content
+        content = f'''
+        <div class="stats-box">
+            <h2>Player Rankings</h2>
+            <p>Power rankings based on tournament placements (Top 8 finishes)</p>
+            <ul>
+                <li><strong>Total Players:</strong> {total_players:,}</li>
+                <li><strong>Total Placements:</strong> {total_placements:,} {f"({event_filter})" if event_filter != "all" else ""}</li>
+                <li><strong>Ranking System:</strong> 1st=8pts, 2nd=7pts, 3rd=6pts, ..., 8th=1pt</li>
+            </ul>
+        </div>
+        
+        <div class="filter-box" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <form method="get" action="/players">
+                <label style="margin-right: 15px;">
+                    Event Type:
+                    <select name="event" onchange="this.form.submit()" style="padding: 5px;">
+                        <option value="all" {'selected' if event_filter == 'all' else ''}>All Events</option>
+                        <optgroup label="Main Events">
+                            <option value="Ultimate Singles" {'selected' if event_filter == 'Ultimate Singles' else ''}>Ultimate Singles</option>
+                            <option value="Ultimate Doubles" {'selected' if event_filter == 'Ultimate Doubles' else ''}>Ultimate Doubles</option>
+                        </optgroup>
+                        <optgroup label="Special Events">
+        '''
+        
+        # Add other available event types
+        special_events = [e for e in event_types if 'Special' in e]
+        other_events = [e for e in event_types if e not in ['Ultimate Singles', 'Ultimate Doubles'] and 'Special' not in e]
+        
+        for event in special_events:
+            selected = 'selected' if event_filter == event else ''
+            content += f'                    <option value="{html.escape(event)}" {selected}>{html.escape(event)}</option>\n'
+        
+        if other_events:
+            content += '                </optgroup>\n                <optgroup label="Other Events">\n'
+            for event in other_events:
+                selected = 'selected' if event_filter == event else ''
+                content += f'                    <option value="{html.escape(event)}" {selected}>{html.escape(event)}</option>\n'
+        
+        content += f'''
+                        </optgroup>
+                    </select>
+                </label>
+                <label>
+                    Show Top:
+                    <select name="limit" onchange="this.form.submit()">
+                        <option value="25" {'selected' if limit == 25 else ''}>25</option>
+                        <option value="50" {'selected' if limit == 50 else ''}>50</option>
+                        <option value="100" {'selected' if limit == 100 else ''}>100</option>
+                        <option value="200" {'selected' if limit == 200 else ''}>200</option>
+                    </select>
+                </label>
+            </form>
+        </div>
+        '''
+        
+        if rankings:
+            # Format player data for table
+            table_data = []
+            for player in rankings:
+                table_data.append({
+                    'rank': player['rank'],
+                    'gamer_tag': player['gamer_tag'],
+                    'points': player['total_points'],
+                    'tournaments': player['tournament_count'],
+                    'avg_points': player['avg_points'],
+                    'first': player['first_places'],
+                    'second': player['second_places'],
+                    'third': player['third_places']
+                })
+            
+            # Custom formatter for player rows
+            def player_row_formatter(row):
+                medal_html = ''
+                if row['first'] > 0:
+                    medal_html += f'<span style="color: gold;">🥇{row["first"]}</span> '
+                if row['second'] > 0:
+                    medal_html += f'<span style="color: silver;">🥈{row["second"]}</span> '
+                if row['third'] > 0:
+                    medal_html += f'<span style="color: #CD7F32;">🥉{row["third"]}</span>'
+                
+                return f'''
+                <tr>
+                    <td style="text-align: center; font-weight: bold;">#{row["rank"]}</td>
+                    <td style="font-weight: bold;">{html.escape(row["gamer_tag"])}</td>
+                    <td style="text-align: center;">{row["points"]}</td>
+                    <td style="text-align: center;">{row["tournaments"]}</td>
+                    <td style="text-align: center;">{row["avg_points"]}</td>
+                    <td>{medal_html}</td>
+                </tr>
+                '''
+            
+            headers = ['Rank', 'Player', 'Points', 'Events', 'Avg', 'Podiums']
+            content += format_table(headers, table_data, player_row_formatter)
+            
+            # Add legend
+            content += '''
+            <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                <strong>Legend:</strong> 
+                🥇 First Place (8pts) &nbsp;
+                🥈 Second Place (7pts) &nbsp;
+                🥉 Third Place (6pts)
+            </div>
+            '''
+        else:
+            content += '<p>No player data available. Run <code>--fetch-standings</code> to import tournament results.</p>'
+        
+        content += f'<p class="footer-text">Last updated: {get_timestamp()}</p>'
+        
+        page = wrap_page(
+            content,
+            title="Player Power Rankings",
+            subtitle=f"SoCal FGC - {event_filter}" if event_filter != 'all' else "SoCal FGC - All Events",
+            nav_links=nav_links
+        )
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(page.encode())
+    
+    def serve_event_statistics(self):
+        """Serve event statistics page showing normalized event distribution"""
+        from database_utils import get_session
+        from tournament_models import TournamentPlacement, Player, Tournament
+        from sqlalchemy import func, distinct
+        from collections import defaultdict
+        import json
+        
+        nav_links = [
+            ('/', 'Home'),
+            ('/events', 'Event Statistics'),
+            ('/players', 'Player Rankings'),
+            ('/organizations', 'Organizations'),
+            ('/attendance', 'Attendance Report')
+        ]
+        
+        with get_session() as session:
+            # Get event distribution
+            event_stats = session.query(
+                TournamentPlacement.event_name,
+                func.count(distinct(TournamentPlacement.player_id)).label('unique_players'),
+                func.count(TournamentPlacement.id).label('total_placements'),
+                func.count(distinct(TournamentPlacement.tournament_id)).label('tournament_count')
+            ).group_by(
+                TournamentPlacement.event_name
+            ).order_by(
+                func.count(TournamentPlacement.id).desc()
+            ).all()
+            
+            # Get top players by event
+            top_players_by_event = {}
+            for event_name, _, _, _ in event_stats:
+                if event_name:
+                    # Get top 3 players for this event
+                    placements = session.query(
+                        Player.gamer_tag,
+                        func.sum(9 - TournamentPlacement.placement).label('points'),
+                        func.count(TournamentPlacement.id).label('count')
+                    ).join(
+                        TournamentPlacement
+                    ).filter(
+                        TournamentPlacement.event_name == event_name
+                    ).group_by(
+                        Player.gamer_tag
+                    ).order_by(
+                        func.sum(9 - TournamentPlacement.placement).desc()
+                    ).limit(3).all()
+                    
+                    top_players_by_event[event_name] = [
+                        {'gamer_tag': p[0], 'points': p[1], 'count': p[2]} 
+                        for p in placements
+                    ]
+            
+            # Calculate totals
+            total_placements = sum(stat[2] for stat in event_stats if stat[0])
+            total_unique_players = session.query(
+                func.count(distinct(TournamentPlacement.player_id))
+            ).scalar()
+            
+            # Group events by category
+            singles_events = [s for s in event_stats if s[0] and 'Singles' in s[0] and 'Special' not in s[0]]
+            doubles_events = [s for s in event_stats if s[0] and 'Doubles' in s[0]]
+            special_events = [s for s in event_stats if s[0] and 'Special' in s[0]]
+            other_events = [s for s in event_stats if s[0] and s not in singles_events + doubles_events + special_events]
+        
+        # Build content
+        content = f'''
+        <div class="stats-box">
+            <h2>Event Statistics</h2>
+            <p>Distribution of normalized event types across all tournaments</p>
+            <ul>
+                <li><strong>Total Event Types:</strong> {len([s for s in event_stats if s[0]])}</li>
+                <li><strong>Total Placements:</strong> {total_placements:,}</li>
+                <li><strong>Unique Players:</strong> {total_unique_players:,}</li>
+            </ul>
+        </div>
+        
+        <style>
+            .event-category {{
+                margin: 30px 0;
+                background: #f8f9fa;
+                border-radius: 12px;
+                padding: 20px;
+                border-left: 4px solid #007bff;
+            }}
+            .event-category h3 {{
+                margin-top: 0;
+                color: #333;
+            }}
+            .event-card {{
+                background: white;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 10px 0;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }}
+            .event-card:hover {{
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            }}
+            .event-stats {{
+                display: flex;
+                justify-content: space-between;
+                margin: 10px 0;
+                flex-wrap: wrap;
+            }}
+            .event-stat {{
+                flex: 1;
+                min-width: 100px;
+                text-align: center;
+                padding: 5px;
+            }}
+            .event-stat-value {{
+                font-size: 24px;
+                font-weight: bold;
+                color: #007bff;
+            }}
+            .event-stat-label {{
+                font-size: 12px;
+                color: #666;
+                text-transform: uppercase;
+            }}
+            .top-players {{
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid #eee;
+            }}
+            .player-badge {{
+                display: inline-block;
+                background: #e9ecef;
+                padding: 4px 8px;
+                border-radius: 4px;
+                margin: 2px;
+                font-size: 14px;
+            }}
+            .medal {{
+                margin-right: 5px;
+            }}
+        </style>
+        '''
+        
+        # Function to render event category
+        def render_category(title, events, color="#007bff"):
+            if not events:
+                return ""
+            
+            total = sum(e[2] for e in events)
+            output = f'''
+            <div class="event-category" style="border-left-color: {color};">
+                <h3>{title} ({len(events)} types, {total:,} placements)</h3>
+            '''
+            
+            for event_name, unique_players, total_placements, tournament_count in events:
+                top_players = top_players_by_event.get(event_name, [])
+                
+                output += f'''
+                <div class="event-card">
+                    <h4>{html.escape(event_name)}</h4>
+                    <div class="event-stats">
+                        <div class="event-stat">
+                            <div class="event-stat-value">{total_placements}</div>
+                            <div class="event-stat-label">Placements</div>
+                        </div>
+                        <div class="event-stat">
+                            <div class="event-stat-value">{unique_players}</div>
+                            <div class="event-stat-label">Players</div>
+                        </div>
+                        <div class="event-stat">
+                            <div class="event-stat-value">{tournament_count}</div>
+                            <div class="event-stat-label">Tournaments</div>
+                        </div>
+                    </div>
+                '''
+                
+                if top_players:
+                    output += '<div class="top-players"><strong>Top Players:</strong> '
+                    medals = ['🥇', '🥈', '🥉']
+                    for i, player in enumerate(top_players):
+                        output += f'''
+                        <span class="player-badge">
+                            <span class="medal">{medals[i]}</span>
+                            {html.escape(player['gamer_tag'])} ({player['points']} pts)
+                        </span>
+                        '''
+                    output += '</div>'
+                
+                output += '</div>'
+            
+            output += '</div>'
+            return output
+        
+        # Add event categories
+        content += render_category("Singles Events", singles_events, "#28a745")
+        content += render_category("Doubles/Teams Events", doubles_events, "#17a2b8")
+        content += render_category("Special Events", special_events, "#ffc107")
+        if other_events:
+            content += render_category("Other Events", other_events, "#6c757d")
+        
+        # Add chart visualization
+        chart_data = [
+            {'name': s[0], 'placements': s[2], 'players': s[1]} 
+            for s in event_stats if s[0]
+        ]
+        
+        content += f'''
+        <div class="stats-box" style="margin-top: 30px;">
+            <h3>Event Distribution Chart</h3>
+            <canvas id="eventChart" width="400" height="200"></canvas>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+        const ctx = document.getElementById('eventChart').getContext('2d');
+        const chartData = {json.dumps(chart_data[:10])};  // Top 10 events
+        
+        new Chart(ctx, {{
+            type: 'bar',
+            data: {{
+                labels: chartData.map(d => d.name),
+                datasets: [{{
+                    label: 'Placements',
+                    data: chartData.map(d => d.placements),
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }}, {{
+                    label: 'Unique Players',
+                    data: chartData.map(d => d.players),
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                scales: {{
+                    y: {{
+                        beginAtZero: true
+                    }}
+                }}
+            }}
+        }});
+        </script>
+        '''
+        
+        # Wrap in page
+        page = wrap_page(
+            "Event Statistics",
+            content,
+            nav_links=nav_links
+        )
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(page.encode())
+    
+    def serve_heatmap(self, year=2025):
+        """Serve an interactive heat map of tournaments for a specific year"""
         from database_utils import get_session
         from tournament_models import Tournament
         import json
@@ -817,13 +1279,13 @@ class EditorWebHandler(BaseHTTPRequestHandler):
             ('/heatmap', 'Heat Map')
         ]
         
-        # Get 2025 tournament data
+        # Get tournament data for the specified year
         heat_data = []
         with get_session() as session:
             tournaments = session.query(Tournament).filter(
                 Tournament.lat.isnot(None),
                 Tournament.lng.isnot(None),
-                Tournament.start_at.like('2025%')
+                Tournament.start_at.like(f'{year}%')
             ).all()
             
             for t in tournaments:
@@ -871,8 +1333,8 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         // Initialize map centered on SoCal
         var map = L.map('map').setView([33.8, -117.9], 9);
         
-        // Add dark tile layer
-        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+        // Add light tile layer (same as attendance heat map)
+        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',
             maxZoom: 20
@@ -949,8 +1411,8 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         
         page = wrap_page(
             content,
-            title="2025 Tournament Heat Map",
-            subtitle="Interactive visualization of SoCal FGC tournaments",
+            title=f"{year} Tournament Heat Map",
+            subtitle=f"Interactive visualization of SoCal FGC tournaments in {year}",
             nav_links=nav_links
         )
         

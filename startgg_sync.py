@@ -410,9 +410,22 @@ class TournamentSyncProcessor:
     
     def _process_single_standing(self, queue, standing, tournament_id):
         """Process a single standing entry"""
+        from event_standardizer import EventStandardizer
+        
         placement = standing.get('placement')
         event_name = standing.get('event_name')
         event_id = standing.get('event_id')
+        
+        # Standardize the event name
+        event_info = EventStandardizer.standardize(event_name)
+        
+        # Only process Ultimate events (already filtered by API, but double-check)
+        if event_info['game'] != 'ultimate':
+            log_debug(f"Skipping non-Ultimate event: {event_name} (detected as {event_info['game']})", "sync")
+            return
+        
+        # Use the standardized name for storage
+        normalized_event_name = event_info['standard_name']
         
         entrant = standing.get('entrant', {})
         participants = entrant.get('participants', [])
@@ -480,7 +493,7 @@ class TournamentSyncProcessor:
             name=real_name,
             tourney_id=tournament_id,
             place=placement,
-            event_name=event_name,
+            event_name=normalized_event_name,  # Use normalized name
             event_id=event_id
         )
     
@@ -540,6 +553,13 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
                     processor.process_standings(standings, tournament_id)
                 elif error:
                     log_error(f"Standings fetch failed for {tournament_name}: {error}", "sync")
+        
+        # Normalize event names after fetching standings
+        if fetch_standings:
+            log_info("Normalizing event names in database", "sync")
+            from normalize_events import normalize_database_events
+            norm_stats = normalize_database_events(dry_run=False)
+            log_info(f"Normalized {norm_stats['events_normalized']} events ({norm_stats['placements_updated']} placements)", "sync")
         
         # Calculate final stats
         sync_time = time.time() - sync_start_time

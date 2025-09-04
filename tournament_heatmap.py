@@ -77,19 +77,9 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
     lng_min, lng_max = -119, -116
     lat_min, lat_max = 32.5, 34.5
     
-    # Add map background if requested
-    if use_map_background:
-        try:
-            # Add OpenStreetMap tiles as background
-            ctx.add_basemap(ax, 
-                          crs='EPSG:4326',  # Lat/lng coordinate system
-                          source=ctx.providers.CartoDB.Positron,  # Light map style
-                          zoom=10,
-                          alpha=0.9)
-            log_info("Added map background", "heatmap")
-        except Exception as e:
-            log_error(f"Could not add map background: {e}", "heatmap")
-            use_map_background = False  # Fall back to no background
+    # Set axis limits first
+    ax.set_xlim(lng_min, lng_max)
+    ax.set_ylim(lat_min, lat_max)
     
     # Create density estimation
     xy = np.vstack([lngs, lats])
@@ -122,17 +112,30 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
     n_bins = 256
     cmap = LinearSegmentedColormap.from_list('tournament_heat', colors, N=n_bins)
     
-    # Plot heat map
+    # Add map background if requested (after setting limits)
+    if use_map_background:
+        try:
+            ctx.add_basemap(ax, 
+                          crs='EPSG:4326',  # Lat/lng coordinate system
+                          source=ctx.providers.CartoDB.Positron,  # Light map style
+                          zoom=10,
+                          alpha=1.0)
+            log_info("Added map background", "heatmap")
+        except Exception as e:
+            log_error(f"Could not add map background: {e}", "heatmap")
+            use_map_background = False  # Fall back to no background
+    
+    # Plot heat map on top of map
     im = ax.imshow(np.rot90(density), extent=[lng_min, lng_max, lat_min, lat_max],
-                   cmap=cmap, alpha=cmap_alpha, aspect='auto')
+                   cmap=cmap, alpha=cmap_alpha, aspect='auto', zorder=2)
     
     # Plot individual tournaments as points
     if use_map_background:
         scatter = ax.scatter(lngs, lats, c='red', s=weights, alpha=0.4, 
-                           edgecolors='darkred', linewidth=0.5)
+                           edgecolors='darkred', linewidth=0.5, zorder=3)
     else:
         scatter = ax.scatter(lngs, lats, c='white', s=weights, alpha=0.3, 
-                           edgecolors='cyan', linewidth=0.5)
+                           edgecolors='cyan', linewidth=0.5, zorder=3)
     
     # Add city labels for reference
     cities = {
@@ -152,32 +155,37 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
                    ha='center', fontweight='bold',
                    bbox=dict(boxstyle='round,pad=0.3', facecolor='#1a1a1a', alpha=0.7))
     
-    # Styling
-    ax.set_xlabel('Longitude', color='white', fontsize=12)
-    ax.set_ylabel('Latitude', color='white', fontsize=12)
+    # Styling - use appropriate colors based on background
+    text_color = 'black' if use_map_background else 'white'
+    grid_color = 'gray' if use_map_background else 'white'
+    
+    ax.set_xlabel('Longitude', color=text_color, fontsize=12)
+    ax.set_ylabel('Latitude', color=text_color, fontsize=12)
     ax.set_title('Southern California FGC Tournament Heat Map', 
-                color='white', fontsize=16, fontweight='bold', pad=20)
+                color=text_color, fontsize=16, fontweight='bold', pad=20)
     
     # Grid
-    ax.grid(True, alpha=0.2, color='white', linestyle='--')
-    ax.tick_params(colors='white')
+    ax.grid(True, alpha=0.2, color=grid_color, linestyle='--')
+    ax.tick_params(colors=text_color)
     
     # Color bar
     cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     cbar.set_label('Tournament Density (weighted by attendance)', 
-                   color='white', fontsize=10)
-    cbar.ax.tick_params(colors='white')
-    plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='white')
+                   color=text_color, fontsize=10)
+    cbar.ax.tick_params(colors=text_color)
+    plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=text_color)
     
     # Stats text
     stats_text = f"Total Tournaments: {len(lats)}\nTotal Attendance: {sum(10**w for w in weights):,.0f}"
+    bg_color = 'white' if use_map_background else '#1a1a1a'
     ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
-           fontsize=11, color='white', verticalalignment='top',
-           bbox=dict(boxstyle='round', facecolor='#1a1a1a', alpha=0.8))
+           fontsize=11, color=text_color, verticalalignment='top',
+           bbox=dict(boxstyle='round', facecolor=bg_color, alpha=0.8))
     
     # Save
     plt.tight_layout()
-    plt.savefig(output_file, dpi=dpi, facecolor='#1a1a1a', edgecolor='none')
+    save_bg = 'white' if use_map_background else '#1a1a1a'
+    plt.savefig(output_file, dpi=dpi, facecolor=save_bg, edgecolor='none')
     plt.close()
     
     log_info(f"Heat map saved to {output_file}", "heatmap")
@@ -292,7 +300,7 @@ def generate_interactive_heatmap(output_file='tournament_heatmap.html'):
     log_info(f"Interactive heat map saved to {output_file}", "heatmap")
     return True
 
-def generate_attendance_heatmap(output_file='attendance_heatmap.png'):
+def generate_attendance_heatmap(output_file='attendance_heatmap.png', use_map_background=True):
     """
     Generate a heat map specifically showing attendance density
     Larger circles for higher attendance tournaments
@@ -301,15 +309,20 @@ def generate_attendance_heatmap(output_file='attendance_heatmap.png'):
         import matplotlib.pyplot as plt
         import matplotlib.patches as patches
         from matplotlib.collections import PatchCollection
-    except ImportError:
-        log_error("matplotlib not installed", "heatmap")
+        if use_map_background:
+            import contextily as ctx
+    except ImportError as e:
+        log_error(f"Missing dependencies: {e}", "heatmap")
         return False
     
     log_info("Generating attendance density map", "heatmap")
     
     # Create figure
-    fig, ax = plt.subplots(figsize=(16, 12), facecolor='black')
-    ax.set_facecolor('#0a0a0a')
+    if use_map_background:
+        fig, ax = plt.subplots(figsize=(16, 12))
+    else:
+        fig, ax = plt.subplots(figsize=(16, 12), facecolor='black')
+        ax.set_facecolor('#0a0a0a')
     
     # Set boundaries
     lng_min, lng_max = -119, -116
@@ -364,10 +377,23 @@ def generate_attendance_heatmap(output_file='attendance_heatmap.png'):
     # Styling
     ax.set_xlim(lng_min, lng_max)
     ax.set_ylim(lat_min, lat_max)
-    ax.set_xlabel('Longitude', color='white', fontsize=12)
-    ax.set_ylabel('Latitude', color='white', fontsize=12)
+    
+    # Add map background if requested
+    if use_map_background:
+        try:
+            ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.CartoDB.Positron, zoom=10)
+            log_info("Added map background", "heatmap")
+            text_color = 'black'
+        except Exception as e:
+            log_error(f"Could not add map background: {e}", "heatmap") 
+            text_color = 'white'
+    else:
+        text_color = 'white'
+    
+    ax.set_xlabel('Longitude', color=text_color, fontsize=12)
+    ax.set_ylabel('Latitude', color=text_color, fontsize=12)
     ax.set_title('Tournament Attendance Density Map\n(Circle size = attendance)', 
-                color='white', fontsize=16, fontweight='bold')
+                color=text_color, fontsize=16, fontweight='bold')
     
     # Legend
     legend_elements = [
@@ -376,14 +402,22 @@ def generate_attendance_heatmap(output_file='attendance_heatmap.png'):
         patches.Patch(color='#ffff00', label='Local (50-100)', alpha=0.6),
         patches.Patch(color='#00ffff', label='Weekly (<50)', alpha=0.6)
     ]
-    ax.legend(handles=legend_elements, loc='upper right', 
-             facecolor='black', edgecolor='white', labelcolor='white')
     
-    ax.grid(True, alpha=0.2, color='white', linestyle=':')
-    ax.tick_params(colors='white')
+    if use_map_background:
+        ax.legend(handles=legend_elements, loc='upper right', 
+                 facecolor='white', edgecolor='black', labelcolor='black')
+        ax.grid(True, alpha=0.2, color='gray', linestyle=':')
+    else:
+        ax.legend(handles=legend_elements, loc='upper right', 
+                 facecolor='black', edgecolor='white', labelcolor='white')
+        ax.grid(True, alpha=0.2, color='white', linestyle=':')
+    ax.tick_params(colors=text_color)
     
     plt.tight_layout()
-    plt.savefig(output_file, dpi=150, facecolor='black')
+    if use_map_background:
+        plt.savefig(output_file, dpi=150)
+    else:
+        plt.savefig(output_file, dpi=150, facecolor='black')
     plt.close()
     
     log_info(f"Attendance density map saved to {output_file}", "heatmap")

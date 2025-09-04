@@ -6,7 +6,7 @@ import os
 import re
 from datetime import datetime
 from contextlib import contextmanager
-from sqlalchemy import create_engine, func, case, or_, desc
+from sqlalchemy import create_engine, func, case, or_, and_, desc, distinct
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 # Global session registry
@@ -117,7 +117,14 @@ def get_all_organizations():
     with get_session() as session:
         from tournament_models import Organization
         orgs = session.query(Organization).all()
-        return [_org_to_dict(org) for org in orgs]
+        results = []
+        for org in orgs:
+            org_dict = _org_to_dict(org)
+            # Calculate tournament count while in session
+            org_dict['tournament_count'] = org.tournament_count
+            org_dict['total_attendance'] = org.total_attendance
+            results.append(org_dict)
+        return results
 
 # DEPRECATED - normalized_key no longer exists
 # def find_organization_by_key(normalized_key):
@@ -520,19 +527,20 @@ def run_deduplication():
         print("No organizations were merged")
 
 
-def get_player_rankings(limit=50, event_type='all', min_tournaments=2):
+def get_player_rankings(limit=50, event_type='all', event_filter=None):
     """
     Get player rankings based on placement points
+    Only counts events with at least 4 players
     
     Args:
         limit: Number of top players to return
-        event_type: 'all', 'singles', 'doubles', or specific event name
-        min_tournaments: Minimum tournaments to qualify for ranking
+        event_type: 'all', 'singles', 'doubles' (deprecated, use event_filter)
+        event_filter: Specific event name to filter by (e.g., 'Ultimate Singles')
     
     Returns:
         List of dicts with player rankings
     """
-    from tournament_models import Player, TournamentPlacement
+    from tournament_models import Player, TournamentPlacement, Tournament
     
     # Points system for placements - simple descending
     PLACEMENT_POINTS = {
@@ -547,7 +555,18 @@ def get_player_rankings(limit=50, event_type='all', min_tournaments=2):
     }
     
     with get_session() as session:
-        # Build query
+        # First, get events with at least 4 players
+        # Subquery to count players per event in each tournament
+        event_player_counts = session.query(
+            TournamentPlacement.tournament_id,
+            TournamentPlacement.event_name,
+            func.count(distinct(TournamentPlacement.player_id)).label('player_count')
+        ).group_by(
+            TournamentPlacement.tournament_id,
+            TournamentPlacement.event_name
+        ).subquery()
+        
+        # Build main query - join with valid events (4+ players)
         query = session.query(
             Player,
             func.sum(
@@ -563,35 +582,35 @@ def get_player_rankings(limit=50, event_type='all', min_tournaments=2):
             func.sum(case((TournamentPlacement.placement == 3, 1), else_=0)).label('third_places')
         ).join(
             TournamentPlacement
+        ).join(
+            event_player_counts,
+            and_(
+                event_player_counts.c.tournament_id == TournamentPlacement.tournament_id,
+                event_player_counts.c.event_name == TournamentPlacement.event_name,
+                event_player_counts.c.player_count >= 4  # Only count events with 4+ players
+            )
         )
         
-        # Filter by event type
-        if event_type == 'singles':
-            # Filter for singles events
+        # Filter by event - prefer event_filter over event_type
+        if event_filter:
+            # Filter by exact event name
+            query = query.filter(TournamentPlacement.event_name == event_filter)
+        elif event_type == 'singles':
+            # Legacy filter for singles events - now uses normalized names
             query = query.filter(
-                ~TournamentPlacement.event_name.ilike('%doubles%'),
-                ~TournamentPlacement.event_name.ilike('%teams%'),
-                ~TournamentPlacement.event_name.ilike('%crew%'),
-                ~TournamentPlacement.event_name.ilike('%2v2%'),
-                ~TournamentPlacement.event_name.ilike('%tag%')
+                TournamentPlacement.event_name.like('%Singles%')
             )
         elif event_type == 'doubles':
-            # Filter for doubles/teams events
+            # Legacy filter for doubles/teams events - now uses normalized names
             query = query.filter(
-                or_(
-                    TournamentPlacement.event_name.ilike('%doubles%'),
-                    TournamentPlacement.event_name.ilike('%teams%'),
-                    TournamentPlacement.event_name.ilike('%2v2%'),
-                    TournamentPlacement.event_name.ilike('%tag%')
-                )
+                TournamentPlacement.event_name.like('%Doubles%')
             )
         elif event_type != 'all':
-            # Filter by specific event name
+            # Filter by specific event name (partial match)
             query = query.filter(TournamentPlacement.event_name.ilike(f'%{event_type}%'))
         
-        # Group by player and filter by minimum tournaments
+        # Group by player (removed min_tournaments filter)
         query = query.group_by(Player.id)
-        query = query.having(func.count(TournamentPlacement.id) >= min_tournaments)
         
         # Order by total points
         query = query.order_by(desc('total_points'))
@@ -600,9 +619,17 @@ def get_player_rankings(limit=50, event_type='all', min_tournaments=2):
         results = query.all()
         
         rankings = []
-        for rank, (player, points, tournaments, firsts, seconds, thirds) in enumerate(results, 1):
+        current_rank = 1
+        prev_points = None
+        
+        for idx, (player, points, tournaments, firsts, seconds, thirds) in enumerate(results):
+            # Handle tied ranks - players with same points get same rank
+            if prev_points is not None and points < prev_points:
+                current_rank = idx + 1  # Next rank is position in list
+            # If same points as previous, keep same rank
+            
             rankings.append({
-                'rank': rank,
+                'rank': current_rank,
                 'player_id': player.id,
                 'gamer_tag': player.gamer_tag,
                 'name': player.name,
@@ -613,6 +640,123 @@ def get_player_rankings(limit=50, event_type='all', min_tournaments=2):
                 'third_places': thirds,
                 'avg_points': round(points / tournaments, 1) if tournaments > 0 else 0
             })
+            
+            prev_points = points
         
         return rankings
+
+
+def find_player_ranking(player_name, event_filter=None, fuzzy_threshold=0.7):
+    """
+    Find a specific player's ranking and stats with fuzzy matching
+    
+    Args:
+        player_name: Player's gamer tag (case insensitive partial/fuzzy match)
+        event_filter: Optional event filter (e.g., 'Ultimate Singles')
+        fuzzy_threshold: Minimum similarity score (0.0 to 1.0) for fuzzy matches
+    
+    Returns:
+        Dict with player info or None if not found
+    """
+    from tournament_models import Player, TournamentPlacement, Tournament
+    from difflib import SequenceMatcher
+    
+    # Get all rankings (no limit) to find the player
+    all_rankings = get_player_rankings(limit=1000, event_filter=event_filter)
+    
+    # Search for player (case insensitive)
+    player_lower = player_name.lower()
+    
+    # First try exact substring match
+    for player_data in all_rankings:
+        if player_lower in player_data['gamer_tag'].lower():
+            # Also get their recent placements
+            with get_session() as session:
+                # Get recent placements for this player
+                query = session.query(
+                    TournamentPlacement.placement,
+                    TournamentPlacement.event_name,
+                    Tournament.name,
+                    Tournament.start_at
+                ).join(
+                    Tournament
+                ).filter(
+                    TournamentPlacement.player_id == player_data['player_id']
+                )
+                
+                if event_filter:
+                    query = query.filter(TournamentPlacement.event_name == event_filter)
+                
+                recent_placements = query.order_by(
+                    Tournament.start_at.desc()
+                ).limit(5).all()
+                
+                player_data['recent_placements'] = [
+                    {
+                        'placement': p[0],
+                        'event': p[1],
+                        'tournament': p[2],
+                        'date': p[3]
+                    }
+                    for p in recent_placements
+                ]
+            
+            return player_data
+    
+    # If no exact match, try fuzzy matching
+    best_match = None
+    best_score = 0
+    
+    for player_data in all_rankings:
+        # Calculate similarity between input and player name
+        gamer_tag_lower = player_data['gamer_tag'].lower()
+        
+        # Try both full string similarity and substring similarity
+        full_similarity = SequenceMatcher(None, player_lower, gamer_tag_lower).ratio()
+        
+        # Also check if the input is similar to the start of the gamer tag
+        prefix_similarity = 0
+        if len(player_lower) <= len(gamer_tag_lower):
+            prefix_similarity = SequenceMatcher(None, player_lower, gamer_tag_lower[:len(player_lower)]).ratio()
+        
+        # Take the best similarity score
+        similarity = max(full_similarity, prefix_similarity)
+        
+        if similarity > best_score and similarity >= fuzzy_threshold:
+            best_score = similarity
+            best_match = player_data
+    
+    # If we found a fuzzy match, get their recent placements
+    if best_match:
+        with get_session() as session:
+            # Get recent placements for this player
+            query = session.query(
+                TournamentPlacement.placement,
+                TournamentPlacement.event_name,
+                Tournament.name,
+                Tournament.start_at
+            ).join(
+                Tournament,
+                TournamentPlacement.tournament_id == Tournament.id
+            ).filter(
+                TournamentPlacement.player_id == best_match['player_id']
+            ).order_by(
+                Tournament.start_at.desc()
+            ).limit(5)
+            
+            recent_placements = query.all()
+            
+            best_match['recent_placements'] = [
+                {
+                    'placement': p[0],
+                    'event': p[1],
+                    'tournament': p[2],
+                    'date': p[3]
+                }
+                for p in recent_placements
+            ]
+        
+        return best_match
+    
+    return None
 

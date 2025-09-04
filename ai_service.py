@@ -15,8 +15,8 @@ from enum import Enum
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database_utils import get_session, get_summary_stats, get_attendance_rankings
-from tournament_models import Tournament, Organization, AttendanceRecord
+from database_utils import get_session, get_summary_stats, get_attendance_rankings, get_player_rankings, find_player_ranking
+from tournament_models import Tournament, Organization
 
 logger = logging.getLogger('ai_service')
 
@@ -57,6 +57,7 @@ class AIService:
         try:
             stats = get_summary_stats()
             top_orgs = get_attendance_rankings(5)
+            top_players = get_player_rankings(limit=10)
             
             context = {
                 'total_organizations': stats.get('total_organizations', 0),
@@ -69,7 +70,16 @@ class AIService:
                         'events': org['tournament_count']
                     }
                     for org in top_orgs
-                ]
+                ],
+                'top_players': [
+                    {
+                        'rank': p['rank'],
+                        'gamer_tag': p['gamer_tag'],
+                        'points': p['total_points'],
+                        'tournaments': p['tournament_count']
+                    }
+                    for p in top_players
+                ] if top_players else []
             }
             return context
         except Exception as e:
@@ -80,7 +90,7 @@ class AIService:
         """Get appropriate system prompt based on channel type"""
         base_prompt = """You are a helpful AI assistant for the Southern California Fighting Game Community tournament tracker.
 
-You have access to tournament data, attendance statistics, and organization rankings."""
+You have access to tournament data, attendance statistics, organization rankings, and player rankings based on tournament placements."""
         
         # Add stats context
         if self.stats_context:
@@ -95,6 +105,11 @@ Current Database Statistics:
                 base_prompt += "\n\nTop Organizations:"
                 for org in self.stats_context['top_organizations'][:5]:
                     base_prompt += f"\n- {org['name']}: {org['attendance']} attendees across {org['events']} events"
+            
+            if self.stats_context.get('top_players'):
+                base_prompt += "\n\nTop Players (Power Rankings):"
+                for player in self.stats_context['top_players'][:10]:
+                    base_prompt += f"\n- #{player['rank']} {player['gamer_tag']}: {player['points']} points from {player['tournaments']} tournaments"
         
         # Channel-specific behavior
         if channel_type == ChannelType.GENERAL:
@@ -171,6 +186,26 @@ Use ASCII formatting when appropriate."""
                 if context.get('session_id'):
                     context_message = f"[Session: {context['session_id']}] {context_message}"
             
+            # Check for player names in message and add context
+            msg_lower = message.lower()
+            if any(term in msg_lower for term in ['ranking', 'rank', 'player', 'singles', 'doubles']):
+                words = message.split()
+                player_context = []
+                skip_words = {'the', 'is', 'in', 'at', 'for', 'what', 'where', 'how', 'who', 
+                             'singles', 'doubles', 'ultimate', 'squad', 'strike', 'ranking', 
+                             'rank', 'player', 'top', 'best', 'show', 'list', 'get', 'of'}
+                
+                for word in words:
+                    # Clean the word - remove apostrophes and punctuation
+                    clean_word = word.strip("'\".,!?:;").rstrip("'s")
+                    if clean_word.lower() not in skip_words and len(clean_word) > 2:
+                        player_info = find_player_ranking(clean_word, None, fuzzy_threshold=0.7)
+                        if player_info:
+                            player_context.append(f"\n[Player Data: {player_info['gamer_tag']} is ranked #{player_info['rank']} with {player_info['total_points']} points]")
+                
+                if player_context:
+                    context_message += "".join(player_context)
+            
             data = {
                 "model": self.model,
                 "max_tokens": 500,
@@ -224,6 +259,28 @@ Use ASCII formatting when appropriate."""
     def _get_fallback_response(self, message: str, channel_type: ChannelType) -> str:
         """Fallback responses when AI is not available"""
         msg_lower = message.lower()
+        
+        # Check for player queries
+        if 'ranking' in msg_lower or 'rank' in msg_lower or 'player' in msg_lower:
+            # Look for potential player names (any words not in skip list)
+            words = message.split()
+            skip_words = {'the', 'is', 'in', 'at', 'for', 'what', 'where', 'how', 'who', 
+                         'singles', 'doubles', 'ultimate', 'squad', 'strike', 'ranking', 
+                         'rank', 'player', 'top', 'best', 'show', 'list', 'get', 'of'}
+            
+            for word in words:
+                # Clean the word - remove apostrophes and punctuation
+                clean_word = word.strip("'\".,!?:;").rstrip("'s")
+                if clean_word.lower() not in skip_words and len(clean_word) > 2:
+                    player_info = find_player_ranking(clean_word, None, fuzzy_threshold=0.7)
+                    if player_info:
+                        response = f"{player_info['gamer_tag']} is ranked #{player_info['rank']} "
+                        response += f"with {player_info['total_points']} points from {player_info['tournament_count']} tournaments."
+                        if player_info.get('recent_placements'):
+                            response += "\nRecent placements:"
+                            for p in player_info['recent_placements'][:3]:
+                                response += f"\n- {p['placement']} at {p['tournament']} ({p['event']})"
+                        return response
         
         if channel_type == ChannelType.STATS:
             if 'hi' in msg_lower or 'hello' in msg_lower:

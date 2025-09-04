@@ -251,8 +251,8 @@ def main():
                 from tournament_heatmap import generate_static_heatmap, generate_attendance_heatmap
                 
                 # Generate both with and without map background
-                if generate_static_heatmap('tournament_heatmap.png', use_map_background=False):
-                    print("✓ Created tournament_heatmap.png")
+                if generate_static_heatmap('tournament_heatmap.png', use_map_background=True):
+                    print("✓ Created tournament_heatmap.png with map background")
                 if generate_static_heatmap('tournament_heatmap_with_map.png', use_map_background=True):
                     print("✓ Created tournament_heatmap_with_map.png")
                 if generate_attendance_heatmap():
@@ -295,8 +295,8 @@ def main():
         # Generate all heatmap types
         files_created = []
         
-        if generate_static_heatmap('tournament_heatmap.png', use_map_background=False):
-            files_created.append(('tournament_heatmap.png', 'Tournament density heat map'))
+        if generate_static_heatmap('tournament_heatmap.png', use_map_background=True):
+            files_created.append(('tournament_heatmap.png', 'Tournament density heat map with map background'))
         
         if generate_static_heatmap('tournament_heatmap_with_map.png', use_map_background=True):
             files_created.append(('tournament_heatmap_with_map.png', 'Heat map with street map overlay'))

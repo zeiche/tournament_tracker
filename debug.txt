@@ -2,8 +2,3 @@ INFO  [tracker] Starting Tournament Tracker
 INFO  [operations] Starting tournament_tracker_session
 INFO  [tracker] Initializing database connection
 INFO  Starting web editor on http://0.0.0.0:8081
-INFO  [shopify] Converting tournament data to legacy Shopify format
-INFO  Starting Convert to legacy format...
-INFO  [shopify] Legacy format created: 89 attendance entries, 89 org names
-INFO  Completed Convert to legacy format (0.74s)
-INFO  Found 155 tournaments with unnamed contacts
