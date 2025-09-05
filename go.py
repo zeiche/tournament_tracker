@@ -542,26 +542,55 @@ class TournamentCommand:
                     if not tournaments:
                         return CommandResult(False, "No tournaments with location data")
                     
+                    # Extract location data while still in session context
+                    # This prevents SQLAlchemy detached instance errors
+                    tournament_data = []
+                    for t in tournaments:
+                        tournament_data.append({
+                            'lat': t.lat,
+                            'lng': t.lng,
+                            'name': t.name,
+                            'attendees': t.num_attendees or 0,
+                            'venue': t.venue_name,
+                            'date': t.start_date if t.start_date else None
+                        })
+                    
+                # Now use the extracted data outside of session context
+                if tournament_data:
+                    # Convert to simple point tuples for heatmap
+                    # Format: [(lat, lng, weight), ...]
+                    heatmap_points = []
+                    for t in tournament_data:
+                        if t.get('lat') and t.get('lng'):
+                            heatmap_points.append((
+                                float(t['lat']), 
+                                float(t['lng']), 
+                                float(t.get('attendees', 1))
+                            ))
+                    
                     # 1. Interactive heatmap
-                    result = heatmap(tournaments, "tournament_heatmap.html",
-                                   title="Tournament Density Heatmap")
-                    if result:
-                        files_created.append(result)
+                    if heatmap_points:
+                        result = heatmap(heatmap_points, "tournament_heatmap.html",
+                                       title="Tournament Density Heatmap")
+                        if result:
+                            files_created.append(result)
                     
                     # 2. Static heatmap with map
-                    result = heatmap(tournaments, "tournament_heatmap_with_map.png",
-                                   title="Tournament Locations", 
-                                   map_background=True, dpi=150)
-                    if result:
-                        files_created.append(result)
+                    if heatmap_points:
+                        result = heatmap(heatmap_points, "tournament_heatmap_with_map.png",
+                                       title="Tournament Locations", 
+                                       map_background=True, dpi=150)
+                        if result:
+                            files_created.append(result)
                     
                     # 3. Attendance-weighted heatmap
                     # Weight by attendance
                     weighted_data = []
-                    for t in tournaments:
-                        if t.has_location:
-                            lat, lng = t.coordinates
-                            weight = t.num_attendees or 1
+                    for t in tournament_data:
+                        if t.get('lat') and t.get('lng'):
+                            lat = t['lat']
+                            lng = t['lng']
+                            weight = t.get('attendees', 1)
                             weighted_data.append({"lat": lat, "lng": lng, "weight": weight})
                     
                     result = heatmap(weighted_data, "attendance_heatmap.png",

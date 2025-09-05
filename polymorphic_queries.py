@@ -78,10 +78,10 @@ class PolymorphicQuery:
             func.lower(Player.gamer_tag).like(search_pattern.lower())
         ).limit(10).all()
         
-        # If no results, try display_name
+        # If no results, try the name column (real name)
         if not players:
             players = session.query(Player).filter(
-                func.lower(Player.display_name).like(search_pattern.lower())
+                func.lower(Player.name).like(search_pattern.lower())
             ).limit(10).all()
         
         return players
@@ -130,14 +130,16 @@ class PolymorphicQuery:
             
             if "recent" in input_lower:
                 return session.query(Tournament)\
-                    .order_by(desc(Tournament.start_date))\
+                    .order_by(desc(Tournament.start_at))\
                     .limit(10).all()
             
             elif "upcoming" in input_lower:
                 from datetime import datetime
+                from time import time
+                current_timestamp = int(time())
                 return session.query(Tournament)\
-                    .filter(Tournament.start_date > datetime.now())\
-                    .order_by(Tournament.start_date)\
+                    .filter(Tournament.start_at > current_timestamp)\
+                    .order_by(Tournament.start_at)\
                     .limit(10).all()
             
             elif "large" in input_lower or "big" in input_lower:
@@ -161,8 +163,8 @@ class PolymorphicQuery:
                 start = datetime(year, 1, 1)
                 end = datetime(year, 12, 31, 23, 59, 59)
                 query = query.filter(and_(
-                    Tournament.start_date >= start,
-                    Tournament.start_date <= end
+                    Tournament.start_at >= int(start.timestamp()),
+                    Tournament.start_at <= int(end.timestamp())
                 ))
             
             if 'limit' in input_data:
@@ -175,7 +177,7 @@ class PolymorphicQuery:
         else:
             # Default: recent tournaments
             return session.query(Tournament)\
-                .order_by(desc(Tournament.start_date))\
+                .order_by(desc(Tournament.start_at))\
                 .limit(10).all()
     
     @classmethod
@@ -254,6 +256,8 @@ def query(input_string: str) -> str:
         query("find player west")
         query("recent tournaments")
     """
+    from tournament_models import Player, Tournament, Organization, TournamentPlacement
+    
     with session_scope() as session:
         input_lower = input_string.lower()
         
@@ -312,19 +316,52 @@ def query(input_string: str) -> str:
                 return output
         
         elif "tournament" in input_lower:
-            tournaments = PolymorphicQuery.find_tournaments("recent", session)
-            
-            if not tournaments:
-                return "No tournaments found"
-            
-            output = "**Recent Tournaments:**\n"
-            for t in tournaments[:10]:
-                if t.start_date:
-                    date_str = t.start_date.strftime('%Y-%m-%d')
-                    output += f"- {t.name} ({date_str})\n"
-                else:
-                    output += f"- {t.name}\n"
-            return output
+            # Check if looking for upcoming tournaments
+            if "upcoming" in input_lower or "future" in input_lower or "next" in input_lower:
+                from datetime import datetime
+                import time
+                
+                current_time = int(time.time())
+                tournaments = session.query(Tournament).filter(
+                    Tournament.start_at > current_time
+                ).order_by(Tournament.start_at).limit(10).all()
+                
+                if not tournaments:
+                    return "No upcoming tournaments found"
+                
+                output = "**🗓️ Upcoming Tournaments:**\n"
+                for t in tournaments[:10]:
+                    if t.start_at:
+                        date = datetime.fromtimestamp(t.start_at)
+                        date_str = date.strftime('%b %d, %Y')
+                        days_until = (date - datetime.now()).days
+                        if days_until == 0:
+                            time_str = "Today"
+                        elif days_until == 1:
+                            time_str = "Tomorrow"
+                        else:
+                            time_str = f"In {days_until} days"
+                        output += f"• **{t.name}** - {date_str} ({time_str})\n"
+                        if t.num_attendees:
+                            output += f"  Expected: {t.num_attendees} attendees\n"
+                    else:
+                        output += f"• {t.name}\n"
+                return output
+            else:
+                # Default to recent tournaments
+                tournaments = PolymorphicQuery.find_tournaments("recent", session)
+                
+                if not tournaments:
+                    return "No tournaments found"
+                
+                output = "**Recent Tournaments:**\n"
+                for t in tournaments[:10]:
+                    if t.start_date:
+                        date_str = t.start_date.strftime('%Y-%m-%d')
+                        output += f"- {t.name} ({date_str})\n"
+                    else:
+                        output += f"- {t.name}\n"
+                return output
         
         elif "org" in input_lower:
             orgs = PolymorphicQuery.find_organizations("top", session)
@@ -336,6 +373,54 @@ def query(input_string: str) -> str:
             for i, org in enumerate(orgs[:10], 1):
                 count = getattr(org, '_tournament_count', 0)
                 output += f"{i}. {org.name} ({count} tournaments)\n"
+            return output
+        
+        elif "attendance" in input_lower and ("over time" in input_lower or "timeline" in input_lower or "trend" in input_lower):
+            # Handle attendance over time query
+            from tournament_models import Tournament
+            from datetime import datetime
+            import calendar
+            
+            # Get recent tournaments with attendance
+            tournaments = session.query(Tournament).filter(
+                Tournament.num_attendees > 0,
+                Tournament.start_at > 0
+            ).order_by(Tournament.start_at.desc()).limit(100).all()
+            
+            if not tournaments:
+                return "No attendance data available"
+            
+            # Group by month (simplified for Discord)
+            monthly_data = {}
+            for t in tournaments:
+                date = datetime.fromtimestamp(t.start_at)
+                month_key = f"{date.year}-{date.month:02d}"
+                
+                if month_key not in monthly_data:
+                    monthly_data[month_key] = {
+                        'month': calendar.month_name[date.month][:3],
+                        'year': date.year,
+                        'total': 0,
+                        'count': 0
+                    }
+                
+                monthly_data[month_key]['total'] += t.num_attendees
+                monthly_data[month_key]['count'] += 1
+            
+            # Create output (last 6 months)
+            output = "**📈 Attendance Over Time (Recent Months):**\n\n"
+            months = sorted(monthly_data.keys(), reverse=True)[:6]
+            
+            for month_key in reversed(months):  # Show chronologically
+                data = monthly_data[month_key]
+                avg = data['total'] // data['count'] if data['count'] > 0 else 0
+                output += f"**{data['month']} {data['year']}:** {data['total']:,} total ({data['count']} events, avg {avg})\n"
+            
+            # Add summary
+            total_attendance = sum(d['total'] for d in monthly_data.values())
+            total_events = sum(d['count'] for d in monthly_data.values())
+            output += f"\n**Summary:** {total_attendance:,} total attendance across {total_events} events"
+            
             return output
         
         else:

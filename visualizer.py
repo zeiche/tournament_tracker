@@ -491,7 +491,13 @@ class UnifiedVisualizer:
                 # List of items
                 elif 'items' in parsed:
                     for item in parsed['items']:
-                        if isinstance(item, dict):
+                        if isinstance(item, tuple):
+                            # Direct tuple format: (lat, lng) or (lat, lng, weight)
+                            if len(item) >= 2:
+                                lat, lng = item[0], item[1]
+                                weight = item[2] if len(item) > 2 else 1
+                                points.append((float(lat), float(lng), float(weight)))
+                        elif isinstance(item, dict):
                             if 'lat' in item and 'lng' in item:
                                 points.append((item['lat'], item['lng'], item.get('weight', 1)))
                         elif hasattr(item, 'lat') and hasattr(item, 'lng'):

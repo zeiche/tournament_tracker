@@ -176,7 +176,7 @@ class ClaudeCLIService:
         """Call Claude CLI with a message"""
         try:
             # Check if this is a database query or general question
-            db_keywords = ['player', 'tournament', 'top', 'show', 'list', 'find', 'search', 'stats', 'points', 'recent', 'organization', 'venue']
+            db_keywords = ['player', 'tournament', 'top', 'show', 'list', 'find', 'search', 'stats', 'points', 'recent', 'organization', 'venue', 'attendance', 'timeline', 'trend']
             is_db_query = any(keyword in message.lower() for keyword in db_keywords)
             
             if is_db_query:
@@ -184,15 +184,16 @@ class ClaudeCLIService:
                 system_context = """You have access to a tournament database. Generate Python code that queries the database and sets an 'output' variable.
 
 IMPORTANT DATABASE SCHEMA:
-- Player: id, gamer_tag, display_name (no direct points/stats columns - calculated via joins)
+- Player: id, gamer_tag, name (IMPORTANT: display_name is a @property, NOT a column - use gamer_tag or name for queries)
 - Tournament: id, name, start_date, end_date, num_attendees, lat, lng, venue, organization_id
 - TournamentPlacement: player_id, tournament_id, event_name, placement, team_name
-- Organization: id, name
+- Organization: id, display_name (this IS a column, different from Player.display_name)
 
 Key relationships:
 - Player stats are calculated from TournamentPlacement joins
 - Tournament.organization_id links to Organization.id
 - Use func.lower() for case-insensitive searches
+- NEVER use Player.display_name in SQL queries - use Player.gamer_tag or Player.name instead
 
 BEST APPROACH - Use the polymorphic_queries module:
 # For ANY query, just use:
@@ -259,7 +260,7 @@ Always set 'output' variable. Format for Discord with ** for bold."""
                 input=prompt,
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=45
             )
             
             if result.returncode == 0:
@@ -356,7 +357,7 @@ Always set 'output' variable. Format for Discord with ** for bold."""
         except subprocess.TimeoutExpired:
             return ClaudeResponse(
                 success=False,
-                error="Claude CLI timeout (30s)"
+                error="Claude CLI timeout (45s)"
             )
         except Exception as e:
             return ClaudeResponse(
@@ -397,7 +398,7 @@ Always set 'output' variable. Format for Discord with ** for bold."""
         self.request_queue.put(request)
         
         # Wait for response (with timeout)
-        timeout = 35  # 30s for Claude + 5s buffer
+        timeout = 50  # 45s for Claude + 5s buffer
         start_time = time.time()
         
         while time.time() - start_time < timeout:
@@ -467,6 +468,43 @@ async def ask_claude_async(message: str, context: Optional[Dict[str, Any]] = Non
 
 async def process_message_async(message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Process message for Discord (returns dict for compatibility)"""
+    import time
+    start_time = time.time()
+    
+    # Check if this is an attendance over time query - handle directly
+    message_lower = message.lower()
+    if "attendance" in message_lower and any(term in message_lower for term in ["over time", "timeline", "trend", "history", "monthly"]):
+        try:
+            # Handle directly with polymorphic queries
+            from polymorphic_queries import query as pq
+            result = pq(message)
+            return {
+                'success': True,
+                'response': result,
+                'error': None,
+                'processing_time': time.time() - start_time
+            }
+        except Exception as e:
+            logger.error(f"Direct query failed: {e}")
+            # Fall through to Claude if direct handling fails
+    
+    # Check for other common queries that can be handled directly
+    if any(keyword in message_lower for keyword in ["show top", "top players", "show player", "recent tournament", "upcoming tournament", "future tournament", "next tournament", "show org"]):
+        try:
+            from polymorphic_queries import query as pq
+            result = pq(message)
+            if result and result != "I'm not sure what you're looking for. Try 'show players', 'show tournaments', or 'show organizations'.":
+                return {
+                    'success': True,
+                    'response': result,
+                    'error': None,
+                    'processing_time': time.time() - start_time
+                }
+        except Exception as e:
+            logger.error(f"Direct query failed: {e}")
+            # Fall through to Claude if direct handling fails
+    
+    # For other queries, use Claude CLI
     response = await claude_cli.ask_async(message, context)
     return {
         'success': response.success,

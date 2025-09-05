@@ -66,6 +66,7 @@ class EditorService:
         app.router.add_get('/tournaments', self.tournaments_handler)
         app.router.add_get('/report', self.report_handler)
         app.router.add_get('/heatmap', self.heatmap_handler)
+        app.router.add_get('/charts', self.charts_handler)
         app.router.add_get('/players', self.players_handler)
         app.router.add_get('/player/{player_id}', self.player_detail_handler)
         app.router.add_get('/tournament/{tournament_id}', self.tournament_detail_handler)
@@ -80,6 +81,7 @@ class EditorService:
         app.router.add_get('/api/tournaments', self.get_tournaments)
         app.router.add_get('/api/organizations', self.get_organizations)
         app.router.add_get('/api/players', self.get_players)
+        app.router.add_get('/api/attendance-timeline', self.get_attendance_timeline)
         app.router.add_post('/api/organizations/{org_id}/update', self.update_organization)
         app.router.add_post('/api/organizations/merge', self.merge_organizations)
         app.router.add_post('/api/sync', self.start_sync)
@@ -118,16 +120,68 @@ class EditorService:
         return web.Response(text=html, content_type='text/html')
     
     async def report_handler(self, request):
-        """Serve the report page"""
-        html = """
+        """Serve the report page with actual tournament data"""
+        from database_service import database_service
+        import html as html_module
+        
+        # Get stats and rankings
+        stats = database_service.get_summary_stats()
+        rankings = database_service.get_attendance_rankings(limit=20)
+        
+        # Build rankings table
+        rankings_html = ""
+        for i, org in enumerate(rankings, 1):
+            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}"
+            rankings_html += f"""
+            <tr>
+                <td>{medal}</td>
+                <td>{html_module.escape(org['display_name'])}</td>
+                <td>{org['tournament_count']}</td>
+                <td>{org['total_attendance']:,}</td>
+                <td>{org['avg_attendance']:.0f}</td>
+            </tr>"""
+        
+        # Get recent tournaments
+        from database import session_scope
+        from tournament_models import Tournament
+        with session_scope() as session:
+            recent_tournaments = session.query(Tournament)\
+                .order_by(Tournament.start_at.desc())\
+                .limit(10).all()
+            
+            recent_html = ""
+            for t in recent_tournaments:
+                date_str = t.start_date.strftime('%Y-%m-%d') if t.start_date else 'N/A'
+                recent_html += f"""
+                <tr>
+                    <td>{html_module.escape(t.name)}</td>
+                    <td>{date_str}</td>
+                    <td>{t.num_attendees or 0}</td>
+                    <td>{html_module.escape(t.venue_name or 'N/A')}</td>
+                </tr>"""
+        
+        html = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>Reports - Tournament Tracker</title>
             <style>
-                body { font-family: -apple-system, sans-serif; padding: 2rem; }
-                .navbar { background: #2c3e50; color: white; padding: 1rem; margin: -2rem -2rem 2rem; }
-                .navbar a { color: white; text-decoration: none; margin-right: 2rem; }
+                body {{ font-family: -apple-system, sans-serif; padding: 0; margin: 0; background: #f5f5f5; }}
+                .navbar {{ background: #2c3e50; color: white; padding: 1rem 2rem; }}
+                .navbar a {{ color: white; text-decoration: none; margin-right: 2rem; }}
+                .navbar a:hover {{ opacity: 0.8; }}
+                .container {{ padding: 2rem; max-width: 1200px; margin: 0 auto; }}
+                .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0; }}
+                .stat-card {{ background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                .stat-card h3 {{ margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase; }}
+                .stat-card .value {{ font-size: 2rem; font-weight: bold; color: #2c3e50; }}
+                table {{ width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                th {{ background: #34495e; color: white; padding: 1rem; text-align: left; }}
+                td {{ padding: 0.75rem 1rem; border-bottom: 1px solid #eee; }}
+                tr:hover {{ background: #f9f9f9; }}
+                .section {{ margin: 3rem 0; }}
+                h1 {{ color: #2c3e50; }}
+                h2 {{ color: #34495e; margin-top: 2rem; }}
             </style>
         </head>
         <body>
@@ -136,33 +190,361 @@ class EditorService:
                 <a href="/organizations">Organizations</a>
                 <a href="/tournaments">Tournaments</a>
                 <a href="/report">Reports</a>
+                <a href="/standings">Standings</a>
             </nav>
-            <h1>Tournament Reports</h1>
-            <p>Comprehensive reports and analytics coming soon...</p>
+            <div class="container">
+                <h1>Tournament Reports & Analytics</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Tournaments</h3>
+                        <div class="value">{stats.total_tournaments}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Organizations</h3>
+                        <div class="value">{stats.total_organizations}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Players Tracked</h3>
+                        <div class="value">{stats.total_players}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Placements</h3>
+                        <div class="value">{stats.total_placements:,}</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>Top Organizations by Attendance</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Organization</th>
+                                <th>Events</th>
+                                <th>Total Attendance</th>
+                                <th>Avg Attendance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rankings_html}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h2>Recent Tournaments</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tournament</th>
+                                <th>Date</th>
+                                <th>Attendees</th>
+                                <th>Venue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {recent_html}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="section" style="text-align: center; padding: 2rem; color: #666;">
+                    <p>Generate detailed reports: <code>./go.py --html report.html</code></p>
+                    <p>View console report: <code>./go.py --console</code></p>
+                </div>
+            </div>
         </body>
         </html>
         """
         return web.Response(text=html, content_type='text/html')
     
     async def heatmap_handler(self, request):
-        """Serve the heatmap page"""
+        """Serve the heatmap page or the actual heatmap file"""
+        import os
+        from pathlib import Path
+        
+        # Check if request is for the raw heatmap (for iframe)
+        if request.query.get('raw') == 'true':
+            heatmap_file = Path("tournament_heatmap.html")
+            if heatmap_file.exists():
+                with open(heatmap_file, 'r') as f:
+                    html = f.read()
+                return web.Response(text=html, content_type='text/html')
+        
+        # Check if we have a generated heatmap file
+        heatmap_file = Path("tournament_heatmap.html")
+        
+        if heatmap_file.exists():
+            # Embed the heatmap in an iframe with proper page structure
+            html = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Heat Maps - Tournament Tracker</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        min-height: 100vh;
+                    }
+                    .container {
+                        max-width: 1400px;
+                        margin: 0 auto;
+                    }
+                    h1 {
+                        color: white;
+                        text-align: center;
+                        margin-bottom: 10px;
+                        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                    }
+                    .description {
+                        color: white;
+                        text-align: center;
+                        margin-bottom: 30px;
+                        opacity: 0.9;
+                    }
+                    .map-container {
+                        background: white;
+                        border-radius: 10px;
+                        padding: 20px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                        margin-bottom: 30px;
+                    }
+                    .map-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 15px;
+                        padding: 0 10px;
+                    }
+                    .map-title {
+                        font-size: 1.2em;
+                        font-weight: 600;
+                        color: #333;
+                    }
+                    .map-controls {
+                        display: flex;
+                        gap: 10px;
+                    }
+                    .control-btn {
+                        padding: 8px 15px;
+                        background: #667eea;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        text-decoration: none;
+                        font-size: 0.9em;
+                        transition: all 0.3s ease;
+                    }
+                    .control-btn:hover {
+                        background: #5a67d8;
+                        transform: translateY(-2px);
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                    }
+                    #heatmap-iframe {
+                        width: 100%;
+                        height: 600px;
+                        border: none;
+                        border-radius: 5px;
+                    }
+                    .other-reports {
+                        background: white;
+                        border-radius: 10px;
+                        padding: 20px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                        margin-bottom: 30px;
+                    }
+                    .reports-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                        gap: 20px;
+                        margin-top: 20px;
+                    }
+                    .report-card {
+                        padding: 20px;
+                        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                        border-radius: 8px;
+                        text-decoration: none;
+                        color: #333;
+                        transition: all 0.3s ease;
+                    }
+                    .report-card:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                    }
+                    .report-icon {
+                        font-size: 2em;
+                        margin-bottom: 10px;
+                    }
+                    .report-title {
+                        font-weight: 600;
+                        margin-bottom: 5px;
+                    }
+                    .report-desc {
+                        font-size: 0.9em;
+                        opacity: 0.8;
+                    }
+                    .fullscreen-btn {
+                        background: #48bb78;
+                    }
+                    .fullscreen-btn:hover {
+                        background: #38a169;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>🗺️ Tournament Heat Maps</h1>
+                    <p class="description">Interactive visualization of tournament locations and density across Southern California</p>
+                    
+                    <div class="map-container">
+                        <div class="map-header">
+                            <div class="map-title">📍 Tournament Locations Heatmap</div>
+                            <div class="map-controls">
+                                <button class="control-btn fullscreen-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+                                <a href="/heatmap?raw=true" target="_blank" class="control-btn">↗️ Open in New Tab</a>
+                                <button class="control-btn" onclick="location.reload()">🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <iframe id="heatmap-iframe" src="/heatmap?raw=true"></iframe>
+                    </div>
+                    
+                    <div class="other-reports">
+                        <h2>📊 Other Reports & Analytics</h2>
+                        <div class="reports-grid">
+                            <a href="/charts" class="report-card">
+                                <div class="report-icon">📈</div>
+                                <div class="report-title">Attendance Charts</div>
+                                <div class="report-desc">Interactive charts showing attendance over time</div>
+                            </a>
+                            <a href="/report" class="report-card">
+                                <div class="report-icon">📋</div>
+                                <div class="report-title">Tournament Report</div>
+                                <div class="report-desc">View detailed tournament statistics and rankings</div>
+                            </a>
+                            <a href="/" class="report-card">
+                                <div class="report-icon">🎮</div>
+                                <div class="report-title">Organization Editor</div>
+                                <div class="report-desc">Edit and manage tournament organizations</div>
+                            </a>
+                            <a href="/api/tournaments" class="report-card" target="_blank">
+                                <div class="report-icon">🔌</div>
+                                <div class="report-title">API Data</div>
+                                <div class="report-desc">Access raw tournament data via API</div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <script>
+                function toggleFullscreen() {
+                    const iframe = document.getElementById('heatmap-iframe');
+                    if (!document.fullscreenElement) {
+                        iframe.requestFullscreen().catch(err => {
+                            alert('Error attempting to enable fullscreen: ' + err.message);
+                        });
+                    } else {
+                        document.exitFullscreen();
+                    }
+                }
+                </script>
+            </body>
+            </html>
+            """
+            return web.Response(text=html, content_type='text/html')
+        
+        # Otherwise, show a page with generation instructions
         html = """
         <!DOCTYPE html>
         <html>
         <head>
             <title>Heat Maps - Tournament Tracker</title>
             <style>
-                body { font-family: -apple-system, sans-serif; padding: 2rem; }
-                .navbar { background: #2c3e50; color: white; padding: 1rem; margin: -2rem -2rem 2rem; }
-                .navbar a { color: white; text-decoration: none; margin-right: 2rem; }
+                body { 
+                    font-family: -apple-system, sans-serif; 
+                    padding: 0; 
+                    margin: 0;
+                    background: #f5f5f5;
+                }
+                .navbar { 
+                    background: #2c3e50; 
+                    color: white; 
+                    padding: 1rem 2rem; 
+                }
+                .navbar a { 
+                    color: white; 
+                    text-decoration: none; 
+                    margin-right: 2rem; 
+                }
+                .navbar a:hover { opacity: 0.8; }
+                .container { 
+                    padding: 2rem; 
+                    max-width: 1200px; 
+                    margin: 0 auto; 
+                }
+                .alert {
+                    background: #fff3cd;
+                    border: 1px solid #856404;
+                    color: #856404;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    margin: 2rem 0;
+                }
+                .code {
+                    background: #2c3e50;
+                    color: #fff;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    font-family: 'Courier New', monospace;
+                    margin: 1rem 0;
+                }
+                h1 { color: #2c3e50; }
+                .button {
+                    background: #3498db;
+                    color: white;
+                    padding: 0.75rem 1.5rem;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    display: inline-block;
+                    margin-top: 1rem;
+                }
+                .button:hover { background: #2980b9; }
             </style>
         </head>
         <body>
             <nav class="navbar">
                 <a href="/">← Home</a>
+                <a href="/report">Reports</a>
+                <a href="/organizations">Organizations</a>
+                <a href="/tournaments">Tournaments</a>
             </nav>
-            <h1>Tournament Heat Maps</h1>
-            <p>Geographic visualizations coming soon...</p>
+            <div class="container">
+                <h1>Tournament Heat Maps</h1>
+                
+                <div class="alert">
+                    <strong>Heatmap not generated yet!</strong><br>
+                    Generate the heatmap first using the command below.
+                </div>
+                
+                <h2>How to Generate Heat Maps</h2>
+                <p>Run this command in the terminal:</p>
+                <div class="code">./go.py --heatmap --skip-sync</div>
+                
+                <p>This will generate:</p>
+                <ul>
+                    <li><strong>tournament_heatmap.html</strong> - Interactive heatmap</li>
+                    <li><strong>tournament_heatmap_with_map.png</strong> - Static heatmap with map</li>
+                    <li><strong>attendance_heatmap.png</strong> - Attendance-weighted heatmap</li>
+                </ul>
+                
+                <p>After generation, refresh this page to see the interactive heatmap.</p>
+                
+                <a href="/report" class="button">View Reports Instead</a>
+            </div>
         </body>
         </html>
         """
@@ -815,6 +1197,410 @@ class EditorService:
             await self.runner.cleanup()
             self.runner = None
 
+
+    async def get_attendance_timeline(self, request):
+        """API endpoint for attendance over time data"""
+        from tournament_models import Tournament
+        from datetime import datetime, timedelta
+        import calendar
+        
+        try:
+            with session_scope() as session:
+                # Get all tournaments with attendance data
+                tournaments = session.query(Tournament).filter(
+                    Tournament.num_attendees > 0,
+                    Tournament.start_at > 0
+                ).order_by(Tournament.start_at).all()
+                
+                # Group by month
+                monthly_data = {}
+                for t in tournaments:
+                    # Convert timestamp to date
+                    date = datetime.fromtimestamp(t.start_at)
+                    month_key = f"{date.year}-{date.month:02d}"
+                    
+                    if month_key not in monthly_data:
+                        monthly_data[month_key] = {
+                            'month': calendar.month_name[date.month][:3],
+                            'year': date.year,
+                            'total_attendance': 0,
+                            'tournament_count': 0,
+                            'tournaments': []
+                        }
+                    
+                    monthly_data[month_key]['total_attendance'] += t.num_attendees
+                    monthly_data[month_key]['tournament_count'] += 1
+                    monthly_data[month_key]['tournaments'].append({
+                        'name': t.name,
+                        'attendance': t.num_attendees,
+                        'date': date.strftime('%Y-%m-%d')
+                    })
+                
+                # Convert to sorted list
+                timeline = []
+                for month_key in sorted(monthly_data.keys()):
+                    data = monthly_data[month_key]
+                    timeline.append({
+                        'label': f"{data['month']} {data['year']}",
+                        'total_attendance': data['total_attendance'],
+                        'tournament_count': data['tournament_count'],
+                        'average_attendance': data['total_attendance'] / data['tournament_count'] if data['tournament_count'] > 0 else 0,
+                        'tournaments': sorted(data['tournaments'], key=lambda x: x['attendance'], reverse=True)[:5]  # Top 5
+                    })
+                
+                return web.json_response(timeline)
+                
+        except Exception as e:
+            self.logger.error(f"Error getting attendance timeline: {e}")
+            return web.json_response({'error': str(e)}, status=500)
+    
+    async def charts_handler(self, request):
+        """Serve the charts visualization page"""
+        html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Charts & Analytics - Tournament Tracker</title>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                }
+                .container {
+                    max-width: 1400px;
+                    margin: 0 auto;
+                }
+                h1 {
+                    color: white;
+                    text-align: center;
+                    margin-bottom: 10px;
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                }
+                .description {
+                    color: white;
+                    text-align: center;
+                    margin-bottom: 30px;
+                    opacity: 0.9;
+                }
+                .chart-container {
+                    background: white;
+                    border-radius: 10px;
+                    padding: 20px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                    margin-bottom: 30px;
+                }
+                .chart-wrapper {
+                    position: relative;
+                    height: 400px;
+                }
+                .chart-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                }
+                .chart-title {
+                    font-size: 1.3em;
+                    font-weight: 600;
+                    color: #333;
+                }
+                .chart-controls {
+                    display: flex;
+                    gap: 10px;
+                }
+                .control-btn {
+                    padding: 6px 12px;
+                    background: #667eea;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 0.9em;
+                }
+                .control-btn:hover {
+                    background: #5a67d8;
+                }
+                .control-btn.active {
+                    background: #48bb78;
+                }
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 20px;
+                    margin-bottom: 30px;
+                }
+                .stat-card {
+                    background: white;
+                    border-radius: 10px;
+                    padding: 20px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                    text-align: center;
+                }
+                .stat-value {
+                    font-size: 2em;
+                    font-weight: bold;
+                    color: #667eea;
+                    margin: 10px 0;
+                }
+                .stat-label {
+                    color: #666;
+                    font-size: 0.9em;
+                }
+                .loading {
+                    text-align: center;
+                    padding: 40px;
+                    color: #666;
+                }
+                .tooltip-content {
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 10px;
+                    border-radius: 5px;
+                    font-size: 0.9em;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>📊 Tournament Analytics</h1>
+                <p class="description">Interactive charts and visualizations of tournament data</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Attendance</div>
+                        <div class="stat-value" id="total-attendance">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Peak Month</div>
+                        <div class="stat-value" id="peak-month">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Average per Event</div>
+                        <div class="stat-value" id="avg-attendance">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Events</div>
+                        <div class="stat-value" id="total-events">-</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">📈 Total Attendance Over Time</div>
+                        <div class="chart-controls">
+                            <button class="control-btn active" onclick="switchChart('line')">Line</button>
+                            <button class="control-btn" onclick="switchChart('bar')">Bar</button>
+                            <button class="control-btn" onclick="switchChart('area')">Area</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">📊 Average Attendance per Tournament</div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="averageChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">🎮 Number of Tournaments per Month</div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="countChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                let attendanceChart = null;
+                let averageChart = null;
+                let countChart = null;
+                let timelineData = [];
+                
+                async function loadData() {
+                    try {
+                        const response = await fetch('/api/attendance-timeline');
+                        timelineData = await response.json();
+                        
+                        // Calculate stats
+                        let totalAttendance = 0;
+                        let totalEvents = 0;
+                        let peakMonth = '';
+                        let peakAttendance = 0;
+                        
+                        timelineData.forEach(month => {
+                            totalAttendance += month.total_attendance;
+                            totalEvents += month.tournament_count;
+                            if (month.total_attendance > peakAttendance) {
+                                peakAttendance = month.total_attendance;
+                                peakMonth = month.label;
+                            }
+                        });
+                        
+                        // Update stats
+                        document.getElementById('total-attendance').textContent = totalAttendance.toLocaleString();
+                        document.getElementById('peak-month').textContent = peakMonth;
+                        document.getElementById('avg-attendance').textContent = Math.round(totalAttendance / totalEvents).toLocaleString();
+                        document.getElementById('total-events').textContent = totalEvents.toLocaleString();
+                        
+                        // Create charts
+                        createAttendanceChart('line');
+                        createAverageChart();
+                        createCountChart();
+                        
+                    } catch (error) {
+                        console.error('Error loading data:', error);
+                    }
+                }
+                
+                function createAttendanceChart(type) {
+                    const ctx = document.getElementById('attendanceChart').getContext('2d');
+                    
+                    if (attendanceChart) {
+                        attendanceChart.destroy();
+                    }
+                    
+                    const config = {
+                        type: type === 'area' ? 'line' : type,
+                        data: {
+                            labels: timelineData.map(d => d.label),
+                            datasets: [{
+                                label: 'Total Attendance',
+                                data: timelineData.map(d => d.total_attendance),
+                                borderColor: 'rgb(102, 126, 234)',
+                                backgroundColor: type === 'area' ? 'rgba(102, 126, 234, 0.2)' : 'rgba(102, 126, 234, 0.6)',
+                                tension: 0.4,
+                                fill: type === 'area'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            resizeDelay: 0,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        afterLabel: function(context) {
+                                            const month = timelineData[context.dataIndex];
+                                            return `Tournaments: ${month.tournament_count}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value.toLocaleString();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    
+                    attendanceChart = new Chart(ctx, config);
+                }
+                
+                function createAverageChart() {
+                    const ctx = document.getElementById('averageChart').getContext('2d');
+                    
+                    averageChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: timelineData.map(d => d.label),
+                            datasets: [{
+                                label: 'Average Attendance',
+                                data: timelineData.map(d => Math.round(d.average_attendance)),
+                                borderColor: 'rgb(72, 187, 120)',
+                                backgroundColor: 'rgba(72, 187, 120, 0.2)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            resizeDelay: 0,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                function createCountChart() {
+                    const ctx = document.getElementById('countChart').getContext('2d');
+                    
+                    countChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: timelineData.map(d => d.label),
+                            datasets: [{
+                                label: 'Number of Tournaments',
+                                data: timelineData.map(d => d.tournament_count),
+                                backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                                borderColor: 'rgb(245, 158, 11)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            resizeDelay: 0,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                function switchChart(type) {
+                    document.querySelectorAll('.control-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    event.target.classList.add('active');
+                    createAttendanceChart(type);
+                }
+                
+                // Load data on page load
+                loadData();
+            </script>
+        </body>
+        </html>
+        """
+        return web.Response(text=html, content_type='text/html')
 
 # Singleton instance
 editor_service = EditorService()

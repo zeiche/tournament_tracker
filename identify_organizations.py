@@ -7,9 +7,25 @@ import sys
 import time
 import json
 from typing import Optional, Dict, List, Tuple
-from database_utils import get_session, normalize_contact
+from database import session_scope
+from database_service import database_service
 from tournament_models import Tournament, Organization
-from editor_service import editor_service get_unnamed_tournaments
+from editor_service import editor_service
+
+def get_unnamed_tournaments():
+    """Get tournaments that don't have an organization assigned"""
+    with session_scope() as session:
+        tournaments = session.query(Tournament).filter(
+            Tournament.organization_id == None
+        ).all()
+        
+        return [{
+            'id': t.id,
+            'name': t.name,
+            'slug': t.slug,
+            'primary_contact': t.primary_contact,
+            'num_attendees': t.num_attendees
+        } for t in tournaments]
 
 def analyze_tournament_page(slug: str, contact: str) -> Tuple[Optional[str], float]:
     """
@@ -190,7 +206,7 @@ def identify_organizations(limit: int = 10, min_confidence: float = 0.7):
 def create_identified_organizations(identified_list: List[Dict]):
     """Create organizations from identified list"""
     
-    with get_session() as session:
+    with session_scope() as session:
         created_count = 0
         
         for item in identified_list:

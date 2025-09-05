@@ -18,7 +18,7 @@ from tournament_report import (
     get_legacy_attendance_data,
     publish_to_shopify
 )
-from database_utils import get_attendance_rankings, get_summary_stats
+from database_service import database_service
 from log_utils import log_info, log_error
 
 class TournamentCommands(commands.Cog):
@@ -35,7 +35,7 @@ class TournamentCommands(commands.Cog):
         Example: !top 5
         """
         try:
-            rankings = get_attendance_rankings(limit)
+            rankings = database_service.get_attendance_rankings(limit)
             
             if not rankings:
                 await ctx.send("No attendance data available")
@@ -67,8 +67,8 @@ class TournamentCommands(commands.Cog):
             embed.description = leaderboard
             
             # Add summary footer
-            stats = get_summary_stats()
-            embed.set_footer(text=f"Total: {stats['total_organizations']} orgs, {stats['total_tournaments']} tournaments")
+            stats = database_service.get_summary_stats()
+            embed.set_footer(text=f"Total: {stats.total_organizations} orgs, {stats.total_tournaments} tournaments")
             
             await ctx.send(embed=embed)
             log_info(f"Displayed top {limit} orgs for {ctx.author}", "discord")
@@ -81,19 +81,19 @@ class TournamentCommands(commands.Cog):
     async def show_stats(self, ctx):
         """Show tournament tracker statistics"""
         try:
-            stats = get_summary_stats()
+            stats = database_service.get_summary_stats()
             
             embed = discord.Embed(
                 title="Tournament Tracker Statistics",
                 color=discord.Color.green()
             )
             
-            embed.add_field(name="Organizations", value=f"{stats['total_organizations']:,}", inline=True)
-            embed.add_field(name="Tournaments", value=f"{stats['total_tournaments']:,}", inline=True)
-            embed.add_field(name="Total Attendance", value=f"{stats['total_attendance']:,}", inline=True)
+            embed.add_field(name="Organizations", value=f"{stats.total_organizations:,}", inline=True)
+            embed.add_field(name="Tournaments", value=f"{stats.total_tournaments:,}", inline=True)
+            embed.add_field(name="Total Attendance", value=f"{stats.total_attendance:,}", inline=True)
             
             # Get top org for highlight
-            top_org = get_attendance_rankings(1)
+            top_org = database_service.get_attendance_rankings(1)
             if top_org:
                 embed.add_field(
                     name="Top Organization",
@@ -155,64 +155,63 @@ class TournamentCommands(commands.Cog):
         """
         try:
             from tournament_models import Organization
-            from database_utils import get_session
+            from database import session_scope
             
-            session = get_session()
-            
-            # Search for organization (case insensitive)
-            orgs = session.query(Organization).filter(
-                Organization.display_name.ilike(f"%{org_name}%")
-            ).all()
-            
-            if not orgs:
-                await ctx.send(f"No organization found matching '{org_name}'")
-                return
-            
-            if len(orgs) > 1:
-                # Multiple matches
-                matches = "\n".join([f"• {org.display_name}" for org in orgs[:10]])
-                await ctx.send(f"Multiple organizations found:\n{matches}\n\nPlease be more specific.")
-                return
-            
-            org = orgs[0]
-            
-            # Get attendance records
-            attendance_sum = sum(record.attendance for record in org.attendance_records)
-            tournament_count = len(org.attendance_records)
-            
-            embed = discord.Embed(
-                title=org.display_name,
-                color=discord.Color.purple()
-            )
-            
-            embed.add_field(name="Total Attendance", value=f"{attendance_sum:,}", inline=True)
-            embed.add_field(name="Tournaments", value=tournament_count, inline=True)
-            
-            if tournament_count > 0:
-                avg_attendance = attendance_sum / tournament_count
-                embed.add_field(name="Avg Attendance", value=f"{avg_attendance:.1f}", inline=True)
-            
-            # List contacts
-            if org.contacts:
-                contact_list = "\n".join([f"• {c.contact_value}" for c in org.contacts[:5]])
-                embed.add_field(name="Contacts", value=contact_list, inline=False)
-            
-            # Recent tournaments
-            recent_tournaments = sorted(
-                org.attendance_records,
-                key=lambda x: x.tournament.end_at if x.tournament.end_at else 0,
-                reverse=True
-            )[:5]
-            
-            if recent_tournaments:
-                tournament_list = "\n".join([
-                    f"• {record.tournament.name} ({record.attendance:,})"
-                    for record in recent_tournaments
-                ])
-                embed.add_field(name="Recent Tournaments", value=tournament_list, inline=False)
-            
-            await ctx.send(embed=embed)
-            log_info(f"Displayed info for org '{org.display_name}' to {ctx.author}", "discord")
+            with session_scope() as session:
+                # Search for organization (case insensitive)
+                orgs = session.query(Organization).filter(
+                    Organization.display_name.ilike(f"%{org_name}%")
+                ).all()
+                
+                if not orgs:
+                    await ctx.send(f"No organization found matching '{org_name}'")
+                    return
+                
+                if len(orgs) > 1:
+                    # Multiple matches
+                    matches = "\n".join([f"• {org.display_name}" for org in orgs[:10]])
+                    await ctx.send(f"Multiple organizations found:\n{matches}\n\nPlease be more specific.")
+                    return
+                
+                org = orgs[0]
+                
+                # Get attendance records
+                attendance_sum = sum(record.attendance for record in org.attendance_records)
+                tournament_count = len(org.attendance_records)
+                
+                embed = discord.Embed(
+                    title=org.display_name,
+                    color=discord.Color.purple()
+                )
+                
+                embed.add_field(name="Total Attendance", value=f"{attendance_sum:,}", inline=True)
+                embed.add_field(name="Tournaments", value=tournament_count, inline=True)
+                
+                if tournament_count > 0:
+                    avg_attendance = attendance_sum / tournament_count
+                    embed.add_field(name="Avg Attendance", value=f"{avg_attendance:.1f}", inline=True)
+                
+                # List contacts
+                if org.contacts:
+                    contact_list = "\n".join([f"• {c.contact_value}" for c in org.contacts[:5]])
+                    embed.add_field(name="Contacts", value=contact_list, inline=False)
+                
+                # Recent tournaments
+                recent_tournaments = sorted(
+                    org.attendance_records,
+                    key=lambda x: x.tournament.end_at if x.tournament.end_at else 0,
+                    reverse=True
+                )[:5]
+                
+                if recent_tournaments:
+                    tournament_list = "\n".join([
+                        f"• {record.tournament.name} ({record.attendance:,})"
+                        for record in recent_tournaments
+                    ])
+                    embed.add_field(name="Recent Tournaments", value=tournament_list, inline=False)
+                
+                await ctx.send(embed=embed)
+                log_info(f"Displayed info for org '{org.display_name}' to {ctx.author}", "discord")
             
         except Exception as e:
             await ctx.send(f"Error getting organization info: {e}")
@@ -225,36 +224,35 @@ class TournamentCommands(commands.Cog):
         """
         try:
             from tournament_models import Tournament
-            from database_utils import get_session
+            from database import session_scope
             
-            session = get_session()
-            
-            # Search tournaments
-            tournaments = session.query(Tournament).filter(
-                Tournament.name.ilike(f"%{query}%")
-            ).limit(10).all()
-            
-            if not tournaments:
-                await ctx.send(f"No tournaments found matching '{query}'")
-                return
-            
-            embed = discord.Embed(
-                title=f"Search Results for '{query}'",
-                color=discord.Color.orange()
-            )
-            
-            result_list = ""
-            for t in tournaments:
-                result_list += f"**{t.name}**\n"
-                result_list += f"   {t.num_attendees:,} attendees"
-                if t.primary_contact:
-                    result_list += f" • Contact: {t.primary_contact[:30]}"
-                result_list += "\n\n"
-            
-            embed.description = result_list
-            
-            await ctx.send(embed=embed)
-            log_info(f"Searched for '{query}' by {ctx.author}", "discord")
+            with session_scope() as session:
+                # Search tournaments
+                tournaments = session.query(Tournament).filter(
+                    Tournament.name.ilike(f"%{query}%")
+                ).limit(10).all()
+                
+                if not tournaments:
+                    await ctx.send(f"No tournaments found matching '{query}'")
+                    return
+                
+                embed = discord.Embed(
+                    title=f"Search Results for '{query}'",
+                    color=discord.Color.orange()
+                )
+                
+                result_list = ""
+                for t in tournaments:
+                    result_list += f"**{t.name}**\n"
+                    result_list += f"   {t.num_attendees:,} attendees"
+                    if t.primary_contact:
+                        result_list += f" • Contact: {t.primary_contact[:30]}"
+                    result_list += "\n\n"
+                
+                embed.description = result_list
+                
+                await ctx.send(embed=embed)
+                log_info(f"Searched for '{query}' by {ctx.author}", "discord")
             
         except Exception as e:
             await ctx.send(f"Error searching: {e}")
@@ -277,7 +275,7 @@ class AdminCommands(commands.Cog):
         try:
             await ctx.send("Starting tournament sync from start.gg... This may take a few minutes.")
             
-            from startgg_service import startgg_service sync_from_startgg
+            from startgg_service import startgg_service, sync_from_startgg
             
             # Run sync in background
             loop = asyncio.get_event_loop()

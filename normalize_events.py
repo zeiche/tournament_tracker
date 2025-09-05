@@ -6,7 +6,7 @@ Normalizes event names in the database that haven't been normalized yet
 
 from sqlalchemy import func, distinct
 from event_standardizer import EventStandardizer
-from database_utils import get_session
+from database import session_scope
 from tournament_models import TournamentPlacement
 from log_utils import log_info, log_debug, log_error
 
@@ -57,7 +57,7 @@ def normalize_database_events(dry_run=False):
         'non_ultimate_skipped': 0
     }
     
-    with get_session() as session:
+    with session_scope() as session:
         # Find unnormalized events
         unnormalized_events = get_unnormalized_events(session)
         stats['events_checked'] = len(unnormalized_events)
@@ -108,7 +108,7 @@ def normalize_database_events(dry_run=False):
 
 def show_event_distribution():
     """Show distribution of event names in the database"""
-    with get_session() as session:
+    with session_scope() as session:
         # Get event name counts
         results = session.query(
             TournamentPlacement.event_name,

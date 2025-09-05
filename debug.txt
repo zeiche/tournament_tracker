@@ -1,4 +1,2 @@
 INFO  [tracker] Starting Tournament Tracker
 INFO  [operations] Starting tournament_tracker_session
-INFO  [tracker] Starting Tournament Tracker
-INFO  [operations] Starting tournament_tracker_session

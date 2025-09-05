@@ -1,31 +1,46 @@
-i"""
-session_utils.py - Session Management Utilities
-Centralized session patterns to eliminate binding issues
 """
-import os
+session_utils.py - DEPRECATED - Redirects to central database module
+
+⚠️ DEPRECATED: This module should not be used directly anymore.
+All database access should go through the central 'database' module.
+
+This file acts as a compatibility layer for old code that imports from session_utils.
+"""
+
+import warnings
 from contextlib import contextmanager
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
 
-# Global session registry
-engine = None
-Session = None
+# Import everything from the central database module
+from database import (
+    session_scope,
+    get_session,
+    Session,
+    engine,
+    init_database,
+    clear_session
+)
 
+# Show deprecation warning
+warnings.warn(
+    "session_utils is deprecated. Please use 'from database import ...' instead",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+# Compatibility functions
 def init_session_manager(database_url=None):
-    """Initialize session manager"""
-    global engine, Session
-    
-    if database_url is None:
-        database_url = os.getenv('DATABASE_URL', 'sqlite:///tournament_tracker.db')
-    
-    engine = create_engine(database_url, echo=False)
-    Session = scoped_session(sessionmaker(bind=engine))
-    
+    """Initialize session manager - DEPRECATED"""
+    warnings.warn(
+        "init_session_manager() is deprecated. Use 'from database import init_database' instead",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    init_database()
     return engine, Session
 
 def create_tables():
-    """Create all tables - call after models are imported"""
-    from models import Base
+    """Create all tables - DEPRECATED"""
+    from tournament_models import Base
     if engine:
         Base.metadata.create_all(engine)
 

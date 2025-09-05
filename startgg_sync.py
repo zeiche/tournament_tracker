@@ -11,10 +11,8 @@ from collections import defaultdict
 
 # Import our centralized modules
 from log_utils import log_info, log_debug, log_error, log_api_call, LogContext
-from database_utils import (
-    init_db, record_attendance, 
-    normalize_contact, get_summary_stats
-)
+from database import init_database, session_scope
+from database_service import database_service
 from database_queue import get_queue, commit_queue, queue_stats, batch_operations
 
 # start.gg GraphQL queries
@@ -361,10 +359,10 @@ class TournamentSyncProcessor:
         
         # Simply replace/create tournament with latest data from start.gg
         from tournament_models import Tournament
-        from database_utils import get_session
+        from database import session_scope
         
         # Use proper session management for updates
-        with get_session() as session:
+        with session_scope() as session:
             existing = session.query(Tournament).get(tournament_id)
             if existing:
                 # Replace all fields with current start.gg data
@@ -567,7 +565,7 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
         processor_stats = processor.sync_stats
         
         # Get database summary
-        db_stats = get_summary_stats()
+        db_stats = database_service.get_summary_stats()
         
         # Combined stats
         final_stats = {
