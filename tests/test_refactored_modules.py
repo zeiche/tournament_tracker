@@ -11,9 +11,9 @@ from pathlib import Path
 
 # Import new OOP modules
 from database_service import DatabaseService
-from html_renderer import HTMLRenderer
+from visualizer import UnifiedVisualizer
 from log_manager import LogManager, LogLevel
-from sync_service import sync_service SyncOperation, SyncConfig
+from sync_service import SyncOperation, SyncConfig
 from publish_operation import PublishOperation, PublishConfig
 from debug_refactored import DebugOperations
 

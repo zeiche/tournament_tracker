@@ -5,7 +5,7 @@ Every model exposes all its data through methods and properties in a Pythonic wa
 import re
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Tuple, Dict, Any, Set
+from typing import Optional, List, Tuple, Dict, Any, Set, Union
 from collections import defaultdict, Counter
 from functools import cached_property
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Index, Float, Boolean, func, desc, asc
@@ -18,6 +18,16 @@ from database import Session, get_session
 from database_service import database_service
 normalize_contact = database_service.normalize_contact
 from log_manager import LogManager
+
+# Import polymorphic input handler
+try:
+    from polymorphic_inputs import InputHandler, FlexibleQuery, to_list, to_ids
+except ImportError:
+    # Fallback if polymorphic_inputs not available
+    InputHandler = None
+    FlexibleQuery = None
+    to_list = lambda x: [x] if not isinstance(x, list) else x
+    to_ids = lambda x: []
 
 # Get logger for this module
 _logger = LogManager().get_logger('models')
@@ -305,10 +315,63 @@ class BaseModel:
         return changed
     
     @classmethod
-    def find(cls, id):
-        """Find by primary key"""
+    def find(cls, input_value: Union[str, int, dict, list, Any]):
+        """
+        Find records using flexible input
+        
+        Examples:
+            Tournament.find(123)  # Find by ID
+            Tournament.find("123")  # Find by ID string
+            Tournament.find({"name": "Summer Showdown"})  # Find by attributes
+            Tournament.find(["123", "456"])  # Find multiple by IDs
+            Tournament.find(tournament_obj)  # Return the object itself
+        """
         session = cls.session()
-        return session.get(cls, id)
+        
+        # Use polymorphic handler if available
+        if InputHandler:
+            parsed = InputHandler.parse(input_value, cls.__name__.lower())
+            
+            # Handle different parsed types
+            if isinstance(parsed, dict):
+                # Single ID
+                if 'id' in parsed:
+                    return session.get(cls, parsed['id'])
+                
+                # Multiple IDs
+                elif 'ids' in parsed:
+                    return session.query(cls).filter(cls.id.in_(parsed['ids'])).all()
+                
+                # Search by attributes
+                elif '_metadata' in parsed:
+                    # Remove metadata before querying
+                    query_dict = {k: v for k, v in parsed.items() if k != '_metadata'}
+                    if query_dict:
+                        return session.query(cls).filter_by(**query_dict).first()
+                
+                # Text search
+                elif 'text' in parsed:
+                    # Search in name field if available
+                    if hasattr(cls, 'name'):
+                        return session.query(cls).filter(
+                            cls.name.ilike(f"%{parsed['text']}%")
+                        ).first()
+            
+            # Handle lists
+            elif isinstance(parsed, list):
+                return session.query(cls).filter(cls.id.in_(parsed)).all()
+        
+        # Fallback to traditional behavior
+        if isinstance(input_value, (str, int)):
+            return session.get(cls, input_value)
+        elif isinstance(input_value, cls):
+            return input_value  # Already the right object
+        elif isinstance(input_value, dict):
+            return session.query(cls).filter_by(**input_value).first()
+        elif isinstance(input_value, list):
+            return session.query(cls).filter(cls.id.in_(input_value)).all()
+        
+        return None
     
     @classmethod
     def find_by(cls, **kwargs):

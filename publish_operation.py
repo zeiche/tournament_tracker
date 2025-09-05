@@ -12,7 +12,7 @@ import requests
 
 from database_service import DatabaseService
 from log_manager import LogManager
-from html_renderer import HTMLRenderer
+from visualizer import UnifiedVisualizer
 from tournament_models import Tournament, Organization
 
 
@@ -68,7 +68,7 @@ class PublishOperation:
         self.config = config or PublishConfig()
         self.db = DatabaseService()
         self.logger = LogManager().get_logger('publish')
-        self.renderer = HTMLRenderer(theme='light')  # Light theme for Shopify
+        self.renderer = UnifiedVisualizer()  # Unified visualizer for all content
         self.stats = PublishStatistics()
         
         # Load Shopify config from environment if not provided

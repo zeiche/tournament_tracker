@@ -21,6 +21,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Import tracker modules
 from tournament_tracker import TournamentTracker
 from log_manager import LogManager
+# Import polymorphic input handler
+from polymorphic_inputs import InputHandler, accepts_anything, to_list, to_dict, to_ids
 
 # Get logger for this module
 _logger = LogManager().get_logger('go')
@@ -347,12 +349,62 @@ class TournamentCommand:
             self.tracker = TournamentTracker(database_url=self.database_url)
     
     # Sync Operations
-    def sync_tournaments(self, 
-                        page_size: int = 250, 
-                        fetch_standings: bool = False,
-                        standings_limit: int = 5) -> CommandResult:
-        """Sync tournaments from start.gg"""
+    @accepts_anything('sync_config')
+    def sync_tournaments(self, config=None) -> CommandResult:
+        """
+        Sync tournaments from start.gg - accepts multiple input formats
+        
+        Examples:
+            sync_tournaments()  # Default sync
+            sync_tournaments(100)  # Page size 100
+            sync_tournaments("fetch standings")  # Parse natural language
+            sync_tournaments({"page_size": 100, "fetch_standings": True})
+            sync_tournaments([100, True, 5])  # [page_size, fetch_standings, standings_limit]
+        """
         self._ensure_tracker()
+        
+        # Parse flexible input
+        parsed = InputHandler.parse(config, 'sync_config')
+        
+        # Extract parameters from parsed input
+        page_size = 250
+        fetch_standings = False
+        standings_limit = 5
+        
+        if isinstance(parsed, dict):
+            # Handle dictionary input
+            page_size = parsed.get('page_size', page_size)
+            fetch_standings = parsed.get('fetch_standings', fetch_standings)
+            standings_limit = parsed.get('standings_limit', standings_limit)
+            
+            # Handle natural language in 'text' field
+            if 'text' in parsed:
+                text_lower = parsed['text'].lower()
+                if 'standings' in text_lower or 'top' in text_lower:
+                    fetch_standings = True
+                if 'small' in text_lower or 'quick' in text_lower:
+                    page_size = 50
+                elif 'large' in text_lower or 'full' in text_lower:
+                    page_size = 500
+        
+        elif isinstance(parsed, list) and len(parsed['items']) > 0:
+            # Handle list input [page_size, fetch_standings, standings_limit]
+            items = parsed['items']
+            if len(items) > 0 and isinstance(items[0], (int, str)):
+                page_size = int(items[0]) if str(items[0]).isdigit() else page_size
+            if len(items) > 1:
+                fetch_standings = bool(items[1])
+            if len(items) > 2 and isinstance(items[2], (int, str)):
+                standings_limit = int(items[2]) if str(items[2]).isdigit() else standings_limit
+        
+        elif isinstance(parsed, int):
+            # Single integer = page size
+            page_size = parsed
+        
+        elif isinstance(parsed, bool):
+            # Single boolean = fetch standings
+            fetch_standings = parsed
+        
         try:
             success = self.tracker.sync_tournaments(
                 page_size=page_size,
@@ -361,7 +413,7 @@ class TournamentCommand:
             )
             
             if success:
-                message = "Tournament sync completed successfully"
+                message = f"Tournament sync completed successfully (page_size={page_size}, standings={fetch_standings})"
                 
                 # Auto-identify organizations after sync
                 from identify_orgs_simple import analyze_and_auto_create
@@ -455,38 +507,80 @@ class TournamentCommand:
         return CommandResult(True, "Shopify statistics displayed")
     
     # Heatmap Operations
-    def generate_heatmaps(self) -> CommandResult:
-        """Generate all heatmap visualizations"""
+    @accepts_anything('visualization_input')
+    def generate_heatmaps(self, input_data=None) -> CommandResult:
+        """
+        Generate visualizations using unified polymorphic visualizer
+        Accepts ANY input: tournaments, players, dicts, lists, strings, etc.
+        
+        Examples:
+            generate_heatmaps()  # Default: all tournaments
+            generate_heatmaps(Tournament.all())  # All tournaments
+            generate_heatmaps({"type": "skill"})  # Skill heatmap
+            generate_heatmaps("recent tournaments")  # Natural language
+        """
         try:
-            from tournament_heatmap import (
-                generate_static_heatmap, 
-                generate_attendance_heatmap, 
-                generate_interactive_heatmap
-            )
+            from visualizer import visualize, heatmap, chart
+            from tournament_models import Tournament
+            from database import session_scope
             
             files_created = []
             
-            # Generate heatmaps
-            if generate_static_heatmap('tournament_heatmap.png', use_map_background=True):
-                files_created.append('tournament_heatmap.png')
+            if input_data:
+                # Use provided data - visualizer will figure out what to do
+                result = visualize(input_data, "custom_visualization.html")
+                if result:
+                    files_created.append(result)
+            else:
+                # Default: Generate multiple standard visualizations
+                with session_scope() as session:
+                    # Get all tournaments with locations
+                    tournaments = session.query(Tournament).filter(
+                        Tournament.lat.isnot(None),
+                        Tournament.lng.isnot(None)
+                    ).all()
+                    
+                    if not tournaments:
+                        return CommandResult(False, "No tournaments with location data")
+                    
+                    # 1. Interactive heatmap
+                    result = heatmap(tournaments, "tournament_heatmap.html",
+                                   title="Tournament Density Heatmap")
+                    if result:
+                        files_created.append(result)
+                    
+                    # 2. Static heatmap with map
+                    result = heatmap(tournaments, "tournament_heatmap_with_map.png",
+                                   title="Tournament Locations", 
+                                   map_background=True, dpi=150)
+                    if result:
+                        files_created.append(result)
+                    
+                    # 3. Attendance-weighted heatmap
+                    # Weight by attendance
+                    weighted_data = []
+                    for t in tournaments:
+                        if t.has_location:
+                            lat, lng = t.coordinates
+                            weight = t.num_attendees or 1
+                            weighted_data.append({"lat": lat, "lng": lng, "weight": weight})
+                    
+                    result = heatmap(weighted_data, "attendance_heatmap.png",
+                                   title="Attendance Weighted Heatmap")
+                    if result:
+                        files_created.append(result)
             
-            if generate_static_heatmap('tournament_heatmap_with_map.png', use_map_background=True):
-                files_created.append('tournament_heatmap_with_map.png')
-            
-            if generate_attendance_heatmap():
-                files_created.append('attendance_heatmap.png')
-            
-            if generate_interactive_heatmap():
-                files_created.append('tournament_heatmap.html')
-            
-            return CommandResult(
-                True,
-                f"Generated {len(files_created)} heatmap files",
-                data=files_created
-            )
+            if files_created:
+                return CommandResult(
+                    True,
+                    f"Generated {len(files_created)} visualization files: {', '.join(files_created)}",
+                    data=files_created
+                )
+            else:
+                return CommandResult(False, "No visualizations generated")
             
         except Exception as e:
-            return CommandResult(False, f"Heatmap generation error: {e}")
+            return CommandResult(False, f"Visualization error: {e}")
     
     # Editor Operations  
     def launch_web_search(self, port: int = 8083) -> CommandResult:

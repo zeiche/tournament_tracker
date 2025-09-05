@@ -10,7 +10,7 @@ import time
 from collections import defaultdict
 from database_service import database_service
 from log_utils import log_info, log_debug, log_error
-from html_utils import load_template, get_timestamp
+from visualizer import UnifiedVisualizer
 from tournament_stylesheet import get_inline_styles, format_rank_badge
 
 def get_display_name(primary_contact, data, org_names):
@@ -46,6 +46,9 @@ def format_html_table(attendance_tracker, org_names):
         log_error("No attendance data for HTML table", "report")
         return "<p>No tournament data available.</p>"
     
+    # Use unified visualizer for HTML generation
+    visualizer = UnifiedVisualizer()
+    
     # Sort by attendance
     sorted_orgs = sorted(attendance_tracker.items(), key=lambda x: x[1]["total_attendance"], reverse=True)
     
@@ -53,10 +56,21 @@ def format_html_table(attendance_tracker, org_names):
     grand_total_attendance = sum(org[1]["total_attendance"] for org in sorted_orgs)
     total_tournaments = sum(len(org[1]["tournaments"]) for org in sorted_orgs)
     
-    # Get timestamp using shared utility
-    last_updated = get_timestamp()
+    # Get timestamp
+    from datetime import datetime, timezone, timedelta
+    pacific_offset = timedelta(hours=-7)  # PDT
+    pacific_tz = timezone(pacific_offset)
+    utc_now = datetime.now(timezone.utc)
+    pacific_time = utc_now.astimezone(pacific_tz)
+    last_updated = pacific_time.strftime("%B %d, %Y at %I:%M %p Pacific")
     
-    html_template = load_template("tournament_table.html")
+    # Try to load template
+    html_template = None
+    try:
+        with open("tournament_table.html", "r") as f:
+            html_template = f.read()
+    except FileNotFoundError:
+        pass
     
     table_rows = ""
     for rank, (primary_contact, data) in enumerate(sorted_orgs, 1):
@@ -86,41 +100,28 @@ def format_html_table(attendance_tracker, org_names):
         
         return html
     else:
-        log_debug("Using fallback HTML (template not found)", "report")
-        return generate_fallback_html(sorted_orgs, org_names, total_orgs, total_tournaments, grand_total_attendance, last_updated)
+        log_debug("Using visualizer for HTML generation", "report")
+        # Prepare data for visualizer
+        table_data = []
+        headers = ["#", "Organization", "Tournaments", "Attendance"]
+        
+        for rank, (primary_contact, data) in enumerate(sorted_orgs, 1):
+            org_name = get_display_name(primary_contact, data, org_names)
+            table_data.append([
+                rank,
+                org_name,
+                len(data["tournaments"]),
+                f"{data['total_attendance']:,}"
+            ])
+        
+        # Use visualizer to create HTML table
+        return visualizer.table(
+            {'headers': headers, 'rows': table_data},
+            title="SoCal FGC Tournament Attendance",
+            subtitle=f"Last updated: {last_updated}"
+        )
 
-def generate_fallback_html(sorted_orgs, org_names, total_orgs, total_tournaments, grand_total_attendance, last_updated):
-    """Generate fallback HTML when template is not available using centralized styles"""
-    styles = get_inline_styles()
-    
-    html = f"""<div style="{styles['container']}">
-<h1 style="{styles['h1']}">SoCal FGC Tournament Attendance</h1>
-<table style="{styles['table']}">
-<thead><tr style="{styles['thead_tr']}">
-<th style="{styles['th']}">#</th>
-<th style="{styles['th_left']}">Organization</th>
-<th style="{styles['th']}">Tournaments</th>
-<th style="{styles['th']}">Attendance</th>
-</tr></thead><tbody>"""
-    
-    for rank, (primary_contact, data) in enumerate(sorted_orgs, 1):
-        org_name = get_display_name(primary_contact, data, org_names)
-        
-        # Use centralized rank formatting
-        rank_display = format_rank_badge(rank) if rank <= 3 else str(rank)
-        
-        html += f"""<tr>
-<td style='{styles["td_center"]}'>{rank_display}</td>
-<td style='{styles["td"]}'>{org_name}</td>
-<td style='{styles["td_center"]}'>{len(data['tournaments'])}</td>
-<td style='{styles["td_bold"]}'>{data['total_attendance']:,}</td>
-</tr>"""
-    
-    html += f"""</tbody></table>
-<p style='{styles["footer_text"]}'>Last updated: {last_updated}<br><small>Data courtesy of start.gg</small></p>
-</div>"""
-    
-    return html
+# Function removed - now using visualizer for all HTML generation
 
 def find_store_and_theme():
     """Find Shopify store and theme configuration"""

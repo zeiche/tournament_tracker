@@ -15,8 +15,8 @@ import time
 
 # Use the single database entry point
 from database import session_scope, get_session
-# Use the single HTML renderer for content generation
-from html_renderer import HTMLRenderer
+# Use the unified visualizer for content generation
+from visualizer import UnifiedVisualizer
 # Use the single log manager
 from log_manager import LogManager
 
@@ -120,7 +120,7 @@ class ShopifyService:
             self._session = None  # Requests session for connection pooling
             
             # Content generators
-            self.html_renderer = HTMLRenderer(theme='light')  # Light theme for Shopify
+            self.visualizer = UnifiedVisualizer()  # Unified visualizer for all content
             
             # Cache for resource IDs
             self._resource_cache = {}
