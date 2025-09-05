@@ -11,16 +11,11 @@ from sqlalchemy.orm import Session
 from database import session_scope
 from tournament_models import Player, Tournament, Organization, TournamentPlacement
 from formatters import PlayerFormatter, TournamentFormatter
+from points_system import PointsSystem
 
 
 class PolymorphicQuery:
     """Universal query interface - accepts anything"""
-    
-    # Points system for calculating scores
-    PLACEMENT_POINTS = {
-        1: 100, 2: 75, 3: 50, 4: 35, 
-        5: 25, 6: 25, 7: 15, 8: 15
-    }
     
     @classmethod
     def find_players(cls, input_data: Any, session: Session) -> List[Player]:
@@ -94,13 +89,12 @@ class PolymorphicQuery:
     @classmethod
     def _get_top_players(cls, session: Session, limit: int = 8, event: Optional[str] = None) -> List[Player]:
         """Get top players by points with calculated stats"""
+        # Use the centralized points system
+        points_case = PointsSystem.get_sql_case_expression()
+        
         query = session.query(
             Player,
-            func.sum(
-                case(*[(TournamentPlacement.placement == p, cls.PLACEMENT_POINTS[p]) 
-                       for p in cls.PLACEMENT_POINTS.keys()], 
-                     else_=0)
-            ).label('total_points'),
+            func.sum(points_case).label('total_points'),
             func.count(TournamentPlacement.id).label('tournament_count')
         ).join(TournamentPlacement).group_by(Player.id)
         

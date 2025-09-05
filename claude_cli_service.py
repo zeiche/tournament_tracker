@@ -199,19 +199,21 @@ BEST APPROACH - Use the polymorphic_queries module:
 from polymorphic_queries import query as pq
 output = pq(message)  # It figures out what to do with proper formatting!
 
-# The query function returns Discord-formatted output using formatters.PlayerFormatter
+# IMPORTANT: Points are calculated using the centralized PointsSystem
+from points_system import PointsSystem
+# Max 8 points per tournament: 1st=8, 2nd=6, 3rd=4, 4th=3, 5th-6th=2, 7th-8th=1
+
 # For custom formatting, you can also use:
 from formatters import PlayerFormatter, TournamentFormatter
 
 Examples if you need custom queries:
 # For "show top 8 players":
-from sqlalchemy import func, case, desc
-PLACEMENT_POINTS = {1: 100, 2: 75, 3: 50, 4: 35, 5: 25, 6: 25, 7: 15, 8: 15}
+from sqlalchemy import func, desc
+from points_system import PointsSystem
+points_case = PointsSystem.get_sql_case_expression()
 query = session.query(
     Player,
-    func.sum(
-        case(*[(TournamentPlacement.placement == p, PLACEMENT_POINTS[p]) for p in PLACEMENT_POINTS.keys()], else_=0)
-    ).label('total_points'),
+    func.sum(points_case).label('total_points'),
     func.count(TournamentPlacement.id).label('tournament_count')
 ).join(TournamentPlacement).group_by(Player.id).order_by(desc('total_points')).limit(8)
 results = query.all()
@@ -220,12 +222,13 @@ for i, (p, points, events) in enumerate(results, 1):
     output += f"{i}. {p.gamer_tag} - {int(points or 0)} points ({events} events)\\n"
 
 # For "show player west":  
-from sqlalchemy import func, case, desc
+from sqlalchemy import func
+from points_system import PointsSystem
 player = session.query(Player).filter(func.lower(Player.gamer_tag).like('%west%')).first()
 if player:
-    PLACEMENT_POINTS = {1: 100, 2: 75, 3: 50, 4: 35, 5: 25, 6: 25, 7: 15, 8: 15}
+    points_case = PointsSystem.get_sql_case_expression()
     stats = session.query(
-        func.sum(case(*[(TournamentPlacement.placement == p, PLACEMENT_POINTS[p]) for p in PLACEMENT_POINTS.keys()], else_=0)),
+        func.sum(points_case),
         func.count(TournamentPlacement.id)
     ).filter(TournamentPlacement.player_id == player.id).first()
     output = f"**{player.gamer_tag}**\\nPoints: {int(stats[0] or 0)}\\nEvents: {stats[1]}"
@@ -290,6 +293,7 @@ Always set 'output' variable. Format for Discord with ** for bold."""
                         from datetime import datetime
                         from polymorphic_queries import query as pq, PolymorphicQuery
                         from formatters import PlayerFormatter, TournamentFormatter
+                        from points_system import PointsSystem
                         
                         # If this is a simple query, just use polymorphic_queries
                         if 'pq(' in code or 'pq (' in code:
@@ -318,6 +322,7 @@ Always set 'output' variable. Format for Discord with ** for bold."""
                                     'PolymorphicQuery': PolymorphicQuery,
                                     'PlayerFormatter': PlayerFormatter,
                                     'TournamentFormatter': TournamentFormatter,
+                                    'PointsSystem': PointsSystem,
                                     'message': message,
                                     'output': None
                                 }

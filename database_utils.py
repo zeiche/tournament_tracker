@@ -8,6 +8,7 @@ from datetime import datetime
 from contextlib import contextmanager
 from sqlalchemy import create_engine, func, case, or_, and_, desc, distinct
 from sqlalchemy.orm import sessionmaker, scoped_session
+from points_system import PointsSystem
 
 # Global session registry
 engine = None
@@ -542,17 +543,8 @@ def get_player_rankings(limit=50, event_type='all', event_filter=None):
     """
     from tournament_models import Player, TournamentPlacement, Tournament
     
-    # Points system for placements - simple descending
-    PLACEMENT_POINTS = {
-        1: 8,  # 1st place
-        2: 7,  # 2nd place  
-        3: 6,  # 3rd place
-        4: 5,  # 4th place
-        5: 4,  # 5th place
-        6: 3,  # 6th place
-        7: 2,  # 7th place
-        8: 1   # 8th place
-    }
+    # Use centralized points system - SINGLE SOURCE OF TRUTH
+    points_case = PointsSystem.get_sql_case_expression()
     
     with get_session() as session:
         # First, get events with at least 4 players
@@ -569,13 +561,7 @@ def get_player_rankings(limit=50, event_type='all', event_filter=None):
         # Build main query - join with valid events (4+ players)
         query = session.query(
             Player,
-            func.sum(
-                case(
-                    *[(TournamentPlacement.placement == p, PLACEMENT_POINTS[p]) 
-                      for p in PLACEMENT_POINTS.keys()],
-                    else_=0
-                )
-            ).label('total_points'),
+            func.sum(points_case).label('total_points'),
             func.count(TournamentPlacement.id).label('tournament_count'),
             func.sum(case((TournamentPlacement.placement == 1, 1), else_=0)).label('first_places'),
             func.sum(case((TournamentPlacement.placement == 2, 1), else_=0)).label('second_places'),

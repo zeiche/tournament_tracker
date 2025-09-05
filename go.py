@@ -734,25 +734,23 @@ class TournamentCommand:
         return CommandResult(True, "Discord statistics displayed")
     
     def start_discord_bot(self, mode: Optional[str] = None) -> CommandResult:
-        """Start Discord bot using discord_service"""
-        from discord_service import discord_service, BotMode
+        """Start Discord bot using discord_service (thin wrapper)"""
+        from discord_service import start_discord_bot, is_discord_enabled
         
-        if not discord_service.is_enabled:
+        if not is_discord_enabled():
             return CommandResult(
                 False,
                 "Discord service not enabled. Set DISCORD_BOT_TOKEN to enable."
             )
         
-        if mode:
-            try:
-                discord_service.config.mode = BotMode(mode)
-            except ValueError:
-                return CommandResult(False, f"Invalid mode: {mode}")
-        
         try:
-            print(f"Starting Discord bot in {discord_service.config.mode.value} mode...")
-            discord_service.run_blocking()
-            return CommandResult(True, "Discord bot stopped")
+            print(f"Starting Discord bot (thin wrapper forwarding to Claude)...")
+            # Mode is ignored - always uses Claude
+            success = start_discord_bot(mode)
+            if success:
+                return CommandResult(True, "Discord bot stopped")
+            else:
+                return CommandResult(False, "Failed to start Discord bot")
         except Exception as e:
             return CommandResult(False, f"Discord bot error: {e}")
     
