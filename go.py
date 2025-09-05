@@ -20,7 +20,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import tracker modules
 from tournament_tracker import TournamentTracker
-from log_utils import log_info, log_error, log_debug
+from log_manager import LogManager
+
+# Get logger for this module
+_logger = LogManager().get_logger('go')
+log_info = _logger.info
+log_error = _logger.error
+log_debug = _logger.debug
 
 
 class ServiceType(Enum):
@@ -126,7 +132,7 @@ class ServiceManager:
     """Manages systemd services"""
     
     SERVICE_MAP = {
-        ServiceType.DISCORD: ("discord-bot", "discord_conversational.py"),
+        ServiceType.DISCORD: ("discord-bot", "discord_service.py"),  # SINGLE SOURCE OF TRUTH
         ServiceType.WEB: ("tournament-web", "go.py --edit-contacts"),
         ServiceType.AI_WEB: ("ai-web", "ai_web_chat"),
     }
@@ -166,7 +172,7 @@ class ServiceManager:
                         capture_output=True, text=True
                     )
                     uptime = result.stdout.strip()
-                except:
+                except Exception:
                     pass
                 
                 # Get memory usage
@@ -177,7 +183,7 @@ class ServiceManager:
                     )
                     mem_kb = int(result.stdout.strip())
                     memory = f"{mem_kb / 1024:.1f} MB"
-                except:
+                except Exception:
                     pass
             
             return ServiceStatus(
@@ -296,6 +302,15 @@ class ServiceManager:
         )
     
     @classmethod
+    def get_discord_service_status(cls) -> Dict[str, Any]:
+        """Get Discord service status from the SINGLE source"""
+        try:
+            from discord_service import discord_service
+            return discord_service.get_statistics()
+        except Exception:
+            return {'enabled': False, 'running': False, 'error': 'Discord service not available'}
+    
+    @classmethod
     def show_all_status(cls) -> str:
         """Get formatted status of all services"""
         services = [ServiceType.DISCORD, ServiceType.WEB]
@@ -388,17 +403,56 @@ class TournamentCommand:
         except Exception as e:
             return CommandResult(False, f"HTML generation error: {e}")
     
-    def publish_to_shopify(self) -> CommandResult:
-        """Publish to Shopify"""
-        self._ensure_tracker()
+    # Shopify Operations - ALL using the SINGLE shopify_service
+    def publish_to_shopify(self, format: str = "html") -> CommandResult:
+        """Publish to Shopify using shopify_service"""
+        from shopify_service import shopify_service, PublishFormat
+        
+        if not shopify_service.is_enabled:
+            return CommandResult(
+                False,
+                "Shopify service not enabled. Set SHOPIFY_DOMAIN and SHOPIFY_ACCESS_TOKEN."
+            )
+        
         try:
-            success = self.tracker.publish_to_shopify()
-            if success:
-                return CommandResult(True, "Published to Shopify successfully")
-            else:
-                return CommandResult(False, "Shopify publishing failed")
-        except Exception as e:
-            return CommandResult(False, f"Publishing error: {e}")
+            format_enum = PublishFormat(format.lower())
+        except ValueError:
+            return CommandResult(False, f"Invalid format: {format}. Use html, json, markdown, or csv")
+        
+        result = shopify_service.publish_tournament_rankings(format=format_enum)
+        
+        if result.success:
+            return CommandResult(
+                True,
+                f"Published to Shopify successfully (ID: {result.resource_id}, Size: {result.data_size} bytes)"
+            )
+        else:
+            return CommandResult(False, f"Shopify publishing failed: {result.error}")
+    
+    def show_shopify_stats(self) -> CommandResult:
+        """Show Shopify service statistics"""
+        from shopify_service import shopify_service
+        
+        stats = shopify_service.get_statistics()
+        
+        # Format statistics for display
+        output = "\n=== Shopify Service Statistics (SINGLE SOURCE OF TRUTH) ===\n"
+        output += f"Enabled: {stats['enabled']}\n"
+        
+        if stats['enabled']:
+            output += f"Store: {stats['config']['store_domain']}\n"
+            output += f"API Version: {stats['config']['api_version']}\n"
+            output += f"\nPublishing Statistics:\n"
+            for key, value in stats['statistics'].items():
+                if isinstance(value, dict):
+                    output += f"  {key}:\n"
+                    for k, v in value.items():
+                        output += f"    {k}: {v}\n"
+                else:
+                    output += f"  {key}: {value}\n"
+        
+        print(output)
+        return CommandResult(True, "Shopify statistics displayed")
     
     # Heatmap Operations
     def generate_heatmaps(self) -> CommandResult:
@@ -435,6 +489,21 @@ class TournamentCommand:
             return CommandResult(False, f"Heatmap generation error: {e}")
     
     # Editor Operations  
+    def launch_web_search(self, port: int = 8083) -> CommandResult:
+        """Launch web search interface"""
+        try:
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, 'web_search.py', '--port', str(port)],
+                cwd='/home/ubuntu/claude/tournament_tracker'
+            )
+            return CommandResult(
+                result.returncode == 0,
+                f"Web search interface stopped"
+            )
+        except Exception as e:
+            return CommandResult(False, f"Web search error: {e}")
+    
     def launch_web_editor(self, port: int = 8081) -> CommandResult:
         """Launch web editor for contact management"""
         try:
@@ -446,10 +515,11 @@ class TournamentCommand:
             self.tracker._ensure_db_initialized()
             
             # Start editor
-            from editor_web import run_server
+            from editor_service import editor_service
             print(f"Starting web editor on port {port}...")
             print(f"Access at: http://localhost:{port}")
-            run_server(port=port)
+            editor_service.config.port = port
+            editor_service.run_blocking()
             
             return CommandResult(True, "Web editor started")
             
@@ -458,59 +528,140 @@ class TournamentCommand:
         except Exception as e:
             return CommandResult(False, f"Editor error: {e}")
     
-    # AI Operations
+    # Claude/AI Operations - ALL using the SINGLE claude_service
     def launch_ai_chat(self) -> CommandResult:
-        """Launch terminal AI chat interface"""
-        try:
-            result = subprocess.run([sys.executable, 'ai_curses_chat.py'])
+        """Launch terminal AI chat interface using claude_service"""
+        from claude_service import claude_service
+        
+        if not claude_service.is_enabled:
             return CommandResult(
-                result.returncode == 0,
-                "AI chat session ended"
+                False,
+                "Claude service not enabled. Set ANTHROPIC_API_KEY to enable."
             )
-        except Exception as e:
-            return CommandResult(False, f"AI chat error: {e}")
+        
+        result = claude_service.start_terminal_chat()
+        return CommandResult(
+            result.success,
+            result.response or result.error
+        )
     
     def launch_ai_web(self, port: int = 8082) -> CommandResult:
-        """Launch web-based AI chat interface"""
-        try:
-            print(f"Starting AI web chat on port {port}...")
-            print(f"Access at: http://localhost:{port}")
-            
-            env = os.environ.copy()
-            env['AI_CHAT_PORT'] = str(port)
-            result = subprocess.run([sys.executable, 'ai_web_chat.py'], env=env)
-            
+        """Launch web-based AI chat interface using claude_service"""
+        from claude_service import claude_service
+        
+        if not claude_service.is_enabled:
             return CommandResult(
-                result.returncode == 0,
-                "AI web chat stopped"
+                False,
+                "Claude service not enabled. Set ANTHROPIC_API_KEY to enable."
             )
-        except Exception as e:
-            return CommandResult(False, f"AI web error: {e}")
+        
+        result = claude_service.start_web_chat(port=port)
+        return CommandResult(
+            result.success,
+            result.response or result.error
+        )
     
     def ask_ai(self, question: str) -> CommandResult:
-        """Ask AI a single question"""
-        try:
-            from ai_service import get_ai_service, ChannelType
-            
-            ai = get_ai_service()
-            if not ai.enabled:
-                return CommandResult(
-                    False,
-                    "AI service not enabled. Set ANTHROPIC_API_KEY to enable."
+        """Ask Claude a single question using claude_service"""
+        from claude_service import claude_service
+        
+        if not claude_service.is_enabled:
+            return CommandResult(
+                False,
+                "Claude service not enabled. Set ANTHROPIC_API_KEY to enable."
+            )
+        
+        # Check if this is a heatmap-related question
+        if any(word in question.lower() for word in ['heat map', 'heatmap', 'heat-map']):
+            if any(word in question.lower() for word in ['make', 'create', 'generate', 'update']):
+                # Generate heatmaps first
+                heatmap_result = self.generate_heatmaps()
+                
+                # Ask Claude with context about heatmaps
+                result = claude_service.ask_question(
+                    question,
+                    context={'heatmap_generated': True, 'heatmap_result': heatmap_result.message}
                 )
+                
+                if result.success:
+                    response = f"{result.response}\n\n{heatmap_result.message}"
+                    return CommandResult(True, response)
+                else:
+                    return CommandResult(False, result.error)
+        
+        # Regular question
+        result = claude_service.ask_question(question)
+        return CommandResult(
+            result.success,
+            result.response or result.error
+        )
+    
+    def show_claude_stats(self) -> CommandResult:
+        """Show Claude service statistics"""
+        from claude_service import claude_service
+        
+        stats = claude_service.get_statistics()
+        
+        # Format statistics for display
+        output = "\n=== Claude Service Statistics ===\n"
+        output += f"Enabled: {stats['enabled']}\n"
+        
+        if stats['enabled']:
+            output += f"Model: {stats['config']['model']}\n"
+            output += f"\nUsage:\n"
+            for key, value in stats['usage'].items():
+                output += f"  {key}: {value}\n"
+            output += f"\nHistory size: {stats['history_size']} conversations\n"
+        
+        print(output)
+        return CommandResult(True, "Claude statistics displayed")
+    
+    # Discord Bot Operations - ALL using the SINGLE discord_service
+    def show_discord_stats(self) -> CommandResult:
+        """Show Discord service statistics"""
+        from discord_service import discord_service
+        
+        stats = discord_service.get_statistics()
+        
+        # Format statistics for display
+        output = "\n=== Discord Service Statistics (SINGLE SOURCE OF TRUTH) ===\n"
+        output += f"Enabled: {stats['enabled']}\n"
+        output += f"Running: {stats['running']}\n"
+        
+        if stats['enabled']:
+            output += f"\nConfiguration:\n"
+            for key, value in stats['config'].items():
+                output += f"  {key}: {value}\n"
             
-            response = ai.get_response_sync(question, ChannelType.GENERAL)
-            
-            # Check if heatmaps were requested
-            if any(word in question.lower() for word in ['heat map', 'heatmap', 'heat-map']):
-                if any(word in question.lower() for word in ['make', 'create', 'generate', 'update']):
-                    heatmap_result = self.generate_heatmaps()
-                    response = f"{response}\n\n{heatmap_result.message}"
-            
-            return CommandResult(True, response)
-            
+            output += f"\nStatistics:\n"
+            for key, value in stats['stats'].items():
+                output += f"  {key}: {value}\n"
+        
+        print(output)
+        return CommandResult(True, "Discord statistics displayed")
+    
+    def start_discord_bot(self, mode: Optional[str] = None) -> CommandResult:
+        """Start Discord bot using discord_service"""
+        from discord_service import discord_service, BotMode
+        
+        if not discord_service.is_enabled:
+            return CommandResult(
+                False,
+                "Discord service not enabled. Set DISCORD_BOT_TOKEN to enable."
+            )
+        
+        if mode:
+            try:
+                discord_service.config.mode = BotMode(mode)
+            except ValueError:
+                return CommandResult(False, f"Invalid mode: {mode}")
+        
+        try:
+            print(f"Starting Discord bot in {discord_service.config.mode.value} mode...")
+            discord_service.run_blocking()
+            return CommandResult(True, "Discord bot stopped")
         except Exception as e:
-            return CommandResult(False, f"AI error: {e}")
+            return CommandResult(False, f"Discord bot error: {e}")
     
     # Utility Operations
     def show_statistics(self) -> CommandResult:
@@ -588,7 +739,7 @@ Examples:
         output_group.add_argument('--html', metavar='FILE', 
                                  help='Generate HTML report to file')
         output_group.add_argument('--publish', action='store_true', 
-                                 help='Publish to Shopify')
+                                 help='Publish to Shopify (legacy)')
         output_group.add_argument('--limit', type=int, 
                                  help='Limit number of results')
         
@@ -607,23 +758,49 @@ Examples:
         service_group.add_argument('--restart-services', action='store_true', 
                                   help='Restart all services')
         
+        # Discord Bot Options - ALL through discord_service (SINGLE SOURCE OF TRUTH)
+        discord_group = parser.add_argument_group('Discord Bot (SINGLE SOURCE OF TRUTH)')
+        discord_group.add_argument('--discord-bot', action='store_true',
+                                  help='Start Discord bot')
+        discord_group.add_argument('--discord-mode', choices=['simple', 'conversational', 'claude', 'hybrid'],
+                                  default='conversational', help='Discord bot mode')
+        discord_group.add_argument('--discord-stats', action='store_true',
+                                  help='Show Discord service statistics')
+        
+        # Shopify Options - ALL through shopify_service (SINGLE SOURCE OF TRUTH)
+        shopify_group = parser.add_argument_group('Shopify Publishing (SINGLE SOURCE OF TRUTH)')
+        shopify_group.add_argument('--shopify-publish', action='store_true',
+                                  help='Publish tournament rankings to Shopify')
+        shopify_group.add_argument('--shopify-format', choices=['html', 'json', 'markdown', 'csv'],
+                                  default='html', help='Publishing format')
+        shopify_group.add_argument('--shopify-stats', action='store_true',
+                                  help='Show Shopify service statistics')
+        shopify_group.add_argument('--shopify-test', action='store_true',
+                                  help='Test Shopify connection')
+        
         # Editor options
         editor_group = parser.add_argument_group('Editor Options')
+        editor_group.add_argument('--web-search', action='store_true',
+                                 help='Launch web search interface')
+        editor_group.add_argument('--search-port', type=int, default=8083,
+                                 help='Search web port (default: 8083)')
         editor_group.add_argument('--edit-contacts', action='store_true', 
                                  help='Launch web editor')
         editor_group.add_argument('--editor-port', type=int, default=8081, 
                                  help='Editor port (default: 8081)')
         
-        # AI options
-        ai_group = parser.add_argument_group('AI Interface')
+        # Claude/AI options - ALL through claude_service
+        ai_group = parser.add_argument_group('Claude AI Interface (SINGLE SOURCE OF TRUTH)')
         ai_group.add_argument('--ai-chat', action='store_true', 
-                             help='Launch terminal AI chat')
+                             help='Launch terminal Claude chat')
         ai_group.add_argument('--ai-web', action='store_true', 
-                             help='Launch web AI chat')
+                             help='Launch web Claude chat')
         ai_group.add_argument('--ai-web-port', type=int, default=8082, 
-                             help='AI web port (default: 8082)')
+                             help='Claude web port (default: 8082)')
         ai_group.add_argument('--ai-ask', metavar='QUESTION', 
-                             help='Ask AI a single question')
+                             help='Ask Claude a single question')
+        ai_group.add_argument('--claude-stats', action='store_true',
+                             help='Show Claude service statistics')
         
         # Utility options
         util_group = parser.add_argument_group('Utility Options')
@@ -759,9 +936,59 @@ Examples:
                 result = self.command.launch_interactive_mode()
                 return result.return_code
             
+            if args.web_search:
+                result = self.command.launch_web_search(port=args.search_port)
+                return result.return_code
+            
             if args.edit_contacts:
                 result = self.command.launch_web_editor(port=args.editor_port)
                 return result.return_code
+            
+            # Claude/AI operations - ALL through claude_service
+            if args.ai_chat:
+                result = self.command.launch_ai_chat()
+                return result.return_code
+            
+            if args.ai_web:
+                result = self.command.launch_ai_web(port=args.ai_web_port)
+                return result.return_code
+            
+            if args.ai_ask:
+                result = self.command.ask_ai(args.ai_ask)
+                print(result.message)
+                return 0 if result.success else 1
+            
+            if args.claude_stats:
+                result = self.command.show_claude_stats()
+                return 0 if result.success else 1
+            
+            # Discord Bot operations - ALL through discord_service
+            if args.discord_bot:
+                result = self.command.start_discord_bot(mode=args.discord_mode)
+                return result.return_code
+            
+            if args.discord_stats:
+                result = self.command.show_discord_stats()
+                return 0 if result.success else 1
+            
+            # Shopify operations - ALL through shopify_service
+            if args.shopify_publish:
+                result = self.command.publish_to_shopify(format=args.shopify_format)
+                print(f"{'✅' if result.success else '❌'} {result.message}")
+                return 0 if result.success else 1
+            
+            if args.shopify_stats:
+                result = self.command.show_shopify_stats()
+                return 0 if result.success else 1
+            
+            if args.shopify_test:
+                from shopify_service import shopify_service
+                if shopify_service.test_connection():
+                    print("✅ Shopify connection successful")
+                    return 0
+                else:
+                    print("❌ Shopify connection failed")
+                    return 1
             
             return 0
             

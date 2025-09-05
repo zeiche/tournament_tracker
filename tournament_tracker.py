@@ -10,8 +10,9 @@ from datetime import datetime
 
 # Import centralized systems
 from log_utils import log_info, log_debug, log_error, LogContext, init_logging, LogLevel
-from database_utils import init_db, get_summary_stats
-from startgg_sync import sync_from_startgg
+from database import init_database
+from database_service import database_service
+from sync_service import sync_service
 from tournament_report import format_html_table, format_console_table, get_legacy_attendance_data
 from database_queue import commit_queue, queue_stats
 from tournament_operations import TournamentOperationTracker
@@ -42,7 +43,7 @@ class TournamentTracker:
         """Lazy database initialization - only when actually needed"""
         if not self._initialized:
             log_info("Initializing database connection", "tracker")
-            init_db(self.database_url)
+            init_database()
             self._initialized = True
             log_debug("Database initialization completed", "tracker")
     
@@ -136,7 +137,7 @@ class TournamentTracker:
                 
                 # Import and use existing Shopify publisher
                 try:
-                    from shopify_publish import publish_table
+                    from shopify_service import shopify_service
                     success = publish_table(attendance_tracker, org_names)
                     
                     if success:
@@ -168,7 +169,7 @@ class TournamentTracker:
             print("=" * 60)
             
             # Database stats
-            stats = get_summary_stats()
+            stats = database_service.get_summary_stats()
             print("Database Statistics:")
             print(f"   Organizations: {stats['total_organizations']}")
             print(f"   Tournaments: {stats['total_tournaments']}")
@@ -268,7 +269,8 @@ def create_sample_data():
     
     with LogContext("Create sample data"):
         from database_queue import batch_operations
-        from database_utils import normalize_contact
+        from database_service import database_service
+        normalize_contact = database_service.normalize_contact
         from tournament_models import Tournament, Organization, OrganizationContact, AttendanceRecord
         
         sample_tournaments = [
@@ -339,7 +341,7 @@ def create_sample_data():
             log_info("Sample data created successfully", "sample")
             
             # Show what was created
-            stats = get_summary_stats()
+            stats = database_service.get_summary_stats()
             log_info(f"Sample data summary:", "sample")
             log_info(f"   {stats['total_tournaments']} tournaments", "sample")
             log_info(f"   {stats['total_organizations']} organizations", "sample") 
@@ -400,7 +402,7 @@ def main():
     # Handle sample data creation (standalone operation)
     if args.create_sample:
         # Initialize database for sample data
-        init_db(args.database_url)
+        init_database()
         create_sample_data()
         return
     

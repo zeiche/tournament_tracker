@@ -7,14 +7,23 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Tuple, Dict, Any, Set
 from collections import defaultdict, Counter
+from functools import cached_property
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Index, Float, Boolean, func, desc, asc
 from sqlalchemy.orm import declarative_base, relationship, Query
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.sql import func
 
 # Import centralized session management
-from database_utils import Session, get_session
-from log_utils import log_debug, log_info, log_error
+from database import Session, get_session
+from database_service import database_service
+normalize_contact = database_service.normalize_contact
+from log_manager import LogManager
+
+# Get logger for this module
+_logger = LogManager().get_logger('models')
+log_debug = _logger.debug
+log_info = _logger.info
+log_error = _logger.error
 
 Base = declarative_base()
 
@@ -132,7 +141,7 @@ class LocationMixin:
         try:
             lat, lng = self.coordinates
             return lat_min <= lat <= lat_max and lng_min <= lng <= lng_max
-        except:
+        except (TypeError, ValueError, AttributeError):
             return False
     
     def is_in_socal(self) -> bool:
@@ -169,7 +178,7 @@ class LocationMixin:
             r = 6371  # Radius of earth in kilometers
             
             return r * c
-        except:
+        except (TypeError, ValueError, ZeroDivisionError):
             return None
     
     def distance_to_miles(self, other_lat: float, other_lng: float) -> Optional[float]:
@@ -183,7 +192,7 @@ class LocationMixin:
         if hasattr(cls, 'session'):
             session = cls.session()
         else:
-            from database_utils import get_session
+            from database import get_session
             session = get_session().__enter__()
         
         return session.query(cls).filter(
@@ -197,7 +206,7 @@ class LocationMixin:
         if hasattr(cls, 'session'):
             session = cls.session()
         else:
-            from database_utils import get_session
+            from database import get_session
             session = get_session().__enter__()
         
         return session.query(cls).filter(
@@ -220,7 +229,7 @@ class LocationMixin:
         if hasattr(cls, 'session'):
             session = cls.session()
         else:
-            from database_utils import get_session
+            from database import get_session
             session = get_session().__enter__()
         
         query = session.query(cls).filter(cls.city == city)
@@ -242,12 +251,8 @@ class BaseModel:
     @classmethod
     def session(cls):
         """Get current session from centralized database_utils"""
-        global Session
-        if Session is None:
-            # Auto-initialize if not already done
-            from database_utils import init_db
-            _, Session = init_db()
-        return Session()
+        # Use the imported Session directly, no global needed
+        return Session() if Session else get_session()
     
     def save(self):
         """Save this instance using centralized session"""
@@ -256,7 +261,7 @@ class BaseModel:
         session.commit()
         
         # Clear cache after save to ensure consistency
-        from database_utils import clear_session_cache
+        from database_service import database_service  # clear_session_cache
         clear_session_cache()
         
         log_debug(f"Saved {self.__class__.__name__}: {getattr(self, 'id', 'unknown')}", "model")
@@ -269,7 +274,7 @@ class BaseModel:
         session.commit()
         
         # Clear cache after delete
-        from database_utils import clear_session_cache
+        from database_service import database_service  # clear_session_cache
         clear_session_cache()
         
         log_debug(f"Deleted {self.__class__.__name__}: {getattr(self, 'id', 'unknown')}", "model")
@@ -457,6 +462,25 @@ class Tournament(Base, BaseModel, LocationMixin, TimestampMixin):
     
     def __str__(self):
         return f"{self.name} ({self.num_attendees} attendees)"
+    
+    def __eq__(self, other):
+        """Enable equality comparison"""
+        if not isinstance(other, Tournament):
+            return NotImplemented
+        return self.id == other.id
+    
+    def __lt__(self, other):
+        """Enable sorting by date (earlier tournaments first)"""
+        if not isinstance(other, Tournament):
+            return NotImplemented
+        # Handle None values
+        self_date = self.start_at or datetime.min
+        other_date = other.start_at or datetime.min
+        return self_date < other_date
+    
+    def __hash__(self):
+        """Make tournaments hashable for use in sets/dicts"""
+        return hash((self.__class__.__name__, self.id))
     
     # ========================================================================
     # DATE AND TIME METHODS
@@ -681,21 +705,21 @@ class Tournament(Base, BaseModel, LocationMixin, TimestampMixin):
     # ORGANIZATION AND CONTACT METHODS
     # ========================================================================
     
-    @property
+    @cached_property
     def organization(self) -> Optional["Organization"]:
-        """Get the organization that runs this tournament"""
+        """Get the organization that runs this tournament (cached)"""
         if not self.primary_contact:
             return None
-        from database_utils import normalize_contact
         normalized = normalize_contact(self.primary_contact)
         
-        session = self.session()
-        orgs = session.query(Organization).all()
-        for org in orgs:
-            for contact in org.contacts:
-                if normalize_contact(contact.get('value', '')) == normalized:
-                    return org
-        return None
+        from database import session_scope
+        with session_scope() as session:
+            orgs = session.query(Organization).all()
+            for org in orgs:
+                for contact in org.contacts:
+                    if normalize_contact(contact.get('value', '')) == normalized:
+                        return org
+            return None
     
     def get_contact_type(self) -> str:
         """Determine the type of primary contact"""
@@ -934,7 +958,6 @@ class Tournament(Base, BaseModel, LocationMixin, TimestampMixin):
     @classmethod
     def by_contact(cls, contact: str) -> List["Tournament"]:
         """Find tournaments by contact"""
-        from database_utils import normalize_contact
         normalized = normalize_contact(contact)
         
         session = cls.session()
@@ -970,6 +993,22 @@ class Organization(Base, BaseModel, TimestampMixin):
     def __str__(self):
         return self.display_name
     
+    def __eq__(self, other):
+        """Enable equality comparison"""
+        if not isinstance(other, Organization):
+            return NotImplemented
+        return self.id == other.id
+    
+    def __lt__(self, other):
+        """Enable sorting by display name (alphabetical)"""
+        if not isinstance(other, Organization):
+            return NotImplemented
+        return self.display_name.lower() < other.display_name.lower()
+    
+    def __hash__(self):
+        """Make organizations hashable for use in sets/dicts"""
+        return hash((self.__class__.__name__, self.id))
+    
     # ========================================================================
     # CONTACT MANAGEMENT
     # ========================================================================
@@ -980,7 +1019,7 @@ class Organization(Base, BaseModel, TimestampMixin):
         import json
         try:
             return json.loads(self.contacts_json or '[]')
-        except:
+        except (json.JSONDecodeError, TypeError, AttributeError):
             return []
     
     @contacts.setter
@@ -1019,7 +1058,6 @@ class Organization(Base, BaseModel, TimestampMixin):
     
     def has_contact(self, contact_value: str) -> bool:
         """Check if organization has a specific contact"""
-        from database_utils import normalize_contact
         normalized = normalize_contact(contact_value)
         for contact in self.contacts:
             if normalize_contact(contact.get('value', '')) == normalized:
@@ -1047,7 +1085,6 @@ class Organization(Base, BaseModel, TimestampMixin):
     @property
     def tournaments(self) -> List[Tournament]:
         """Get all tournaments for this organization"""
-        from database_utils import normalize_contact
         
         # Collect all normalized contacts for this org
         org_contacts_normalized = set()
@@ -1420,7 +1457,6 @@ class Organization(Base, BaseModel, TimestampMixin):
     @classmethod
     def by_contact(cls, contact: str) -> Optional["Organization"]:
         """Find organization by contact"""
-        from database_utils import normalize_contact
         normalized = normalize_contact(contact)
         
         session = cls.session()
@@ -1512,6 +1548,22 @@ class Player(Base, BaseModel, TimestampMixin):
     def __str__(self):
         return self.gamer_tag
     
+    def __eq__(self, other):
+        """Enable equality comparison"""
+        if not isinstance(other, Player):
+            return NotImplemented
+        return self.startgg_id == other.startgg_id
+    
+    def __lt__(self, other):
+        """Enable sorting by gamer tag (alphabetical)"""
+        if not isinstance(other, Player):
+            return NotImplemented
+        return self.gamer_tag.lower() < other.gamer_tag.lower()
+    
+    def __hash__(self):
+        """Make players hashable for use in sets/dicts"""
+        return hash((self.__class__.__name__, self.startgg_id))
+    
     # ========================================================================
     # BASIC PROPERTIES
     # ========================================================================
@@ -1539,6 +1591,11 @@ class Player(Base, BaseModel, TimestampMixin):
     # ========================================================================
     # PLACEMENT AND RESULTS
     # ========================================================================
+    
+    @property
+    def tournaments(self) -> List[Tournament]:
+        """Get all tournaments this player participated in"""
+        return list({p.tournament for p in self.placements})
     
     @property
     def tournaments_won(self) -> List[Tournament]:

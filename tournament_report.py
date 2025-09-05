@@ -8,7 +8,7 @@ import httpx
 import datetime
 import time
 from collections import defaultdict
-from database_utils import get_attendance_rankings, get_summary_stats
+from database_service import database_service
 from log_utils import log_info, log_debug, log_error
 from html_utils import load_template, get_timestamp
 from tournament_stylesheet import get_inline_styles, format_rank_badge
@@ -235,8 +235,8 @@ def format_console_table(limit=20):
     print("Tournament Attendance Report")
     print("=" * 80)
     
-    rankings = get_attendance_rankings(limit)
-    stats = get_summary_stats()
+    rankings = database_service.get_attendance_rankings(limit)
+    stats = database_service.get_summary_stats()
     
     if not rankings:
         print("No attendance data available")
@@ -273,7 +273,7 @@ def generate_html_report(limit=None, output_file=None):
     
     try:
         # Get data from database
-        from shopify_query import get_legacy_attendance_data
+        from shopify_service import shopify_service, get_legacy_attendance_data
         attendance_tracker, org_names = get_legacy_attendance_data()
         
         # Generate HTML
@@ -300,7 +300,7 @@ def get_legacy_attendance_data():
     Convert SQLAlchemy data to legacy format for existing Shopify code
     Returns data in the format expected by existing publishing system
     """
-    rankings = get_attendance_rankings()
+    rankings = database_service.get_attendance_rankings()
     
     # Convert to old format (attendance_tracker, org_names)
     attendance_tracker = {}
@@ -333,7 +333,7 @@ def publish_to_shopify():
     
     try:
         # Get data from database in legacy format
-        from shopify_query import get_legacy_attendance_data
+        from shopify_service import shopify_service, get_legacy_attendance_data
         attendance_tracker, org_names = get_legacy_attendance_data()
         
         # Publish using existing functionality
@@ -355,7 +355,7 @@ def generate_geo_data(output_format='json'):
     Generate geographic data for tournaments
     Returns GeoJSON for mapping or regular JSON for analysis
     """
-    from database_utils import get_session
+    from database import get_session
     from tournament_models import Tournament
     from collections import defaultdict
     import json

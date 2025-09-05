@@ -9,7 +9,7 @@ import json
 from typing import Optional, Dict, List, Tuple
 from database_utils import get_session, normalize_contact
 from tournament_models import Tournament, Organization
-from editor_core import get_unnamed_tournaments
+from editor_service import editor_service get_unnamed_tournaments
 
 def analyze_tournament_page(slug: str, contact: str) -> Tuple[Optional[str], float]:
     """

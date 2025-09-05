@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Rankings - Tournament Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .navbar {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .header-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .leaderboard {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .player-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: grid;
+            grid-template-columns: 60px 1fr auto;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s;
+        }
+        
+        .player-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .rank {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+        }
+        
+        .rank-1 { color: #ffd700; }
+        .rank-2 { color: #c0c0c0; }
+        .rank-3 { color: #cd7f32; }
+        
+        .player-info h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .player-stats {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .stat {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: #999;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        
+        .points {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #48bb78;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .filter-input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+            max-width: 300px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+        
+        .top-players {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .top-player-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .trophy {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/">← Home</a>
+        <a href="/organizations">Organizations</a>
+        <a href="/tournaments">Tournaments</a>
+        <a href="/report">Reports</a>
+        <a href="/players">Players</a>
+    </nav>
+    
+    <div class="container">
+        <div class="header-section">
+            <h1>🏆 Player Rankings</h1>
+            <p>Top competitive players in the SoCal FGC scene</p>
+        </div>
+        
+        <div class="top-players" id="top-players">
+            <!-- Top 3 will be displayed here -->
+        </div>
+        
+        <div class="header-section">
+            <h2>Full Rankings</h2>
+            <div class="filters">
+                <input type="text" id="search" class="filter-input" placeholder="Search players...">
+                <select id="min-events" class="filter-input">
+                    <option value="1">Min 1 event</option>
+                    <option value="3">Min 3 events</option>
+                    <option value="5">Min 5 events</option>
+                    <option value="10">Min 10 events</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="leaderboard" id="leaderboard">
+            <div class="loading">Loading player rankings...</div>
+        </div>
+    </div>
+    
+    <script>
+        let allPlayers = [];
+        let filteredPlayers = [];
+        
+        async function loadPlayers() {
+            try {
+                const response = await fetch('/api/players');
+                allPlayers = await response.json();
+                
+                // Sort by points initially
+                allPlayers.sort((a, b) => b.total_points - a.total_points);
+                
+                renderTopPlayers();
+                filterPlayers();
+            } catch (error) {
+                console.error('Failed to load players:', error);
+                document.getElementById('leaderboard').innerHTML = 
+                    '<div class="loading">Failed to load player rankings</div>';
+            }
+        }
+        
+        function renderTopPlayers() {
+            const topPlayersDiv = document.getElementById('top-players');
+            const top3 = allPlayers.slice(0, 3);
+            
+            topPlayersDiv.innerHTML = top3.map((player, index) => {
+                const trophy = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+                return `
+                    <div class="top-player-card">
+                        <div class="trophy">${trophy}</div>
+                        <h3>${player.name}</h3>
+                        <div style="font-size: 2rem; margin: 1rem 0;">${player.total_points} pts</div>
+                        <div>${player.event_count} events • ${player.first_places} wins</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function filterPlayers() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const minEvents = parseInt(document.getElementById('min-events').value);
+            
+            filteredPlayers = allPlayers.filter(player => {
+                if (searchTerm && !player.name.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+                if (player.event_count < minEvents) {
+                    return false;
+                }
+                return true;
+            });
+            
+            renderLeaderboard();
+        }
+        
+        function renderLeaderboard() {
+            const leaderboard = document.getElementById('leaderboard');
+            
+            if (filteredPlayers.length === 0) {
+                leaderboard.innerHTML = '<div class="loading">No players found</div>';
+                return;
+            }
+            
+            leaderboard.innerHTML = filteredPlayers.map((player, index) => {
+                const globalRank = allPlayers.indexOf(player) + 1;
+                const rankClass = globalRank === 1 ? 'rank-1' : 
+                                 globalRank === 2 ? 'rank-2' : 
+                                 globalRank === 3 ? 'rank-3' : '';
+                
+                const winRate = player.event_count > 0 ? 
+                    Math.round((player.first_places / player.event_count) * 100) : 0;
+                
+                const avgPlacement = player.avg_placement ? 
+                    player.avg_placement.toFixed(1) : 'N/A';
+                
+                return `
+                    <div class="player-card">
+                        <div class="rank ${rankClass}">#${globalRank}</div>
+                        <div class="player-info">
+                            <h3><a href="/player/${player.id}" style="color: inherit; text-decoration: none;">${player.name}</a></h3>
+                            <div class="player-stats">
+                                <div class="stat">
+                                    <span class="stat-label">Events</span>
+                                    <span class="stat-value">${player.event_count}</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">1st Places</span>
+                                    <span class="stat-value">${player.first_places}</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Top 3s</span>
+                                    <span class="stat-value">${player.podium_finishes || 0}</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Win Rate</span>
+                                    <span class="stat-value">${winRate}%</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Avg Place</span>
+                                    <span class="stat-value">${avgPlacement}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="points">${player.total_points}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Event listeners
+        document.getElementById('search').addEventListener('input', filterPlayers);
+        document.getElementById('min-events').addEventListener('change', filterPlayers);
+        
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', loadPlayers);
+    </script>
+</body>
+</html>

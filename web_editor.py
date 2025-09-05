@@ -9,7 +9,7 @@ import urllib.parse
 import json
 import re
 from tournament_models import Tournament, Organization, BaseModel, normalize_contact
-from database_utils import init_db
+from database import init_db
 import html
 
 class OrganizationEditor:
@@ -18,10 +18,10 @@ class OrganizationEditor:
     def __init__(self):
         # Initialize database
         try:
-            from database_utils import DatabaseManager
+            from database_service import database_service  # DatabaseManager
             self.db = DatabaseManager()
             self.db_session = self.db.get_session()
-        except:
+        except Exception:
             init_db()
             self.db_session = None
         self.tournaments = []

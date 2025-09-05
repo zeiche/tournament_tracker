@@ -1,0 +1,19 @@
+[Unit]
+Description=Tournament Tracker Discord Bot with Claude Integration
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/claude/tournament_tracker
+Environment="DISCORD_BOT_TOKEN=YOUR_DISCORD_BOT_TOKEN_HERE"
+EnvironmentFile=/home/ubuntu/claude/.env
+Environment="ACCESS_TOKEN=73546ba524cd5b68762731b9cc12cc46"
+ExecStart=/home/ubuntu/claude/tournament_tracker/venv/bin/python /home/ubuntu/claude/tournament_tracker/go.py --discord-bot --discord-mode claude
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ubuntu/claude/tournament_tracker/discord.log
+StandardError=append:/home/ubuntu/claude/tournament_tracker/discord.log
+
+[Install]
+WantedBy=multi-user.target

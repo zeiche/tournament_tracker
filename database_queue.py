@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Callable
 
 # Import centralized systems
-from database_utils import get_session, clear_session_cache
+from database import get_session, clear_session
 from log_utils import log_info, log_debug, log_error, log_db_operation, LogContext
 
 class OperationType(Enum):
@@ -128,7 +128,7 @@ class OperationQueue:
             log_error(f"Entire page failed: {e}", "queue")
         
         # Clear session cache after page processing
-        clear_session_cache()
+        clear_session()
         
         # Update stats
         processing_time = time.time() - start_time
@@ -272,7 +272,7 @@ def batch_operations(page_size=250):
         raise
     finally:
         # Always clear session cache after batch operations
-        clear_session_cache()
+        clear_session()
         log_debug("Batch operations completed, session cache cleared", "queue")
 
 # Enhanced model methods that use the queue

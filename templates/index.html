@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Tracker - SoCal FGC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .feature-card h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .feature-card .icon {
+            font-size: 1.5rem;
+        }
+        
+        .feature-card p {
+            color: #7f8c8d;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card .actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #38a169;
+        }
+        
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #3182ce;
+        }
+        
+        .services {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .service-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .service-status:last-child {
+            border-bottom: none;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .status-running {
+            background: #48bb78;
+            box-shadow: 0 0 10px rgba(72, 187, 120, 0.5);
+        }
+        
+        .status-stopped {
+            background: #f56565;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            padding: 1rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Tournament Tracker</h1>
+            <p class="subtitle">Southern California Fighting Game Community Hub</p>
+            
+            <div class="stats" id="stats">
+                <div class="stat">
+                    <div class="stat-value" id="stat-tournaments">-</div>
+                    <div class="stat-label">Tournaments</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-organizations">-</div>
+                    <div class="stat-label">Organizations</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-players">-</div>
+                    <div class="stat-label">Players</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-last-sync">-</div>
+                    <div class="stat-label">Last Sync</div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3><span class="icon">📊</span> Data Management</h3>
+                <p>Sync tournaments from start.gg, manage organizations, and track player standings.</p>
+                <div class="actions">
+                    <a href="/organizations" class="btn btn-primary">Manage Organizations</a>
+                    <a href="/tournaments" class="btn btn-secondary">View Tournaments</a>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <h3><span class="icon">📈</span> Reports & Analytics</h3>
+                <p>Generate comprehensive reports, heat maps, and analytics for the FGC scene.</p>
+                <div class="actions">
+                    <a href="/report" class="btn btn-primary">View Report</a>
+                    <a href="/heatmap" class="btn btn-info">Heat Maps</a>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <h3><span class="icon">🔄</span> Synchronization</h3>
+                <p>Keep your data up-to-date with automatic synchronization from start.gg.</p>
+                <div class="actions">
+                    <button onclick="syncNow()" class="btn btn-secondary">Sync Now</button>
+                    <a href="/sync-status" class="btn btn-info">Sync Status</a>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <h3><span class="icon">🏆</span> Player Rankings</h3>
+                <p>Track player performance, standings, and competitive statistics.</p>
+                <div class="actions">
+                    <a href="/players" class="btn btn-primary">View Rankings</a>
+                    <a href="/standings" class="btn btn-secondary">Recent Standings</a>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <h3><span class="icon">🤖</span> Discord Integration</h3>
+                <p>Bot commands for tournament queries and automated announcements.</p>
+                <div class="actions">
+                    <a href="/discord-config" class="btn btn-primary">Bot Config</a>
+                    <span class="btn btn-info" id="discord-status">Checking...</span>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <h3><span class="icon">🛍️</span> Publishing</h3>
+                <p>Export tournament data to Shopify or generate public HTML reports.</p>
+                <div class="actions">
+                    <button onclick="publishShopify()" class="btn btn-secondary">Publish to Shopify</button>
+                    <a href="/export" class="btn btn-info">Export Options</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="services">
+            <h3>Service Status</h3>
+            <div id="service-list">
+                <div class="service-status">
+                    <span>Loading services...</span>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Tournament Tracker v2.0 - Powered by Python OOP Architecture</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('stat-tournaments').textContent = stats.tournaments || '0';
+                document.getElementById('stat-organizations').textContent = stats.organizations || '0';
+                document.getElementById('stat-players').textContent = stats.players || '0';
+                document.getElementById('stat-last-sync').textContent = stats.last_sync || 'Never';
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+        
+        // Load service status
+        async function loadServices() {
+            try {
+                const response = await fetch('/api/services');
+                const services = await response.json();
+                
+                const serviceList = document.getElementById('service-list');
+                serviceList.innerHTML = services.map(service => `
+                    <div class="service-status">
+                        <span>
+                            <span class="status-indicator ${service.running ? 'status-running' : 'status-stopped'}"></span>
+                            ${service.name}
+                        </span>
+                        <span>${service.running ? 'Running' : 'Stopped'}</span>
+                    </div>
+                `).join('');
+                
+                // Update Discord status
+                const discordService = services.find(s => s.name === 'Discord Bot');
+                if (discordService) {
+                    const discordStatus = document.getElementById('discord-status');
+                    discordStatus.textContent = discordService.running ? '✅ Online' : '❌ Offline';
+                    discordStatus.className = discordService.running ? 'btn btn-secondary' : 'btn btn-info';
+                }
+            } catch (error) {
+                console.error('Failed to load services:', error);
+                document.getElementById('service-list').innerHTML = '<div class="service-status"><span>Unable to load service status</span></div>';
+            }
+        }
+        
+        // Sync now function
+        async function syncNow() {
+            if (confirm('Start tournament synchronization from start.gg?')) {
+                try {
+                    const response = await fetch('/api/sync', { method: 'POST' });
+                    const result = await response.json();
+                    alert(result.message || 'Sync started successfully');
+                    loadStats();
+                } catch (error) {
+                    alert('Failed to start sync: ' + error.message);
+                }
+            }
+        }
+        
+        // Publish to Shopify
+        async function publishShopify() {
+            if (confirm('Publish current tournament data to Shopify?')) {
+                try {
+                    const response = await fetch('/api/publish/shopify', { method: 'POST' });
+                    const result = await response.json();
+                    alert(result.message || 'Published successfully');
+                } catch (error) {
+                    alert('Failed to publish: ' + error.message);
+                }
+            }
+        }
+        
+        // Load everything on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+            loadServices();
+            
+            // Refresh stats every 30 seconds
+            setInterval(loadStats, 30000);
+            
+            // Refresh services every 10 seconds
+            setInterval(loadServices, 10000);
+        });
+    </script>
+</body>
+</html>

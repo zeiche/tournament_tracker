@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizations - Tournament Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .navbar {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 2rem;
+        }
+        
+        .navbar a:hover {
+            opacity: 0.8;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .header-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .filter-input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+            max-width: 300px;
+        }
+        
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 500;
+        }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-edit {
+            background: #4299e1;
+            color: white;
+            margin-right: 0.5rem;
+        }
+        
+        .btn-edit:hover {
+            background: #3182ce;
+        }
+        
+        .btn-merge {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-merge:hover {
+            background: #38a169;
+        }
+        
+        .contacts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .contact-badge {
+            background: #e2e8f0;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .modal h3 {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #333;
+        }
+        
+        .btn-save {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-save:hover {
+            background: #5a67d8;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/">← Home</a>
+        <a href="/organizations">Organizations</a>
+        <a href="/tournaments">Tournaments</a>
+        <a href="/report">Reports</a>
+    </nav>
+    
+    <div class="container">
+        <div class="header-section">
+            <h1>Organization Management</h1>
+            <p>Manage tournament organizers, contacts, and merge duplicate entries.</p>
+            
+            <div class="filters">
+                <input type="text" id="search" class="filter-input" placeholder="Search organizations...">
+                <select id="filter-type" class="filter-input">
+                    <option value="">All Organizations</option>
+                    <option value="with-email">With Email</option>
+                    <option value="with-discord">With Discord</option>
+                    <option value="no-contacts">No Contacts</option>
+                </select>
+            </div>
+        </div>
+        
+        <table id="org-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Organization Name</th>
+                    <th>Tournaments</th>
+                    <th>Contacts</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="org-tbody">
+                <tr>
+                    <td colspan="5" style="text-align: center;">Loading organizations...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h3>Edit Organization</h3>
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
+                
+                <div class="form-group">
+                    <label>Organization Name</label>
+                    <input type="text" id="edit-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Contacts</label>
+                    <div id="contacts-list"></div>
+                    <button type="button" class="btn btn-edit" onclick="addContact()">+ Add Contact</button>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-save">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Merge Modal -->
+    <div id="merge-modal" class="modal">
+        <div class="modal-content">
+            <h3>Merge Organizations</h3>
+            <form id="merge-form">
+                <input type="hidden" id="merge-source">
+                
+                <div class="form-group">
+                    <label>Merge <span id="merge-source-name"></span> into:</label>
+                    <select id="merge-target" required>
+                        <option value="">Select target organization...</option>
+                    </select>
+                </div>
+                
+                <p style="color: #e53e3e; margin-top: 1rem;">
+                    ⚠️ This will transfer all tournaments and contacts to the target organization and delete the source.
+                </p>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeMergeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-save">Merge Organizations</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let organizations = [];
+        
+        async function loadOrganizations() {
+            try {
+                const response = await fetch('/api/organizations');
+                organizations = await response.json();
+                renderTable(organizations);
+            } catch (error) {
+                console.error('Failed to load organizations:', error);
+                document.getElementById('org-tbody').innerHTML = '<tr><td colspan="5" style="text-align: center;">Failed to load organizations</td></tr>';
+            }
+        }
+        
+        function renderTable(data) {
+            const tbody = document.getElementById('org-tbody');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No organizations found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = data.map(org => `
+                <tr>
+                    <td>${org.id}</td>
+                    <td>${org.display_name}</td>
+                    <td>${org.tournament_count}</td>
+                    <td>
+                        <div class="contacts">
+                            ${org.contacts.map(c => `<span class="contact-badge">${c.type}: ${c.value}</span>`).join('')}
+                            ${org.contacts.length === 0 ? '<span style="color: #999;">No contacts</span>' : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-edit" onclick="editOrg(${org.id})">Edit</button>
+                        <button class="btn btn-merge" onclick="mergeOrg(${org.id})">Merge</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function editOrg(id) {
+            const org = organizations.find(o => o.id === id);
+            if (!org) return;
+            
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-name').value = org.display_name;
+            
+            // Render contacts
+            const contactsList = document.getElementById('contacts-list');
+            contactsList.innerHTML = org.contacts.map((c, i) => `
+                <div class="form-group">
+                    <select name="contact-type-${i}">
+                        <option value="email" ${c.type === 'email' ? 'selected' : ''}>Email</option>
+                        <option value="discord" ${c.type === 'discord' ? 'selected' : ''}>Discord</option>
+                    </select>
+                    <input type="text" name="contact-value-${i}" value="${c.value}">
+                    <button type="button" class="btn btn-cancel" onclick="this.parentElement.remove()">Remove</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+        
+        function addContact() {
+            const contactsList = document.getElementById('contacts-list');
+            const index = contactsList.children.length;
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <select name="contact-type-${index}">
+                    <option value="email">Email</option>
+                    <option value="discord">Discord</option>
+                </select>
+                <input type="text" name="contact-value-${index}" placeholder="Enter contact value">
+                <button type="button" class="btn btn-cancel" onclick="this.parentElement.remove()">Remove</button>
+            `;
+            contactsList.appendChild(div);
+        }
+        
+        function mergeOrg(id) {
+            const org = organizations.find(o => o.id === id);
+            if (!org) return;
+            
+            document.getElementById('merge-source').value = id;
+            document.getElementById('merge-source-name').textContent = org.display_name;
+            
+            const targetSelect = document.getElementById('merge-target');
+            targetSelect.innerHTML = '<option value="">Select target organization...</option>' +
+                organizations.filter(o => o.id !== id)
+                    .map(o => `<option value="${o.id}">${o.display_name} (${o.tournament_count} tournaments)</option>`)
+                    .join('');
+            
+            document.getElementById('merge-modal').style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+        
+        function closeMergeModal() {
+            document.getElementById('merge-modal').style.display = 'none';
+        }
+        
+        // Search and filter
+        document.getElementById('search').addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            const filtered = organizations.filter(org => 
+                org.display_name.toLowerCase().includes(search)
+            );
+            renderTable(filtered);
+        });
+        
+        document.getElementById('filter-type').addEventListener('change', (e) => {
+            const filter = e.target.value;
+            let filtered = organizations;
+            
+            if (filter === 'with-email') {
+                filtered = organizations.filter(org => 
+                    org.contacts.some(c => c.type === 'email')
+                );
+            } else if (filter === 'with-discord') {
+                filtered = organizations.filter(org => 
+                    org.contacts.some(c => c.type === 'discord')
+                );
+            } else if (filter === 'no-contacts') {
+                filtered = organizations.filter(org => 
+                    org.contacts.length === 0
+                );
+            }
+            
+            renderTable(filtered);
+        });
+        
+        // Form submissions
+        document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('edit-name').value;
+            
+            // Collect contacts
+            const contacts = [];
+            const contactsList = document.getElementById('contacts-list');
+            for (let i = 0; i < contactsList.children.length; i++) {
+                const typeSelect = contactsList.querySelector(`[name="contact-type-${i}"]`);
+                const valueInput = contactsList.querySelector(`[name="contact-value-${i}"]`);
+                if (typeSelect && valueInput && valueInput.value) {
+                    contacts.push({
+                        type: typeSelect.value,
+                        value: valueInput.value
+                    });
+                }
+            }
+            
+            try {
+                await fetch(`/api/organizations/${id}/update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, contacts })
+                });
+                closeModal();
+                loadOrganizations();
+            } catch (error) {
+                alert('Failed to update organization: ' + error.message);
+            }
+        });
+        
+        document.getElementById('merge-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const sourceId = document.getElementById('merge-source').value;
+            const targetId = document.getElementById('merge-target').value;
+            
+            try {
+                await fetch('/api/organizations/merge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source_id: sourceId, target_id: targetId })
+                });
+                closeMergeModal();
+                loadOrganizations();
+            } catch (error) {
+                alert('Failed to merge organizations: ' + error.message);
+            }
+        });
+        
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', loadOrganizations);
+    </script>
+</body>
+</html>

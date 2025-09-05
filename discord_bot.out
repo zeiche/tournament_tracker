@@ -1,0 +1,14 @@
+WARNING:discord.client:PyNaCl is not installed, voice will NOT be supported
+[2025-09-04 18:07:51] [INFO    ] discord.client: logging in using static token
+INFO:discord.client:logging in using static token
+📊 Database module initialized (SINGLE ENTRY POINT)
+   Database URL: sqlite:///tournament_tracker.db
+   ✅ This is the ONLY place database connections are created
+[32mINFO  [tracker] Starting Tournament Tracker[0m
+[32mINFO  [operations] Starting tournament_tracker_session[0m
+✅ Claude service initialized (SINGLE SOURCE OF TRUTH)
+   Model: claude-3-haiku-20240307
+✅ Discord service initialized (SINGLE SOURCE OF TRUTH)
+   Mode: conversational
+   Bot name: Tournament Tracker Bot
+Starting Discord bot in claude mode...

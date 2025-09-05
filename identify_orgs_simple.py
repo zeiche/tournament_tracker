@@ -7,7 +7,7 @@ import re
 from typing import Optional, Dict, List
 from database_utils import get_session
 from tournament_models import Tournament, Organization
-from editor_core import get_unnamed_tournaments
+from editor_service import editor_service get_unnamed_tournaments
 
 def extract_series_name(tournament_name: str) -> Optional[str]:
     """

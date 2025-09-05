@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournaments - Tournament Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .navbar {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 2rem;
+        }
+        
+        .navbar a:hover { opacity: 0.8; }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .header-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .stat-card {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-input, .filter-select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        th:hover { background: #5a67d8; }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        tr:hover { background: #f9f9f9; }
+        
+        .date-badge {
+            background: #e2e8f0;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .attendees-badge {
+            background: #48bb78;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        
+        .org-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .org-link:hover { text-decoration: underline; }
+        
+        .loading { text-align: center; padding: 2rem; color: #999; }
+        
+        .no-data { text-align: center; padding: 2rem; color: #999; }
+        
+        .sort-arrow {
+            float: right;
+            opacity: 0.5;
+        }
+        
+        .sort-active { opacity: 1; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/">← Home</a>
+        <a href="/organizations">Organizations</a>
+        <a href="/tournaments">Tournaments</a>
+        <a href="/report">Reports</a>
+        <a href="/players">Players</a>
+    </nav>
+    
+    <div class="container">
+        <div class="header-section">
+            <h1>Tournament Database</h1>
+            <p>Complete list of Southern California FGC tournaments</p>
+            
+            <div class="stats-grid" id="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-tournaments">-</div>
+                    <div class="stat-label">Total Tournaments</div>
+                </div>
+                <div class="stat-card" style="background: #48bb78;">
+                    <div class="stat-value" id="total-attendees">-</div>
+                    <div class="stat-label">Total Attendees</div>
+                </div>
+                <div class="stat-card" style="background: #ed8936;">
+                    <div class="stat-value" id="avg-attendees">-</div>
+                    <div class="stat-label">Avg Attendees</div>
+                </div>
+                <div class="stat-card" style="background: #38b2ac;">
+                    <div class="stat-value" id="recent-count">-</div>
+                    <div class="stat-label">Last 30 Days</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="header-section">
+            <h2>Filter Tournaments</h2>
+            <div class="filters">
+                <input type="text" id="search" class="filter-input" placeholder="Search tournaments...">
+                <select id="org-filter" class="filter-select">
+                    <option value="">All Organizations</option>
+                </select>
+                <select id="size-filter" class="filter-select">
+                    <option value="">All Sizes</option>
+                    <option value="small">Small (< 50)</option>
+                    <option value="medium">Medium (50-100)</option>
+                    <option value="large">Large (100+)</option>
+                    <option value="major">Major (200+)</option>
+                </select>
+                <select id="time-filter" class="filter-select">
+                    <option value="">All Time</option>
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="365">Last year</option>
+                </select>
+            </div>
+        </div>
+        
+        <table id="tournament-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('name')">Tournament Name <span class="sort-arrow">⇅</span></th>
+                    <th onclick="sortTable('date')">Date <span class="sort-arrow">⇅</span></th>
+                    <th onclick="sortTable('attendees')">Attendees <span class="sort-arrow">⇅</span></th>
+                    <th onclick="sortTable('organization')">Organization <span class="sort-arrow">⇅</span></th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody id="tournament-tbody">
+                <tr>
+                    <td colspan="5" class="loading">Loading tournaments...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        let allTournaments = [];
+        let filteredTournaments = [];
+        let organizations = new Set();
+        let currentSort = { column: 'date', direction: 'desc' };
+        
+        async function loadTournaments() {
+            try {
+                const response = await fetch('/api/tournaments');
+                allTournaments = await response.json();
+                
+                // Extract unique organizations
+                allTournaments.forEach(t => {
+                    if (t.organization) organizations.add(t.organization);
+                });
+                
+                // Populate org filter
+                const orgFilter = document.getElementById('org-filter');
+                organizations.forEach(org => {
+                    const option = document.createElement('option');
+                    option.value = org;
+                    option.textContent = org;
+                    orgFilter.appendChild(option);
+                });
+                
+                // Calculate stats
+                updateStats();
+                
+                // Initial render
+                filterTournaments();
+            } catch (error) {
+                console.error('Failed to load tournaments:', error);
+                document.getElementById('tournament-tbody').innerHTML = 
+                    '<tr><td colspan="5" class="no-data">Failed to load tournaments</td></tr>';
+            }
+        }
+        
+        function updateStats() {
+            const total = allTournaments.length;
+            const totalAttendees = allTournaments.reduce((sum, t) => sum + (t.attendees || 0), 0);
+            const avgAttendees = total > 0 ? Math.round(totalAttendees / total) : 0;
+            
+            // Count recent tournaments (last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const recent = allTournaments.filter(t => {
+                if (!t.date) return false;
+                return new Date(t.date) >= thirtyDaysAgo;
+            }).length;
+            
+            document.getElementById('total-tournaments').textContent = total;
+            document.getElementById('total-attendees').textContent = totalAttendees.toLocaleString();
+            document.getElementById('avg-attendees').textContent = avgAttendees;
+            document.getElementById('recent-count').textContent = recent;
+        }
+        
+        function filterTournaments() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const orgFilter = document.getElementById('org-filter').value;
+            const sizeFilter = document.getElementById('size-filter').value;
+            const timeFilter = document.getElementById('time-filter').value;
+            
+            filteredTournaments = allTournaments.filter(t => {
+                // Search filter
+                if (searchTerm && !t.name.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+                
+                // Organization filter
+                if (orgFilter && t.organization !== orgFilter) {
+                    return false;
+                }
+                
+                // Size filter
+                if (sizeFilter) {
+                    const size = t.attendees || 0;
+                    if (sizeFilter === 'small' && size >= 50) return false;
+                    if (sizeFilter === 'medium' && (size < 50 || size >= 100)) return false;
+                    if (sizeFilter === 'large' && (size < 100 || size >= 200)) return false;
+                    if (sizeFilter === 'major' && size < 200) return false;
+                }
+                
+                // Time filter
+                if (timeFilter && t.date) {
+                    const daysAgo = (new Date() - new Date(t.date)) / (1000 * 60 * 60 * 24);
+                    if (daysAgo > parseInt(timeFilter)) return false;
+                }
+                
+                return true;
+            });
+            
+            sortAndRender();
+        }
+        
+        function sortTable(column) {
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = column === 'date' ? 'desc' : 'asc';
+            }
+            
+            sortAndRender();
+        }
+        
+        function sortAndRender() {
+            const sorted = [...filteredTournaments].sort((a, b) => {
+                let aVal, bVal;
+                
+                switch (currentSort.column) {
+                    case 'name':
+                        aVal = a.name || '';
+                        bVal = b.name || '';
+                        break;
+                    case 'date':
+                        aVal = a.date ? new Date(a.date).getTime() : 0;
+                        bVal = b.date ? new Date(b.date).getTime() : 0;
+                        break;
+                    case 'attendees':
+                        aVal = a.attendees || 0;
+                        bVal = b.attendees || 0;
+                        break;
+                    case 'organization':
+                        aVal = a.organization || '';
+                        bVal = b.organization || '';
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (currentSort.direction === 'asc') {
+                    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                } else {
+                    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                }
+            });
+            
+            renderTable(sorted);
+        }
+        
+        function renderTable(tournaments) {
+            const tbody = document.getElementById('tournament-tbody');
+            
+            if (tournaments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">No tournaments found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = tournaments.map(t => {
+                const date = t.date ? new Date(t.date).toLocaleDateString() : 'N/A';
+                const attendees = t.attendees || 'N/A';
+                const org = t.organization ? 
+                    `<a href="/organizations" class="org-link">${t.organization}</a>` : 
+                    'N/A';
+                
+                return `
+                    <tr>
+                        <td><strong><a href="/tournament/${t.id}" style="color: inherit; text-decoration: none; cursor: pointer;" 
+                                       onmouseover="this.style.textDecoration='underline'" 
+                                       onmouseout="this.style.textDecoration='none'">${t.name}</a></strong></td>
+                        <td><span class="date-badge">${date}</span></td>
+                        <td><span class="attendees-badge">${attendees}</span></td>
+                        <td>${org}</td>
+                        <td>${t.location || 'N/A'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Event listeners
+        document.getElementById('search').addEventListener('input', filterTournaments);
+        document.getElementById('org-filter').addEventListener('change', filterTournaments);
+        document.getElementById('size-filter').addEventListener('change', filterTournaments);
+        document.getElementById('time-filter').addEventListener('change', filterTournaments);
+        
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', loadTournaments);
+    </script>
+</body>
+</html>

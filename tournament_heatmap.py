@@ -6,7 +6,7 @@ Creates both static images and interactive HTML maps
 
 import json
 import numpy as np
-from database_utils import get_session
+from database import session_scope
 from tournament_models import Tournament
 from log_utils import log_info, log_error
 
@@ -33,7 +33,7 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
     lngs = []
     weights = []
     
-    with get_session() as session:
+    with session_scope() as session:
         # Get all tournaments with geographic data
         tournaments = session.query(Tournament).filter(
             Tournament.lat.isnot(None),
@@ -210,7 +210,7 @@ def generate_interactive_heatmap(output_file='tournament_heatmap.html'):
     marker_cluster = MarkerCluster().add_to(m)
     
     # Get tournament data using new location methods
-    with get_session() as session:
+    with session_scope() as session:
         # Get all tournaments with location data
         tournaments = Tournament.with_location().all()
         
@@ -322,7 +322,7 @@ def generate_attendance_heatmap(output_file='attendance_heatmap.png', use_map_ba
     colors = []
     
     # Get tournament data and process within session
-    with get_session() as session:
+    with session_scope() as session:
         tournaments = session.query(Tournament).filter(
             Tournament.lat.isnot(None),
             Tournament.lng.isnot(None),

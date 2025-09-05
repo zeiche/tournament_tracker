@@ -15,14 +15,88 @@ sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker')
 
 # Import tournament tracker modules
 from conversational_search import ConversationalSearch
-from database_utils import get_session, get_attendance_rankings, get_summary_stats, get_player_rankings, find_player_ranking
-from tournament_report import format_console_table
-from tournament_models import Tournament, Organization
+from database import session_scope
+from database_service import database_service
+from tournament_models import Tournament, Organization, Player
+from formatters import PlayerFormatter
 import logging
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+async def handle_player_stats_query(message, player_name):
+    """Handle player stats requests using the Pythonic approach"""
+    try:
+        logger.info(f"Looking for player stats: {player_name}")
+        
+        with session_scope() as session:
+            # Search for player by gamer_tag or name (case insensitive)
+            player = session.query(Player).filter(
+                (Player.gamer_tag.ilike(f"%{player_name}%")) |
+                (Player.name.ilike(f"%{player_name}%"))
+            ).first()
+            
+            if not player:
+                await message.channel.send(f"Sorry, I couldn't find a player named '{player_name}'. Try being more specific!")
+                return
+            
+            # The Player object provides the data
+            stats = player.get_stats() if hasattr(player, 'get_stats') else {}
+            
+            if not stats:
+                await message.channel.send(f"No stats available for {player.gamer_tag or player.name}")
+                return
+            
+            # Build player data for the formatter
+            player_data = {
+                'id': player.id,
+                'name': player.gamer_tag or player.name or 'Unknown',
+                'rank': 1,  # TODO: Calculate actual rank
+                'total_points': stats.get('wins', 0) * 100 + stats.get('podiums', 0) * 25,
+                'tournament_count': stats.get('total_tournaments', 0),
+                'win_count': stats.get('wins', 0),
+                'win_rate': stats.get('win_rate', 0),
+                'podium_rate': stats.get('podium_rate', 0),
+                'avg_placement': stats.get('average_placement', 0),
+                'recent_results': []
+            }
+            
+            # Add recent results
+            if 'recent_results' in stats:
+                player_data['recent_results'] = [
+                    {
+                        'tournament_name': r.get('tournament', 'Unknown'),
+                        'placement': r.get('placement', 'N/A'),
+                        'date': r.get('date', 'N/A')[:10] if r.get('date') else 'N/A'
+                    }
+                    for r in stats['recent_results'][:5]  # Top 5 recent
+                ]
+            
+            # Use the PlayerFormatter to format for Discord
+            discord_message = PlayerFormatter.format_discord(player_data)
+            
+            # Discord has message length limits, so send in chunks if needed
+            if len(discord_message) > 2000:
+                # Split the message at natural break points
+                parts = discord_message.split('\\n\\n')
+                current_message = ""
+                
+                for part in parts:
+                    if len(current_message + part) > 1900:  # Leave some room
+                        await message.channel.send(current_message)
+                        current_message = part
+                    else:
+                        current_message += "\\n\\n" + part if current_message else part
+                
+                if current_message:
+                    await message.channel.send(current_message)
+            else:
+                await message.channel.send(discord_message)
+    
+    except Exception as e:
+        logger.error(f"Error handling player stats query: {e}")
+        await message.channel.send(f"Sorry, I had trouble getting stats for {player_name}. Please try again!")
 
 # Bot token - set via environment variable
 TOKEN = os.getenv('DISCORD_BOT_TOKEN', '')
@@ -67,6 +141,34 @@ async def on_message(message):
     
     # Log the message
     logger.info(f'{message.author}: {message.content}')
+    
+    # Check for player stats queries first (more specific)
+    if any(phrase in content_lower for phrase in ['stats for', 'show me stats', 'player stats', 'stats of']):
+        # Extract player name from natural language
+        import re
+        
+        # Common patterns for asking about player stats
+        patterns = [
+            r'stats for ([a-zA-Z0-9_]+)',
+            r'show me.*stats.*for ([a-zA-Z0-9_]+)',
+            r'show.*stats.*([a-zA-Z0-9_]+)',
+            r'([a-zA-Z0-9_]+).*stats',
+            r'stats.*([a-zA-Z0-9_]+)'
+        ]
+        
+        player_name = None
+        for pattern in patterns:
+            match = re.search(pattern, content_lower)
+            if match:
+                player_name = match.group(1).strip()
+                break
+        
+        if player_name:
+            await handle_player_stats_query(message, player_name)
+            return
+        else:
+            await message.channel.send("Which player's stats would you like to see? Try: 'show me stats for Monte'")
+            return
     
     # Basic greetings
     if any(greeting in content_lower for greeting in GREETINGS):
@@ -306,7 +408,7 @@ async def handle_tournament_query(message):
             limit = min(limit, 50)  # Cap at 50
             
             # Get rankings
-            rankings = get_attendance_rankings(limit)
+            rankings = database_service.get_attendance_rankings(limit)
             
             if not rankings:
                 await message.channel.send("No attendance data available yet.")
@@ -331,7 +433,7 @@ async def handle_tournament_query(message):
             
         elif any(phrase in content_lower for phrase in ['stats', 'statistics', 'summary', 'total']):
             # Get summary statistics
-            stats = get_summary_stats()
+            stats = database_service.get_summary_stats()
             
             if not stats:
                 await message.channel.send("No statistics available yet.")

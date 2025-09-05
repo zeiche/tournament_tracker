@@ -4,7 +4,7 @@ Isolated testing functions for start.gg synchronization
 """
 from log_utils import log_info, log_debug, log_error, init_logging, LogLevel
 from database_utils import init_db, get_summary_stats
-from startgg_sync import StartGGSyncClient, TournamentSyncProcessor
+from startgg_service import startgg_service StartGGSyncClient, TournamentSyncProcessor
 
 def test_startgg_sync():
     """Test start.gg synchronization"""

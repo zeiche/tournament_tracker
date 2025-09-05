@@ -56,7 +56,7 @@ def populate_january_data():
                     print(f"   - {f}")
             return False
         
-        from startgg_sync import sync_from_startgg
+        from startgg_service import startgg_service sync_from_startgg
         print("Syncing limited tournament data from start.gg for testing...")
         
         # Use existing sync function with limited scope for testing
@@ -97,7 +97,7 @@ def try_direct_startgg_sync():
         
         # Check if we can import startgg_query
         try:
-            from startgg_query import StartGGQueryClient
+            from startgg_service import startgg_service StartGGQueryClient
             client = StartGGQueryClient()
             
             tournaments, api_time, year_info = client.fetch_socal_tournaments(year_filter=True)

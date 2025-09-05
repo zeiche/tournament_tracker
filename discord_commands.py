@@ -277,7 +277,7 @@ class AdminCommands(commands.Cog):
         try:
             await ctx.send("Starting tournament sync from start.gg... This may take a few minutes.")
             
-            from startgg_sync import sync_from_startgg
+            from startgg_service import startgg_service sync_from_startgg
             
             # Run sync in background
             loop = asyncio.get_event_loop()
