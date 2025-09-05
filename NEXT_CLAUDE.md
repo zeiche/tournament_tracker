@@ -65,8 +65,9 @@ sudo systemctl restart tournament-web
 
 4. **Discord Service** (`discord_service.py`)
    - ONE bot instance only (no systemd)
-   - Runs via ./go.py --discord
+   - **IMPORTANT**: Start with `./go.py --discord-bot` (NOT via systemd!)
    - Uses Claude AI Service for all AI operations
+   - Token must be in .env as DISCORD_BOT_TOKEN
 
 ### 🚧 Partially Implemented
 
@@ -185,10 +186,11 @@ def test_polymorphic(new_function):
 ./go.py --stats                 # Database statistics
 ./go.py --heatmap              # Generate all visualizations
 
-# Services (no systemd!)
-./go.py --restart-discord      # Restart Discord bot
+# Services
+./go.py --discord-bot          # Start Discord bot (runs in foreground)
 ./go.py --restart-web          # Restart web service
 ./go.py --service-status       # Check all services
+# Note: Discord bot does NOT use systemd - start with --discord-bot
 
 # Operations
 ./go.py --sync                 # Sync from start.gg

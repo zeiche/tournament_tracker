@@ -417,7 +417,7 @@ class DiscordService:
             return
         
         # Tournament queries
-        tournament_keywords = ['tournament', 'ranking', 'organization', 'player']
+        tournament_keywords = ['tournament', 'ranking', 'organization', 'player', 'players', 'top']
         if any(keyword in content for keyword in tournament_keywords):
             await self._handle_conversational_message(context)
             return
@@ -435,7 +435,18 @@ class DiscordService:
     # ========================================================================
     
     async def _get_tournament_response(self, query: str) -> str:
-        """Get tournament data response for a query"""
+        """Get tournament data response for a query - delegates to Claude AI service"""
+        # Simply pass the query to the Claude AI service
+        # It will handle all database queries, fuzzy search, etc.
+        result = await process_message_async(query, {'source': 'discord'})
+        
+        if result['success']:
+            return result['response']
+        else:
+            return f"Sorry, I couldn't process that request: {result.get('error', 'Unknown error')}"
+        
+        # OLD CODE - Removing all direct database access
+        return  # Exit early
         with session_scope() as session:
             # Check for specific queries
             if 'top' in query and 'organization' in query:
@@ -463,6 +474,31 @@ class DiscordService:
                     return response
                 else:
                     return "No organization data available."
+            
+            elif 'top' in query and ('player' in query or 'players' in query):
+                from tournament_models import Player, TournamentPlacement
+                from sqlalchemy import func
+                
+                # Get top players by total points or placements
+                results = session.query(
+                    Player.display_name,
+                    func.count(TournamentPlacement.id).label('tournaments'),
+                    func.sum(TournamentPlacement.points).label('total_points')
+                ).join(
+                    TournamentPlacement
+                ).group_by(
+                    Player.id
+                ).order_by(
+                    func.sum(TournamentPlacement.points).desc().nullslast()
+                ).limit(8).all()
+                
+                if results:
+                    response = "**Top 8 Players by Points:**\n"
+                    for i, (name, tournaments, points) in enumerate(results, 1):
+                        response += f"{i}. {name}: {points or 0} points ({tournaments} tournaments)\n"
+                    return response
+                else:
+                    return "No player ranking data available."
             
             elif 'stats' in query or 'statistic' in query:
                 from tournament_models import Tournament, Organization, Player

@@ -16,6 +16,7 @@ from sync_service import sync_service
 from tournament_report import format_html_table, format_console_table, get_legacy_attendance_data
 from database_queue import commit_queue, queue_stats
 from tournament_operations import TournamentOperationTracker
+from startgg_sync import sync_from_startgg
 
 class TournamentTracker:
     """Main tournament tracker application with centralized architecture"""
@@ -171,9 +172,10 @@ class TournamentTracker:
             # Database stats
             stats = database_service.get_summary_stats()
             print("Database Statistics:")
-            print(f"   Organizations: {stats['total_organizations']}")
-            print(f"   Tournaments: {stats['total_tournaments']}")
-            print(f"   Total Attendance: {stats['total_attendance']:,}")
+            print(f"   Organizations: {stats.total_organizations}")
+            print(f"   Tournaments: {stats.total_tournaments}")
+            print(f"   Players: {stats.total_players}")
+            print(f"   Total Placements: {stats.total_placements:,}")
             
             # Queue stats
             q_stats = queue_stats()

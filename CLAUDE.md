@@ -8,8 +8,15 @@ Tournament Tracker is an advanced Python application for tracking and managing F
 
 ## Architecture Philosophy
 
+### Polymorphic Paradigm
+The system follows a **polymorphic paradigm** where "everything accepts anything":
+- **Polymorphic inputs**: Methods accept any input type and figure out intent
+- **Dynamic calculations**: All statistics calculated on-the-fly, never stored
+- **Single sources of truth**: One module per domain (visualizer, queries, etc.)
+- **Thin bridges**: Service boundaries have zero business logic
+- **Natural language first**: Interpret intent, not rigid syntax
+
 ### Object-Oriented Design
-The system has been refactored from C-style flat data structures to a Python-centric OOP architecture where:
 - **Models are intelligent**: Objects understand their context and relationships
 - **Built-in analytics**: Methods for calculations live within the models
 - **Relationship awareness**: Objects can traverse and analyze their connections
@@ -31,11 +38,11 @@ The system has been refactored from C-style flat data structures to a Python-cen
    - TournamentCommand for business logic
    - CommandLineInterface for routing
 
-3. **Intelligent Discord Bot** (`discord_conversational.py`)
-   - Relationship-aware responses
-   - Player journey analysis
-   - Geographic calculations
-   - Growth trend analysis
+3. **Discord Integration**
+   - **discord_bridge.py** (100 lines): Pure message forwarding, zero business logic
+   - **claude_cli_service.py**: Uses Claude CLI (`claude /login`), no API keys
+   - **polymorphic_queries.py**: Universal query interface, accepts any input
+   - Natural language processing via Claude
 
 ## Key Commands
 
@@ -46,8 +53,8 @@ The system has been refactored from C-style flat data structures to a Python-cen
 ./go.py [options]
 
 # Service Management (use these, not systemctl directly!)
-./go.py --restart-services      # Restart all services
-./go.py --restart-discord        # Restart Discord bot only
+./go.py --restart-services      # Restart all services (web only, Discord separate)
+./go.py --discord-bot           # Start Discord bot (runs in foreground)
 ./go.py --restart-web           # Restart web service only
 ./go.py --service-status        # Check service status with details
 
@@ -73,6 +80,22 @@ The system has been refactored from C-style flat data structures to a Python-cen
 ./go.py --ai-web               # Web AI interface (port 8082)
 ./go.py --ai-ask "question"    # Ask AI a single question
 ```
+
+## Polymorphic Query System
+
+The system uses polymorphic queries that accept ANY input:
+
+```python
+from polymorphic_queries import query as pq
+
+# All of these work:
+pq("show player west")           # Finds player WEST with stats
+pq("show top 8 players")        # Top 8 by calculated points
+pq("recent tournaments")         # Recent tournaments
+pq("show top 5 organizations")  # Top orgs by tournament count
+```
+
+Key principle: **Pass natural language, get formatted Discord output**
 
 ## Enhanced Model Capabilities
 
@@ -147,13 +170,18 @@ Generate with: `./go.py --heatmap`
 
 ### Discord Bot Service
 - **Bot**: try-hard#8718
-- **Start**: Runs as systemd service
-- **Restart**: `./go.py --restart-discord`
-- **New Commands**:
-  - `nearby tournaments [location]` - Geographic search
-  - `player journey [name]` - Travel analysis
-  - `venue analysis` - Venue quality metrics
-  - `growth analysis` - Trend detection
+- **Start**: `source /home/ubuntu/claude/.env && python3 discord_bridge.py`
+- **Uses**: Claude CLI (authenticated via `claude /login`)
+- **Token**: Must be in .env as DISCORD_BOT_TOKEN
+- **Architecture**: 
+  - discord_bridge.py: 100-line pure message forwarder
+  - claude_cli_service.py: Queue-based Claude CLI integration
+  - polymorphic_queries.py: Natural language query processing
+- **Example Commands** (natural language):
+  - `show player west` - Player profile with stats
+  - `show top 50 players` - Rankings
+  - `recent tournaments` - Latest events
+  - `show top 8 organizations` - Org rankings
 
 ## Database
 

@@ -24,6 +24,9 @@ load_dotenv()
 # Use the single database entry point
 from database import session_scope, get_session
 
+# Import fuzzy search for user query processing
+from fuzzy_search import fuzzy_searcher, fuzzy_search_objects
+
 
 class ConversationType(Enum):
     """Types of Claude conversations"""
@@ -284,21 +287,32 @@ class ClaudeService:
         )
     
     def ask_about_players(self, question: str, player_name: Optional[str] = None) -> ConversationResult:
-        """Ask Claude about players"""
+        """Ask Claude about players with fuzzy name matching"""
         context = {}
         
         if player_name:
-            # Add player context
+            # Add player context with fuzzy search
             with session_scope() as session:
                 from tournament_models import Player
-                player = session.query(Player).filter(
-                    Player.gamer_tag.ilike(f'%{player_name}%')
-                ).first()
                 
-                if player:
+                # Get all players for fuzzy matching
+                all_players = session.query(Player).all()
+                
+                # Use fuzzy search to find best match
+                matches = fuzzy_search_objects(
+                    player_name,
+                    all_players,
+                    key_func=lambda p: p.gamer_tag,
+                    limit=1
+                )
+                
+                if matches:
+                    player = matches[0]
                     context['player'] = {
                         'gamer_tag': player.gamer_tag,
-                        'name': player.name
+                        'name': player.name,
+                        'fuzzy_matched': True,
+                        'original_query': player_name
                     }
         
         return self.ask_question(question, context)

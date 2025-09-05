@@ -349,7 +349,6 @@ class TournamentCommand:
             self.tracker = TournamentTracker(database_url=self.database_url)
     
     # Sync Operations
-    @accepts_anything('sync_config')
     def sync_tournaments(self, config=None) -> CommandResult:
         """
         Sync tournaments from start.gg - accepts multiple input formats
@@ -989,11 +988,13 @@ Examples:
             if not args.skip_sync and (args.sync or args.fetch_standings or 
                                        args.publish or not any([args.console, args.html, 
                                                                args.stats, args.interactive])):
-                result = self.command.sync_tournaments(
-                    page_size=args.page_size,
-                    fetch_standings=args.fetch_standings,
-                    standings_limit=args.standings_limit
-                )
+                # Pass config as a single dictionary argument for polymorphic handling
+                sync_config = {
+                    'page_size': args.page_size,
+                    'fetch_standings': args.fetch_standings,
+                    'standings_limit': args.standings_limit
+                }
+                result = self.command.sync_tournaments(sync_config)
                 if not result.success and not args.interactive:
                     print(f"❌ {result.message}")
                     return 1

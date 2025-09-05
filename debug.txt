@@ -1,4 +1,13 @@
 INFO  [tracker] Starting Tournament Tracker
 INFO  [operations] Starting tournament_tracker_session
-INFO  [tracker] Starting Tournament Tracker
-INFO  [operations] Starting tournament_tracker_session
+INFO  [tracker] Initializing database connection
+INFO  Starting Sync tournaments from start.gg...
+INFO  [tracker] Starting tournament sync (page_size: 250)
+INFO  [sync] Starting start.gg synchronization
+INFO  [startgg] StartGG client initialized for 2025
+INFO  Starting Fetch tournaments from start.gg...
+INFO  [startgg] Fetching SoCal tournaments from start.gg
+INFO  [startgg] Found 549 tournaments across 11 pages
+INFO  [startgg] tournaments (2025 only) page 1 - SUCCESS (2.54s)
+INFO  [startgg] tournaments (2025 only) page 2 - SUCCESS (2.59s)
+INFO  [startgg] tournaments (2025 only) page 3 - SUCCESS (2.68s)
