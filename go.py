@@ -18,6 +18,20 @@ from enum import Enum
 # Add current directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Load environment variables from .env file
+from pathlib import Path
+env_file = Path(__file__).parent / '.env'
+if env_file.exists():
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                if key and not key.startswith('export'):
+                    os.environ[key] = value
+
 # Import tracker modules
 from tournament_tracker import TournamentTracker
 from log_manager import LogManager

@@ -178,6 +178,17 @@ class ShopifyService:
         format = format or self.config.default_format
         
         try:
+            # Always use the first Tournament Rankings page (ID: 108950290568)
+            # This prevents creating duplicates
+            if not resource_id:
+                # Check if we have an existing Tournament Rankings page
+                existing_pages = self.list_resources(ShopifyResource.PAGE)
+                for page in existing_pages:
+                    if page.get('title') == 'Tournament Rankings' and page.get('handle') == 'tournament-rankings':
+                        resource_id = str(page.get('id'))
+                        self.logger.info(f"Using existing page ID: {resource_id}")
+                        break
+            
             # Gather tournament data
             data = self._gather_tournament_data()
             
