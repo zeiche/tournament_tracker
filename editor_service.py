@@ -208,7 +208,7 @@ class EditorService:
                     stats = player.get_stats()
                     if stats:
                         player_data.update({
-                            'total_points': stats.get('wins', 0) * 100 + stats.get('podiums', 0) * 25,  # Calculate points from wins/podiums
+                            'total_points': stats.get('total_points', 0),  # Use centralized points calculation
                             'tournament_count': stats.get('total_tournaments', 0),
                             'win_count': stats.get('wins', 0),
                             'win_rate': stats.get('win_rate', 0),
@@ -646,16 +646,8 @@ class EditorService:
                                         player_info['total_points'] += (p.points or 0)
                                     # Award default points based on placement
                                     elif hasattr(p, 'placement'):
-                                        if p.placement == 1:
-                                            player_info['total_points'] += 100
-                                        elif p.placement == 2:
-                                            player_info['total_points'] += 75
-                                        elif p.placement == 3:
-                                            player_info['total_points'] += 50
-                                        elif p.placement <= 8:
-                                            player_info['total_points'] += 25
-                                        else:
-                                            player_info['total_points'] += 10
+                                        from points_system import PointsSystem
+                                        player_info['total_points'] += PointsSystem.get_points_for_placement(p.placement)
                                 
                                 if player_info['event_count'] > 0:
                                     total_placement = sum(p.placement for p in placements if hasattr(p, 'placement'))

@@ -2342,42 +2342,12 @@ class TournamentPlacement(Base, BaseModel):
             return f"{self.placement}th"
     
     def get_points(self, system: str = "standard") -> int:
-        """Calculate points based on placement using various systems"""
+        """Calculate points based on placement - USES CENTRALIZED POINTS SYSTEM"""
+        from points_system import PointsSystem
         
-        if system == "standard":
-            # Standard points system
-            points = {
-                1: 100,
-                2: 70,
-                3: 45,
-                4: 25,
-                5: 13,
-                6: 13,
-                7: 7,
-                8: 7
-            }
-            return points.get(self.placement, max(0, 9 - self.placement))
-        
-        elif system == "evo":
-            # EVO-style points
-            points = {
-                1: 128,
-                2: 64,
-                3: 32,
-                4: 16,
-                5: 8,
-                6: 8,
-                7: 4,
-                8: 4
-            }
-            return points.get(self.placement, 0)
-        
-        elif system == "linear":
-            # Linear decrease
-            return max(0, 101 - self.placement * 10)
-        
-        else:
-            return 0
+        # ALL systems now use the centralized points system
+        # This ensures single source of truth
+        return PointsSystem.get_points_for_placement(self.placement)
     
     # ========================================================================
     # TOURNAMENT CONTEXT

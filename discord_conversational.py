@@ -53,7 +53,7 @@ async def handle_player_stats_query(message, player_name):
                 'id': player.id,
                 'name': player.gamer_tag or player.name or 'Unknown',
                 'rank': 1,  # TODO: Calculate actual rank
-                'total_points': stats.get('wins', 0) * 100 + stats.get('podiums', 0) * 25,
+                'total_points': stats.get('total_points', 0),  # Use pre-calculated points from stats
                 'tournament_count': stats.get('total_tournaments', 0),
                 'win_count': stats.get('wins', 0),
                 'win_rate': stats.get('win_rate', 0),

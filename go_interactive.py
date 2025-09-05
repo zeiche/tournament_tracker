@@ -14,7 +14,7 @@ sys.path.insert(0, '/home/ubuntu/claude')
 
 from tournament_tracker import TournamentTracker
 from database_queue import commit_queue
-from claude_ai_service import claude_ai, process_message
+from claude_cli_service import claude_cli as claude_ai, ask_claude as process_message
 
 def start_interactive_mode(database_url=None):
     """Start interactive REPL mode"""
@@ -34,12 +34,12 @@ def start_interactive_mode(database_url=None):
         print("Tournament Tracker Interactive Mode")
         print("=" * 60)
         
-        # Check Claude AI status
-        if claude_ai.is_enabled:
-            print(f"✅ Claude AI: ENABLED ({claude_ai.config.model})")
+        # Check Claude AI status (using CLI)
+        if claude_ai.cli_available:
+            print(f"✅ Claude AI: ENABLED (using Claude CLI)")
             print("   Use ask('question') or claude('question') to query AI")
         else:
-            print("⚠️  Claude AI: DISABLED (Set ANTHROPIC_API_KEY to enable)")
+            print("⚠️  Claude AI: DISABLED (run 'claude /login' to enable)")
         
         print("\nAvailable objects: Tournament, Organization, tracker")
         print("Type 'help()' for commands, 'exit()' to quit")
@@ -95,8 +95,8 @@ Examples:
         
         def ask(question):
             """Ask Claude a one-shot question - accepts string, object, list, or dict"""
-            if not claude_ai.is_enabled:
-                print("Claude AI is not enabled. Set ANTHROPIC_API_KEY to enable.")
+            if not claude_ai.cli_available:
+                print("Claude AI is not enabled. Run 'claude /login' to enable.")
                 return None
             
             # Convert input to string intelligently
@@ -195,17 +195,17 @@ Examples:
         
         def ai_enabled():
             """Check if Claude AI is enabled"""
-            if claude_ai.is_enabled:
-                print(f"✅ Claude AI is ENABLED (Model: {claude_ai.config.model})")
+            if claude_ai.cli_available:
+                print(f"✅ Claude AI is ENABLED (using Claude CLI)")
                 return True
             else:
-                print("❌ Claude AI is DISABLED (Set ANTHROPIC_API_KEY to enable)")
+                print("❌ Claude AI is DISABLED (Run 'claude /login' to enable)")
                 return False
         
         def chat(initial_prompt=None):
             """Start interactive chat with Claude - accepts string, object, list, or dict as context"""
-            if not claude_ai.is_enabled:
-                print("Claude AI is not enabled. Set ANTHROPIC_API_KEY to enable.")
+            if not claude_ai.cli_available:
+                print("Claude AI is not enabled. Run 'claude /login' to enable.")
                 return
             
             print("\n" + "=" * 60)
@@ -235,9 +235,8 @@ Examples:
                     'system_prompt': formatted_prompt
                 }
                 
-                result = process_message(formatted_prompt, context)
-                if result['success']:
-                    response = result['response']
+                response = process_message(formatted_prompt, context)
+                if response and not response.startswith("Error:"):
                     print(f"Claude: {response}\n")
                     conversation_history.append(f"Claude: {response}")
                 else:
@@ -276,14 +275,14 @@ Examples:
                     }
                     
                     # Get response from Claude
-                    result = process_message(user_input, context)
+                    response = process_message(user_input, context)
                     
-                    if result['success']:
-                        response = result['response']
+                    if response and not response.startswith("Error:"):
                         print(f"Claude: {response}")
                         conversation_history.append(f"Claude: {response}")
                     else:
-                        print(f"Claude: Sorry, I encountered an error: {result.get('error', 'Unknown error')}")
+                        error_msg = response if response else "Unknown error"
+                        print(f"Claude: Sorry, I encountered an error: {error_msg}")
                     
                 except KeyboardInterrupt:
                     print("\n\nChat interrupted. Type 'quit' to exit chat mode.")
