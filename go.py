@@ -470,21 +470,41 @@ class TournamentCommand:
     
     # Shopify Operations - ALL using the SINGLE shopify_service
     def publish_to_shopify(self, format: str = "html") -> CommandResult:
-        """Publish to Shopify using shopify_service"""
-        from shopify_service import shopify_service, PublishFormat
-        
-        if not shopify_service.is_enabled:
-            return CommandResult(
-                False,
-                "Shopify service not enabled. Set SHOPIFY_DOMAIN and SHOPIFY_ACCESS_TOKEN."
-            )
-        
+        """Publish to Shopify using unified visualizer with tabs"""
+        # Use the unified visualizer with tabs for both player and org rankings
         try:
-            format_enum = PublishFormat(format.lower())
-        except ValueError:
-            return CommandResult(False, f"Invalid format: {format}. Use html, json, markdown, or csv")
-        
-        result = shopify_service.publish_tournament_rankings(format=format_enum)
+            from shopify_unified_visualizer import UnifiedRankingsVisualizer
+            publisher = UnifiedRankingsVisualizer()
+            
+            print("[INFO] Using unified Shopify publisher with tabs")
+            success = publisher.publish_to_shopify()
+            
+            if success:
+                return CommandResult(
+                    True,
+                    "✅ Published unified rankings with tabs to Shopify"
+                )
+            else:
+                return CommandResult(
+                    False,
+                    "❌ Failed to publish using unified visualizer"
+                )
+        except ImportError:
+            # Fall back to original service
+            from shopify_service import shopify_service, PublishFormat
+            
+            if not shopify_service.is_enabled:
+                return CommandResult(
+                    False,
+                    "Shopify service not enabled. Set SHOPIFY_DOMAIN and SHOPIFY_ACCESS_TOKEN."
+                )
+            
+            try:
+                format_enum = PublishFormat(format.lower())
+            except ValueError:
+                return CommandResult(False, f"Invalid format: {format}. Use html, json, markdown, or csv")
+            
+            result = shopify_service.publish_tournament_rankings(format=format_enum)
         
         if result.success:
             return CommandResult(

@@ -1,0 +1,489 @@
+{{ page.title }}
+
+<div class="tournament-rankings-main">
+    <style>
+        .tournament-rankings-main {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .rankings-header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .rankings-header h1 {
+            margin: 0 0 15px 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .rankings-header p {
+            margin: 0 0 20px 0;
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+        .timestamp-box {
+            background: rgba(255,255,255,0.25);
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .rankings-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .rankings-table thead {
+            background: #f7f9fc;
+        }
+        .rankings-table th {
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #364152;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #e4e7eb;
+        }
+        .rankings-table td {
+            padding: 16px 15px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #1a202c;
+        }
+        .rankings-table tbody tr:hover {
+            background: #f9fafb;
+            transition: background 0.2s;
+        }
+        .rankings-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .rank-cell {
+            text-align: center;
+            font-weight: bold;
+            width: 80px;
+        }
+        .rank-1 {
+            color: #FFD700;
+            font-size: 1.4rem;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+        .rank-2 {
+            color: #C0C0C0;
+            font-size: 1.3rem;
+            text-shadow: 0 0 8px rgba(192, 192, 192, 0.3);
+        }
+        .rank-3 {
+            color: #CD7F32;
+            font-size: 1.2rem;
+            text-shadow: 0 0 6px rgba(205, 127, 50, 0.3);
+        }
+        .player-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1.05rem;
+        }
+        .points-cell {
+            text-align: center;
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+        .events-cell {
+            text-align: center;
+            color: #718096;
+        }
+        .attendance-cell {
+            text-align: center;
+            color: #a0aec0;
+        }
+    </style>
+    
+    <div class="rankings-header">
+        <h1>🏆 Player Rankings</h1>
+        <p>San Diego Melee Tournament Rankings</p>
+        <div class="timestamp-box">
+            Last Updated: September 05, 2025 at 01:40 PM PST
+        </div>
+    </div>
+    
+    <table class="rankings-table">
+        <thead>
+            <tr>
+                <th class="rank-cell">Rank</th>
+                <th>Player Name</th>
+                <th class="points-cell">Points</th>
+                <th class="events-cell">Events</th>
+                <th class="attendance-cell">Attendance %</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="rank-cell rank-1">1</td>
+                <td class="player-name">Anthony Montes</td>
+                <td class="points-cell">95</td>
+                <td class="events-cell">12</td>
+                <td class="attendance-cell">2%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell rank-2">2</td>
+                <td class="player-name">Andres A.</td>
+                <td class="points-cell">88</td>
+                <td class="events-cell">11</td>
+                <td class="attendance-cell">2%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell rank-3">3</td>
+                <td class="player-name">Michael Carmona</td>
+                <td class="points-cell">66</td>
+                <td class="events-cell">10</td>
+                <td class="attendance-cell">2%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">4</td>
+                <td class="player-name">M. B.</td>
+                <td class="points-cell">63</td>
+                <td class="events-cell">9</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">5</td>
+                <td class="player-name">Tony Ocegueda</td>
+                <td class="points-cell">60</td>
+                <td class="events-cell">12</td>
+                <td class="attendance-cell">2%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">6</td>
+                <td class="player-name">Kiyarash Younessi</td>
+                <td class="points-cell">53</td>
+                <td class="events-cell">10</td>
+                <td class="attendance-cell">2%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">7</td>
+                <td class="player-name">Andrew P.</td>
+                <td class="points-cell">46</td>
+                <td class="events-cell">8</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">8</td>
+                <td class="player-name">Andrik Miguel Gonzalez</td>
+                <td class="points-cell">45</td>
+                <td class="events-cell">7</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">9</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">43</td>
+                <td class="events-cell">8</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">10</td>
+                <td class="player-name">Andrew Tamat</td>
+                <td class="points-cell">42</td>
+                <td class="events-cell">7</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">11</td>
+                <td class="player-name">Quazar ‎</td>
+                <td class="points-cell">38</td>
+                <td class="events-cell">8</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">12</td>
+                <td class="player-name">Ryan Kaplan</td>
+                <td class="points-cell">37</td>
+                <td class="events-cell">10</td>
+                <td class="attendance-cell">2%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">13</td>
+                <td class="player-name">Darien F.</td>
+                <td class="points-cell">36</td>
+                <td class="events-cell">7</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">14</td>
+                <td class="player-name">Isaac Romero</td>
+                <td class="points-cell">35</td>
+                <td class="events-cell">6</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">15</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">34</td>
+                <td class="events-cell">6</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">16</td>
+                <td class="player-name">Leonardo Lopez</td>
+                <td class="points-cell">30</td>
+                <td class="events-cell">3</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">17</td>
+                <td class="player-name">The Goat</td>
+                <td class="points-cell">30</td>
+                <td class="events-cell">5</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">18</td>
+                <td class="player-name">Robert R.</td>
+                <td class="points-cell">29</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">19</td>
+                <td class="player-name">Reyhan Ticehurst</td>
+                <td class="points-cell">29</td>
+                <td class="events-cell">6</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">20</td>
+                <td class="player-name">Juan D.</td>
+                <td class="points-cell">28</td>
+                <td class="events-cell">7</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">21</td>
+                <td class="player-name">Sonam C.</td>
+                <td class="points-cell">28</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">22</td>
+                <td class="player-name">David Nazarian</td>
+                <td class="points-cell">27</td>
+                <td class="events-cell">7</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">23</td>
+                <td class="player-name">Ken Huang</td>
+                <td class="points-cell">27</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">24</td>
+                <td class="player-name">Geovanni Perezdeleon</td>
+                <td class="points-cell">26</td>
+                <td class="events-cell">5</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">25</td>
+                <td class="player-name">Axel Perez</td>
+                <td class="points-cell">25</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">26</td>
+                <td class="player-name">Henry Jung</td>
+                <td class="points-cell">24</td>
+                <td class="events-cell">6</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">27</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">23</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">28</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">23</td>
+                <td class="events-cell">5</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">29</td>
+                <td class="player-name">Logan DeBetta</td>
+                <td class="points-cell">22</td>
+                <td class="events-cell">5</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">30</td>
+                <td class="player-name">Luis Sanchez</td>
+                <td class="points-cell">22</td>
+                <td class="events-cell">5</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">31</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">22</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">32</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">22</td>
+                <td class="events-cell">6</td>
+                <td class="attendance-cell">1%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">33</td>
+                <td class="player-name">Josh Degante</td>
+                <td class="points-cell">21</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">34</td>
+                <td class="player-name">Cesar Santos</td>
+                <td class="points-cell">21</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">35</td>
+                <td class="player-name">Beck Rogers</td>
+                <td class="points-cell">21</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">36</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">20</td>
+                <td class="events-cell">2</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">37</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">20</td>
+                <td class="events-cell">2</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">38</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">20</td>
+                <td class="events-cell">2</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">39</td>
+                <td class="player-name">Who's Steak!?</td>
+                <td class="points-cell">20</td>
+                <td class="events-cell">2</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">40</td>
+                <td class="player-name">Mark Rodriguez</td>
+                <td class="points-cell">19</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">41</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">19</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">42</td>
+                <td class="player-name">april showers 🌧️</td>
+                <td class="points-cell">19</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">43</td>
+                <td class="player-name">Emil L.</td>
+                <td class="points-cell">17</td>
+                <td class="events-cell">3</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">44</td>
+                <td class="player-name">Evan Meyers</td>
+                <td class="points-cell">17</td>
+                <td class="events-cell">3</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">45</td>
+                <td class="player-name">Christian Quinteros</td>
+                <td class="points-cell">17</td>
+                <td class="events-cell">3</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">46</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">16</td>
+                <td class="events-cell">3</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">47</td>
+                <td class="player-name">Daniel Moran</td>
+                <td class="points-cell">16</td>
+                <td class="events-cell">3</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">48</td>
+                <td class="player-name">Dennis Hoy</td>
+                <td class="points-cell">15</td>
+                <td class="events-cell">3</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">49</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">15</td>
+                <td class="events-cell">2</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+            <tr>
+                <td class="rank-cell ">50</td>
+                <td class="player-name">None</td>
+                <td class="points-cell">14</td>
+                <td class="events-cell">4</td>
+                <td class="attendance-cell">0%</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div style="text-align: center; margin-top: 30px; padding: 20px; color: #718096; font-size: 0.95rem;">
+        <p>Rankings are calculated based on tournament placements and participation.</p>
+        <p>Data sourced from start.gg • Updated in Pacific Time (PST)</p>
+    </div>
+</div>

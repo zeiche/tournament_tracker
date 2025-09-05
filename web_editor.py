@@ -9,7 +9,7 @@ import urllib.parse
 import json
 import re
 from tournament_models import Tournament, Organization, BaseModel, normalize_contact
-from database import init_db
+from database import get_session
 import html
 
 class OrganizationEditor:
@@ -17,15 +17,13 @@ class OrganizationEditor:
     
     def __init__(self):
         # Initialize database
-        try:
-            from database_service import database_service  # DatabaseManager
-            self.db = DatabaseManager()
-            self.db_session = self.db.get_session()
-        except Exception:
-            init_db()
-            self.db_session = None
+        self.db_session = None
         self.tournaments = []
         self.changes = {}
+    
+    def get_session(self):
+        """Get database session"""
+        return get_session()
         
     def is_contact_unnamed(self, primary_contact):
         """Determine if a primary contact needs naming"""
@@ -125,6 +123,8 @@ class EditorWebHandler(BaseHTTPRequestHandler):
             self.serve_unnamed()
         elif parsed.path == '/organizations':
             self.serve_organizations()
+        elif parsed.path == '/rankings':
+            self.serve_rankings()
         elif parsed.path.startswith('/edit/'):
             tournament_id = int(parsed.path.split('/')[-1])
             self.serve_edit_form(tournament_id)
@@ -167,6 +167,7 @@ class EditorWebHandler(BaseHTTPRequestHandler):
     <ul>
         <li><a href="/unnamed">View Unnamed Tournaments</a> - Tournaments needing organization names</li>
         <li><a href="/organizations">View All Organizations</a> - List of all organizations</li>
+        <li><a href="/rankings">View Organization Rankings</a> - Organizations ranked by tournament count</li>
     </ul>
     
     <hr>
@@ -267,6 +268,74 @@ class EditorWebHandler(BaseHTTPRequestHandler):
         {''.join(rows)}
     </table>
     
+    <p><a href="/">Back to Home</a></p>
+</body>
+</html>"""
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(content.encode())
+    
+    def serve_rankings(self):
+        """Serve organization rankings by tournament count"""
+        from sqlalchemy import func
+        from tournament_models import Tournament
+        
+        # Get session
+        with self.editor.get_session() as session:
+            # Query for organization rankings
+            org_stats = session.query(
+                Tournament.owner_name,
+                func.count(Tournament.id).label('tournament_count'),
+                func.sum(Tournament.num_attendees).label('total_attendees')
+            ).filter(
+                Tournament.owner_name.isnot(None)
+            ).group_by(
+                Tournament.owner_name
+            ).order_by(
+                func.count(Tournament.id).desc()
+            ).all()
+        
+        rows = []
+        rank = 1
+        for owner_name, tournament_count, total_attendees in org_stats:
+            if owner_name and tournament_count > 0:
+                avg_attendees = int(total_attendees / tournament_count) if tournament_count > 0 and total_attendees else 0
+                rows.append(f"""
+                <tr>
+                    <td>{rank}</td>
+                    <td>{html.escape(owner_name)}</td>
+                    <td>{tournament_count}</td>
+                    <td>{total_attendees or 0}</td>
+                    <td>{avg_attendees}</td>
+                </tr>""")
+                rank += 1
+        
+        content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>Organization Rankings</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>Organization Rankings</h1>
+    <p><a href="/">Back to Home</a></p>
+    
+    <p>Total: {len(rows)} organizations with tournaments</p>
+    
+    <table border="1">
+        <tr>
+            <th>Rank</th>
+            <th>Organization</th>
+            <th>Tournaments</th>
+            <th>Total Players</th>
+            <th>Avg Players</th>
+        </tr>
+        {''.join(rows)}
+    </table>
+    
+    <hr>
     <p><a href="/">Back to Home</a></p>
 </body>
 </html>"""

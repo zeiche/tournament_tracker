@@ -778,22 +778,39 @@ class UnifiedVisualizer:
         }}
         h1, h2, h3 {{ color: #2c3e50; }}
         table {{
-            width: 100%;
+            width: auto;
+            margin: 0 auto;
             border-collapse: collapse;
             background: white;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
         th, td {{
-            padding: 12px;
+            padding: 6px 10px;
             text-align: left;
             border-bottom: 1px solid #ddd;
+            color: #333;
+        }}
+        td {{
+            color: #333 !important;
+        }}
+        td:first-child,
+        td:nth-child(3),
+        td:nth-child(4),
+        td:nth-child(5),
+        th:first-child,
+        th:nth-child(3),
+        th:nth-child(4),
+        th:nth-child(5) {{
+            text-align: center;
         }}
         th {{
             background: #3498db;
             color: white;
             font-weight: bold;
         }}
-        tr:hover {{ background: #f5f5f5; }}
+        tbody tr:nth-child(even) {{ background: #f9f9f9; }}
+        tbody tr:nth-child(odd) {{ background: white; }}
+        tr:hover {{ background: #e8f4f8 !important; }}
         .summary {{
             background: white;
             padding: 20px;

@@ -63,6 +63,7 @@ class EditorService:
         # Template routes
         app.router.add_get('/', self.index_handler)
         app.router.add_get('/organizations', self.organizations_handler)
+        app.router.add_get('/org-rankings', self.org_rankings_handler)
         app.router.add_get('/tournaments', self.tournaments_handler)
         app.router.add_get('/report', self.report_handler)
         app.router.add_get('/heatmap', self.heatmap_handler)
@@ -112,6 +113,188 @@ class EditorService:
     async def organizations_handler(self, request):
         """Serve the organizations page"""
         html = self._load_template('organizations.html')
+        return web.Response(text=html, content_type='text/html')
+    
+    async def org_rankings_handler(self, request):
+        """Serve organization rankings page"""
+        from database import get_session
+        from tournament_models import Tournament, Organization
+        from sqlalchemy import func
+        import html as html_module
+        
+        with get_session() as session:
+            # Get all tournaments and map them to organizations
+            tournaments = session.query(Tournament).all()
+            
+            # Build organization stats by checking each tournament's organization
+            org_aggregated = {}
+            
+            # Get all organizations and build a contact map
+            organizations = session.query(Organization).all()
+            contact_to_org = {}
+            
+            # Build a map of normalized contacts to organization names
+            from tournament_models import normalize_contact
+            for org in organizations:
+                for contact in org.contacts:
+                    contact_value = contact.get('value', '')
+                    if contact_value:
+                        normalized = normalize_contact(contact_value)
+                        if normalized:
+                            contact_to_org[normalized] = org.display_name
+            
+            for tournament in tournaments:
+                # Try to match tournament to organization via contact
+                org_name = None
+                
+                if tournament.primary_contact:
+                    normalized = normalize_contact(tournament.primary_contact)
+                    if normalized in contact_to_org:
+                        org_name = contact_to_org[normalized]
+                
+                if not org_name:
+                    # Fall back to owner_name if no organization found
+                    org_name = tournament.owner_name or "Unknown"
+                
+                # Aggregate stats by organization name
+                if org_name not in org_aggregated:
+                    org_aggregated[org_name] = {
+                        'tournament_count': 0,
+                        'total_attendees': 0
+                    }
+                org_aggregated[org_name]['tournament_count'] += 1
+                org_aggregated[org_name]['total_attendees'] += (tournament.num_attendees or 0)
+            
+            # Sort by total attendees (total players)
+            sorted_orgs = sorted(org_aggregated.items(), 
+                               key=lambda x: x[1]['total_attendees'], 
+                               reverse=True)
+            
+            # Build rankings table
+            rankings_html = ""
+            rank = 1
+            for org_name, stats in sorted_orgs:
+                tournament_count = stats['tournament_count']
+                total_attendees = stats['total_attendees']
+                avg_attendees = int(total_attendees / tournament_count) if tournament_count > 0 else 0
+                medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else f"{rank}"
+                rankings_html += f"""
+                <tr>
+                    <td>{medal}</td>
+                    <td>{html_module.escape(org_name)}</td>
+                    <td>{tournament_count}</td>
+                    <td>{total_attendees:,}</td>
+                    <td>{avg_attendees}</td>
+                </tr>"""
+                rank += 1
+        
+        # Create the page HTML
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Organization Rankings</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }}
+        .navbar {{
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }}
+        .navbar a {{
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 1rem;
+            font-weight: 500;
+        }}
+        header {{
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }}
+        h1 {{
+            color: #2c3e50;
+            margin: 0;
+        }}
+        .subtitle {{
+            color: #7f8c8d;
+            margin-top: 0.5rem;
+        }}
+        .card {{
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }}
+        th, td {{
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }}
+        th {{
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }}
+        tr:hover {{
+            background: #f8f9fa;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <a href="/">← Home</a>
+            <a href="/organizations">Organizations</a>
+            <a href="/tournaments">Tournaments</a>
+            <a href="/report">Reports</a>
+        </nav>
+        
+        <header>
+            <h1>🏆 Organization Rankings</h1>
+            <p class="subtitle">Tournament organizers ranked by activity</p>
+        </header>
+        
+        <div class="card">
+            <h3>Top Tournament Organizers</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Organizer</th>
+                        <th>Tournaments</th>
+                        <th>Total Players</th>
+                        <th>Avg Players</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rankings_html}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>"""
         return web.Response(text=html, content_type='text/html')
     
     async def tournaments_handler(self, request):
@@ -1604,6 +1787,31 @@ class EditorService:
 
 # Singleton instance
 editor_service = EditorService()
+
+
+# Helper function for compatibility
+def get_unnamed_tournaments():
+    """Get tournaments that don't have an organization assigned"""
+    from database import session_scope
+    from tournament_models import Tournament
+    
+    with session_scope() as session:
+        tournaments = session.query(Tournament).filter(
+            Tournament.organization_id.is_(None)
+        ).order_by(Tournament.start_date.desc()).all()
+        
+        result = []
+        for t in tournaments:
+            result.append({
+                'id': t.id,
+                'name': t.name,
+                'owner_name': t.owner_name,
+                'contact': t.owner_name,
+                'start_date': t.start_date.strftime('%Y-%m-%d') if t.start_date else 'Unknown',
+                'attendees': t.num_attendees or 0
+            })
+        
+        return result
 
 
 # Convenience functions
