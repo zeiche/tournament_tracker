@@ -13,6 +13,8 @@ from datetime import datetime
 
 from database_service import database_service
 from log_manager import LogManager
+from capability_announcer import announcer
+from shutdown_coordinator import on_shutdown
 
 
 class EditorMode(Enum):
@@ -54,6 +56,24 @@ class EditorService:
             self.app: Optional[web.Application] = None
             self.runner: Optional[web.AppRunner] = None
             self._initialized = True
+            
+            # Announce ourselves
+            announcer.announce(
+                "EditorService",
+                [
+                    "I provide web-based tournament editing",
+                    f"I run on port {self.config.port}",
+                    "I handle organization management",
+                    "I support graceful shutdown"
+                ]
+            )
+            
+            # Register for shutdown
+            @on_shutdown
+            async def shutdown_editor():
+                await self.shutdown()
+                
+            self.shutdown_handler = shutdown_editor
     
     def create_app(self) -> web.Application:
         """Create web application"""
@@ -1373,11 +1393,79 @@ class EditorService:
         except KeyboardInterrupt:
             self.logger.info("Editor service stopped by user")
     
+    def start(self, port: Optional[int] = None):
+        """Start the web editor service (compatibility method)"""
+        if port:
+            self.config.port = port
+            
+        # Check if port is already in use
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex((self.config.host, self.config.port))
+        sock.close()
+        
+        if result == 0:
+            # Port is in use - try to kill existing process
+            announcer.announce(
+                "EditorService",
+                [f"Port {self.config.port} already in use, checking for existing editor..."]
+            )
+            
+            # Kill any existing editor processes
+            import subprocess
+            try:
+                # Find processes using the port
+                subprocess.run(['pkill', '-f', f'go.py.*edit-contacts'], capture_output=True)
+                subprocess.run(['pkill', '-f', f'editor_service'], capture_output=True)
+                
+                # Wait a moment for process to die
+                import time
+                time.sleep(1)
+                
+                # Check again
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                result = sock.connect_ex((self.config.host, self.config.port))
+                sock.close()
+                
+                if result == 0:
+                    self.logger.error(f"Could not free port {self.config.port}")
+                    announcer.announce(
+                        "EditorService",
+                        [f"❌ Failed to free port {self.config.port}"]
+                    )
+                    return
+                else:
+                    announcer.announce(
+                        "EditorService",
+                        ["✅ Killed existing editor, starting fresh..."]
+                    )
+            except Exception as e:
+                self.logger.error(f"Error killing existing process: {e}")
+        
+        self.run_blocking()
+    
     async def stop(self):
         """Stop the web server"""
         if self.runner:
             await self.runner.cleanup()
             self.runner = None
+    
+    async def shutdown(self):
+        """Gracefully shutdown the web server"""
+        announcer.announce(
+            "EditorService",
+            ["Shutting down web editor service..."]
+        )
+        
+        # Stop the web server
+        await self.stop()
+        
+        # Clean up any resources
+        self.logger.info("Web editor service shut down gracefully")
+        announcer.announce(
+            "EditorService",
+            ["✅ Web editor shutdown complete"]
+        )
 
 
     async def get_attendance_timeline(self, request):

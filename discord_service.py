@@ -24,6 +24,7 @@ class DiscordService:
         self.client = None
         self.running = False
         self.token = os.getenv('DISCORD_BOT_TOKEN')
+        self.voice_service = None
         
         # Try to load query handler (optional)
         self.query_handler = None
@@ -36,6 +37,36 @@ class DiscordService:
             logger.info("Query handler loaded")
         except ImportError as e:
             logger.warning(f"Query handler not available: {e}")
+        
+        # Discover services via Bonjour pattern
+        try:
+            from capability_discovery import discover_capability
+            
+            # Import services so they register themselves
+            import polymorphic_async  # Async service for everyone!
+            import voice_service
+            import voice_listener
+            import discord_voice_receiver
+            import voice_conversation_listener
+            import polymorphic_storage
+            import discord_audio_sink
+            
+            # Discover voice service
+            self.voice_service = discover_capability('voice')
+            if self.voice_service:
+                logger.info("Voice service discovered and available")
+            else:
+                logger.info("Voice service not discovered")
+                
+            # Discover voice listener service
+            self.voice_listener = discover_capability('voice_listener')
+            if self.voice_listener:
+                logger.info("Voice listener service discovered and available")
+            else:
+                logger.info("Voice listener service not discovered")
+                
+        except ImportError as e:
+            logger.info(f"Capability discovery not available: {e}")
     
     async def start(self, token: Optional[str] = None):
         """Start the Discord bot"""
@@ -44,10 +75,12 @@ class DiscordService:
             logger.error("No Discord token provided")
             return False
         
-        # Create client with DM support
+        # Create client with DM and voice support
         intents = discord.Intents.default()
         intents.message_content = True
         intents.dm_messages = True  # Enable DM messages
+        intents.voice_states = True  # Enable voice support
+        intents.guilds = True
         self.client = discord.Client(intents=intents)
         
         # Register handlers
@@ -55,6 +88,34 @@ class DiscordService:
         async def on_ready():
             logger.info(f"Bot ready: {self.client.user}")
             self.running = True
+            
+            # Initialize voice service with our client if available
+            if self.voice_service:
+                await self.voice_service.initialize_with_client(self.client)
+                
+                # Auto-join #General voice channel if it exists
+                for guild in self.client.guilds:
+                    for channel in guild.voice_channels:
+                        if channel.name.lower() == 'general':
+                            success = await self.voice_service.join_channel(guild.id, channel.name)
+                            if success:
+                                logger.info(f"Auto-joined #{channel.name} in {guild.name}")
+                                await self.voice_service.speak(
+                                    guild.id, 
+                                    "Claude is now connected to the General voice channel"
+                                )
+                                
+                                # Enable voice mode if listener is available
+                                if self.voice_listener:
+                                    self.voice_listener.enable_voice_mode(guild.id, channel.id)
+                                    logger.info(f"Voice mode enabled in #{channel.name}")
+                                
+                                # Setup voice receiver to announce audio events
+                                voice_receiver = discover_capability('discord_voice_receiver')
+                                if voice_receiver and guild.id in self.voice_service.voice_clients:
+                                    vc = self.voice_service.voice_clients[guild.id]
+                                    voice_receiver.setup_voice_client(vc, guild.id)
+                                    logger.info(f"Voice receiver setup for #{channel.name}")
         
         @self.client.event
         async def on_message(message: discord.Message):
@@ -68,6 +129,68 @@ class DiscordService:
                 return
             
             logger.info(f"[{message.author}]: {content}")
+            
+            # Check for voice simulation commands
+            if content.lower().startswith('!voice '):
+                # Announce simulated voice through the voice receiver
+                voice_receiver = discover_capability('discord_voice_receiver')
+                if voice_receiver:
+                    voice_text = content[7:].strip()
+                    voice_receiver.simulate_voice_received(
+                        message.author.id,
+                        message.guild.id if hasattr(message, 'guild') else 0,
+                        voice_text
+                    )
+                    await message.channel.send("🎤 Voice command announced to system")
+                else:
+                    # Fallback to old method
+                    if self.voice_listener:
+                        voice_text = content[7:].strip()
+                        response = await self.voice_listener.process_voice_command(
+                            message.guild.id if hasattr(message, 'guild') else 0,
+                            message.author.id,
+                            voice_text
+                        )
+                        
+                        if response:
+                            await message.channel.send(f"🎤 Claude says: {response}")
+                            if self.voice_service and hasattr(message, 'guild'):
+                                await self.voice_service.speak(message.guild.id, response)
+                return
+            
+            # Check for voice commands
+            if self.voice_service and content.lower().startswith(('!join', '!leave', '!say')):
+                if content.lower() == '!join':
+                    # Join the user's voice channel
+                    if hasattr(message, 'guild') and message.guild:
+                        success = await self.voice_service.join_user_channel(
+                            message.guild.id, 
+                            message.author.id
+                        )
+                        if success:
+                            await message.channel.send("🎤 Joined your voice channel!")
+                        else:
+                            await message.channel.send("❌ Could not join voice channel")
+                            
+                elif content.lower() == '!leave':
+                    # Leave voice channel
+                    if hasattr(message, 'guild') and message.guild:
+                        success = await self.voice_service.leave_channel(message.guild.id)
+                        if success:
+                            await message.channel.send("👋 Left voice channel")
+                        else:
+                            await message.channel.send("❌ Not in a voice channel")
+                            
+                elif content.lower().startswith('!say '):
+                    # Say something in voice
+                    text = content[5:].strip()
+                    if hasattr(message, 'guild') and message.guild:
+                        success = await self.voice_service.speak(message.guild.id, text)
+                        if success:
+                            await message.channel.send(f"🎙️ Said: {text}")
+                        else:
+                            await message.channel.send("❌ Not connected to voice")
+                return
             
             # Handle with query system if available
             if self.query_handler:
@@ -169,27 +292,15 @@ def start_discord_bot(mode: str = None) -> bool:
                     if not key.startswith('export'):
                         os.environ[key] = value
     
-    # Use Claude bridge bot for natural conversation
+    # Use THE polymorphic bridge - the ONE true bridge
     try:
-        logger.info("Starting Discord Claude bridge bot...")
-        from discord_claude_bridge import ClaudeBridgeBot
-        token = os.getenv('DISCORD_BOT_TOKEN')
-        if not token:
-            logger.error("DISCORD_BOT_TOKEN not set")
-            return False
-        bot = ClaudeBridgeBot(token)
-        bot.run()
+        logger.info("Starting Polymorphic Discord Bridge...")
+        from polymorphic_discord_bridge import main
+        main()
         return True
     except ImportError as e:
-        logger.warning(f"Claude bridge not available, falling back to basic bot: {e}")
-        # Fall back to basic bot
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(discord_service.start())
-        except KeyboardInterrupt:
-            logger.info("Stopped by user")
-            return True
+        logger.error(f"Polymorphic bridge not available: {e}")
+        return False
     except KeyboardInterrupt:
         logger.info("Stopped by user")
         return True

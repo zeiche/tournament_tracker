@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-go.py - The PROPER go.py that follows Bonjour principles
+go_lightweight.py - The PROPER go.py that follows Bonjour principles
 
 This is just a ROUTER that:
 1. Parses command line arguments
@@ -10,23 +10,7 @@ This is just a ROUTER that:
 """
 
 import sys
-import os
 import argparse
-from pathlib import Path
-
-# Load environment variables from .env file FIRST
-env_file = Path(__file__).parent / '.env'
-if env_file.exists():
-    with open(env_file) as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                if key and not key.startswith('export'):
-                    os.environ[key] = value
-
 from capability_announcer import announcer
 
 class LightweightRouter:
@@ -43,12 +27,22 @@ class LightweightRouter:
     def route(self, args):
         """Route to appropriate module based on arguments"""
         
-        # Discord bot (THE polymorphic bridge)
+        # Discord bot (any mode)
         if args.get('discord_bot'):
             mode = args.get('discord_mode', 'conversational')
-            announcer.announce("Router", ["Routing to Discord bot"])
-            from discord_service import start_discord_bot
-            start_discord_bot(mode)
+            
+            if mode == 'voice':
+                # Voice bot handles its own setup
+                announcer.announce("Router", ["Routing to voice bot"])
+                from fire_voice_bot import main as voice_main
+                import asyncio
+                asyncio.run(voice_main())
+                
+            else:
+                # Text bot handles its own setup
+                announcer.announce("Router", ["Routing to text Discord bot"])
+                from discord_service import start_discord_bot
+                start_discord_bot(mode)
         
         # Web editor
         elif args.get('edit_contacts'):
@@ -100,51 +94,12 @@ class LightweightRouter:
             subprocess.run(['pkill', '-f', 'web_editor'], stderr=subprocess.DEVNULL)
             print("✅ Services restarted")
         
-        # Service status
-        elif args.get('service_status'):
-            announcer.announce("Router", ["Checking service status"])
-            import subprocess
-            print("=== Service Status ===")
-            
-            # Check for Discord bot
-            result = subprocess.run(['pgrep', '-f', 'discord'], capture_output=True, text=True)
-            if result.returncode == 0:
-                print("✅ Discord bot: Running")
-            else:
-                print("❌ Discord bot: Not running")
-            
-            # Check for web editor
-            result = subprocess.run(['pgrep', '-f', 'web_editor'], capture_output=True, text=True)
-            if result.returncode == 0:
-                print("✅ Web editor: Running")
-            else:
-                print("❌ Web editor: Not running")
-            
-            # Check voice service capability
-            try:
-                from capability_discovery import discover_capability
-                voice_service = discover_capability('voice')
-                if voice_service:
-                    print("✅ Voice service: Available")
-                    status = voice_service.get_status()
-                    print(f"   Connected guilds: {status.get('connected_guilds', 0)}")
-                else:
-                    print("⚠️  Voice service: Not registered")
-            except:
-                print("⚠️  Voice service: Module error")
-        
         # Stats
         elif args.get('stats'):
             announcer.announce("Router", ["Routing to stats viewer"])
             from database_service import DatabaseService
             db = DatabaseService()  # It initializes itself
             db.show_stats()
-        
-        # Shutdown command
-        elif args.get('shutdown'):
-            announcer.announce("Router", ["Initiating graceful shutdown"])
-            from shutdown_coordinator import request_shutdown
-            request_shutdown()
         
         else:
             print("No valid command specified. Use --help for options.")
@@ -193,16 +148,10 @@ def parse_args():
     # Service management
     parser.add_argument('--restart-services', action='store_true',
                        help='Restart all services')
-    parser.add_argument('--service-status', action='store_true',
-                       help='Check status of all services')
     
     # Stats
     parser.add_argument('--stats', action='store_true',
                        help='Show database statistics')
-    
-    # Shutdown
-    parser.add_argument('--shutdown', action='store_true',
-                       help='Gracefully shutdown all services')
     
     return vars(parser.parse_args())
 

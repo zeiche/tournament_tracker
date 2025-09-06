@@ -16,6 +16,7 @@ class CapabilityRegistry:
         self.capabilities = {}
         self.models = {}
         self.methods = {}
+        self.services = {}  # For discoverable services
         
     def register_model(self, model_class):
         """
@@ -151,10 +152,30 @@ class CapabilityRegistry:
             pass
             
         return self
+    
+    def register_service(self, service_name: str, service_getter):
+        """
+        Register a discoverable service.
+        service_getter should be a function that returns the service instance.
+        """
+        self.services[service_name] = service_getter
+        return self
 
 
 # Global registry instance
 capability_registry = CapabilityRegistry()
+
+
+def register_capability(service_name: str, service_getter):
+    """Register a service for discovery by other modules."""
+    capability_registry.register_service(service_name, service_getter)
+
+
+def discover_capability(service_name: str):
+    """Discover and get a registered service by name."""
+    if service_name in capability_registry.services:
+        return capability_registry.services[service_name]()
+    return None
 
 
 def discover_all_capabilities() -> str:

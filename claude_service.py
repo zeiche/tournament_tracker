@@ -28,6 +28,10 @@ from database_service import database_service
 # Import fuzzy search for user query processing
 from fuzzy_search import fuzzy_searcher, fuzzy_search_objects
 
+# Import for graceful shutdown
+from capability_announcer import announcer
+from shutdown_coordinator import on_shutdown
+
 
 class ConversationType(Enum):
     """Types of Claude conversations"""
@@ -103,6 +107,32 @@ class ClaudeService:
             }
             
             ClaudeService._initialized = True
+            
+            # Announce ourselves and our INTELLIGENCE capabilities
+            announcer.announce(
+                "ClaudeService", 
+                [
+                    "I am Claude, an AI assistant with deep reasoning",
+                    "I can analyze tournament data and find patterns",
+                    "I can answer complex questions about players and events",
+                    "I can explain code and suggest improvements",
+                    "I can write reports and summaries",
+                    "I can search the database intelligently",
+                    "I understand natural language queries",
+                    "I can help debug issues and solve problems",
+                    "I maintain conversation context",
+                    f"Available via: Terminal chat, Web ({self.config.web_port}), API",
+                    f"Using model: {self.config.model}",
+                    "Ask me anything about tournaments, players, or code!"
+                ]
+            )
+            
+            # Register for shutdown
+            @on_shutdown
+            async def shutdown_claude():
+                await self.shutdown()
+                
+            self.shutdown_handler = shutdown_claude
             
             if self.config.is_enabled:
                 print("✅ Claude service initialized (SINGLE SOURCE OF TRUTH)")
@@ -383,6 +413,30 @@ class ClaudeService:
         """Async version of Discord database question for Discord bot"""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self.ask_discord_database_question, user_message)
+    
+    async def shutdown(self):
+        """Gracefully shutdown Claude service"""
+        announcer.announce(
+            "ClaudeService",
+            ["Shutting down Claude service..."]
+        )
+        
+        # Close any active web server
+        if hasattr(self, '_web_runner') and self._web_runner:
+            await self._web_runner.cleanup()
+            self._web_runner = None
+            
+        # Save conversation history if needed
+        if self._conversation_history:
+            logger.info(f"Saving {len(self._conversation_history)} conversation items")
+            
+        # Clear active conversations
+        self._active_conversations.clear()
+        
+        announcer.announce(
+            "ClaudeService",
+            ["✅ Claude service shutdown complete"]
+        )
 
 
 # ============================================================================
