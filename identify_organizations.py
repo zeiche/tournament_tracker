@@ -7,7 +7,7 @@ import sys
 import time
 import json
 from typing import Optional, Dict, List, Tuple
-from database import session_scope
+from database_service import database_service
 from database_service import database_service
 from tournament_models import Tournament, Organization
 from editor_service import editor_service

@@ -11,7 +11,6 @@ import subprocess
 from aiohttp import web
 from datetime import datetime
 
-from database import session_scope
 from database_service import database_service
 from log_manager import LogManager
 
@@ -117,20 +116,20 @@ class EditorService:
     
     async def org_rankings_handler(self, request):
         """Serve organization rankings page"""
-        from database import get_session
+        from database_service import database_service
         from tournament_models import Tournament, Organization
         from sqlalchemy import func
         import html as html_module
         
         with get_session() as session:
             # Get all tournaments and map them to organizations
-            tournaments = session.query(Tournament).all()
+            tournaments = database_service.get_all_tournaments()
             
             # Build organization stats by checking each tournament's organization
             org_aggregated = {}
             
             # Get all organizations and build a contact map
-            organizations = session.query(Organization).all()
+            organizations = database_service.get_all_organizations()
             contact_to_org = {}
             
             # Build a map of normalized contacts to organization names
@@ -325,7 +324,7 @@ class EditorService:
             </tr>"""
         
         # Get recent tournaments
-        from database import session_scope
+        from database_service import database_service
         from tournament_models import Tournament
         with session_scope() as session:
             recent_tournaments = session.query(Tournament)\
@@ -746,7 +745,7 @@ class EditorService:
         player_id = int(request.match_info['player_id'])
         
         with session_scope() as session:
-            player = session.query(Player).get(player_id)
+            player = database_service.get_player_by_id(player_id)
             
             if not player:
                 return web.Response(text="<h1>Player not found</h1>", status=404)
@@ -825,7 +824,7 @@ class EditorService:
         tournament_id = int(request.match_info['tournament_id'])
         
         with session_scope() as session:
-            tournament = session.query(Tournament).get(tournament_id)
+            tournament = database_service.get_tournament_by_id(tournament_id)
             
             if not tournament:
                 return web.Response(text="<h1>Tournament not found</h1>", status=404)
@@ -1239,7 +1238,7 @@ class EditorService:
         from tournament_models import Organization
         
         with session_scope() as session:
-            orgs = session.query(Organization).all()
+            orgs = database_service.get_all_organizations()
             
             data = []
             for org in orgs:
@@ -1267,7 +1266,7 @@ class EditorService:
         data = await request.json()
         
         with session_scope() as session:
-            org = session.query(Organization).get(org_id)
+            org = database_service.get_organization_by_id(org_id)
             if org:
                 # Update name
                 if 'name' in data:
@@ -1302,8 +1301,8 @@ class EditorService:
         target_id = int(data.get('target_id'))
         
         with session_scope() as session:
-            source = session.query(Organization).get(source_id)
-            target = session.query(Organization).get(target_id)
+            source = database_service.get_organization_by_id(source_id)
+            target = database_service.get_organization_by_id(target_id)
             
             if not source or not target:
                 return web.json_response({'error': 'Organization not found'}, status=404)
@@ -1339,7 +1338,7 @@ class EditorService:
         contacts = data.get('contacts', [])
         
         with session_scope() as session:
-            org = session.query(Organization).get(org_id)
+            org = database_service.get_organization_by_id(org_id)
             if org:
                 org.contacts = contacts
                 session.commit()
@@ -1792,7 +1791,7 @@ editor_service = EditorService()
 # Helper function for compatibility
 def get_unnamed_tournaments():
     """Get tournaments that don't have an organization assigned"""
-    from database import session_scope
+    from database_service import database_service
     from tournament_models import Tournament
     
     with session_scope() as session:

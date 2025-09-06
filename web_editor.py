@@ -9,7 +9,7 @@ import urllib.parse
 import json
 import re
 from tournament_models import Tournament, Organization, BaseModel, normalize_contact
-from database import get_session
+from database_service import database_service
 import html
 
 class OrganizationEditor:

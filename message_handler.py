@@ -101,7 +101,7 @@ Examples:
         
         # Try to get database status
         try:
-            from database import get_session
+            from database_service import database_service
             with get_session() as session:
                 from tournament_models import Tournament, Player
                 tournament_count = session.query(Tournament).count()

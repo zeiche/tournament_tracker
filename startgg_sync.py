@@ -362,11 +362,11 @@ class TournamentSyncProcessor:
         
         # Simply replace/create tournament with latest data from start.gg
         from tournament_models import Tournament
-        from database import session_scope
+        from database_service import database_service
         
         # Use proper session management for updates
         with session_scope() as session:
-            existing = session.query(Tournament).get(tournament_id)
+            existing = database_service.get_tournament_by_id(tournament_id)
             if existing:
                 # Replace all fields with current start.gg data
                 for key, value in tournament_record.items():

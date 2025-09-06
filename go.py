@@ -536,7 +536,7 @@ class TournamentCommand:
         try:
             from visualizer import visualize, heatmap, chart
             from tournament_models import Tournament
-            from database import session_scope
+            from database_service import database_service
             
             files_created = []
             

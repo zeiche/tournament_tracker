@@ -288,7 +288,7 @@ Always set 'output' variable. Format for Discord with ** for bold."""
                                 code = code[start:end].strip()
                         
                         # Execute the code
-                        from database import session_scope
+                        from database_service import database_service
                         from tournament_models import Player, Tournament, Organization, TournamentPlacement
                         from sqlalchemy import func, case, desc
                         from datetime import datetime

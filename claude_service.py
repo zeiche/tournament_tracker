@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 # Environment variables are already loaded by go.py
 # load_dotenv() - REMOVED: Duplicate loading
 
-# Use the single database entry point
-from database import session_scope, get_session
+# Use the single database service
+from database_service import database_service
 
 # Import fuzzy search for user query processing
 from fuzzy_search import fuzzy_searcher, fuzzy_search_objects
@@ -194,17 +194,16 @@ class ClaudeService:
         
         # Add tournament context if requested
         if context.get('include_tournaments'):
-            with session_scope() as session:
-                from tournament_models import Tournament
-                recent = session.query(Tournament).order_by(
-                    Tournament.start_at.desc()
-                ).limit(5).all()
-                
-                if recent:
-                    context_str = "\nRecent tournaments:\n"
-                    for t in recent:
-                        context_str += f"- {t.name} ({t.num_attendees} attendees)\n"
-                    question = f"{question}\n{context_str}"
+            # Get recent tournaments using DatabaseService
+            recent = database_service.get_recent_tournaments(days=30)
+            
+            if recent:
+                context_str = "\nRecent tournaments:\n"
+                for t in recent[:5]:  # Limit to 5 most recent
+                    name = t.get('name', 'Unknown')
+                    attendees = t.get('num_attendees', 0)
+                    context_str += f"- {name} ({attendees} attendees)\n"
+                question = f"{question}\n{context_str}"
         
         return question
     
@@ -293,25 +292,22 @@ class ClaudeService:
         
         if player_name:
             # Add player context with fuzzy search
-            with session_scope() as session:
-                from tournament_models import Player
-                
-                # Get all players for fuzzy matching
-                all_players = session.query(Player).all()
-                
-                # Use fuzzy search to find best match
-                matches = fuzzy_search_objects(
-                    player_name,
-                    all_players,
-                    key_func=lambda p: p.gamer_tag,
-                    limit=1
-                )
-                
-                if matches:
-                    player = matches[0]
-                    context['player'] = {
-                        'gamer_tag': player.gamer_tag,
-                        'name': player.name,
+            # Get all players for fuzzy matching
+            all_players = database_service.get_all_players()
+            
+            # Use fuzzy search to find best match
+            matches = fuzzy_search_objects(
+                player_name,
+                all_players,
+                key_func=lambda p: p.gamertag if hasattr(p, 'gamertag') else str(p),
+                limit=1
+            )
+            
+            if matches:
+                player = matches[0]
+                context['player'] = {
+                    'gamer_tag': player.gamertag if hasattr(player, 'gamertag') else str(player),
+                    'name': player.name if hasattr(player, 'name') else None,
                         'fuzzy_matched': True,
                         'original_query': player_name
                     }

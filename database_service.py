@@ -36,7 +36,8 @@ class DatabaseService:
     
     @contextmanager
     def session_scope(self):
-        """Context manager for database sessions"""
+        """Context manager for database sessions - for complex operations only"""
+        from database import session_scope
         with session_scope() as session:
             yield session
     
@@ -322,6 +323,168 @@ class DatabaseService:
                     points.append((t.lat, t.lng, weight, str(t)))
         
         return points
+    
+    def get_all_tournaments(self) -> List[Any]:
+        """Get all tournaments"""
+        from tournament_models import Tournament
+        with self.session_scope() as session:
+            return session.query(Tournament).all()
+    
+    def get_all_organizations(self) -> List[Any]:
+        """Get all organizations"""
+        from tournament_models import Organization
+        with self.session_scope() as session:
+            return session.query(Organization).all()
+    
+    def get_all_players(self) -> List[Any]:
+        """Get all players"""
+        from tournament_models import Player
+        with self.session_scope() as session:
+            return session.query(Player).all()
+    
+    def get_organization_by_id(self, org_id: int) -> Optional[Any]:
+        """Get organization by ID"""
+        from tournament_models import Organization
+        with self.session_scope() as session:
+            return session.query(Organization).get(org_id)
+    
+    def get_player_by_id(self, player_id: int) -> Optional[Any]:
+        """Get player by ID"""
+        from tournament_models import Player
+        with self.session_scope() as session:
+            return session.query(Player).get(player_id)
+    
+    def get_tournament_placements(self, tournament_id: int) -> List[Any]:
+        """Get all placements for a tournament"""
+        from tournament_models import TournamentPlacement
+        with self.session_scope() as session:
+            return session.query(TournamentPlacement).filter_by(
+                tournament_id=tournament_id
+            ).order_by(TournamentPlacement.placement).all()
+    
+    def upsert_tournament(self, tournament_data: Dict[str, Any]) -> Any:
+        """Create or update a tournament"""
+        from tournament_models import Tournament
+        with self.session_scope() as session:
+            tournament_id = tournament_data.get('id')
+            if tournament_id:
+                existing = session.query(Tournament).get(tournament_id)
+                if existing:
+                    for key, value in tournament_data.items():
+                        if hasattr(existing, key):
+                            setattr(existing, key, value)
+                    session.commit()
+                    return existing
+            
+            # Create new
+            tournament = Tournament(**tournament_data)
+            session.add(tournament)
+            session.commit()
+            return tournament
+    
+    def get_or_create_player(self, startgg_id: str, gamer_tag: str, name: Optional[str] = None) -> Any:
+        """Get existing player or create new one"""
+        from tournament_models import Player
+        with self.session_scope() as session:
+            player = session.query(Player).filter_by(startgg_id=startgg_id).first()
+            if not player:
+                player = Player(startgg_id=startgg_id, gamertag=gamer_tag, name=name)
+                session.add(player)
+                session.commit()
+            return player
+    
+    def update_organization(self, org_id: int, display_name: Optional[str] = None, 
+                           contacts_json: Optional[str] = None) -> bool:
+        """Update organization details"""
+        from tournament_models import Organization
+        with self.session_scope() as session:
+            org = session.query(Organization).get(org_id)
+            if org:
+                if display_name:
+                    org.display_name = display_name
+                if contacts_json is not None:
+                    org.contacts_json = contacts_json
+                session.commit()
+                return True
+            return False
+    
+    def merge_organizations(self, source_id: int, target_id: int) -> bool:
+        """Merge source organization into target"""
+        from tournament_models import Tournament, Organization
+        with self.session_scope() as session:
+            source = session.query(Organization).get(source_id)
+            target = session.query(Organization).get(target_id)
+            
+            if not source or not target:
+                return False
+            
+            # Move all tournaments from source to target
+            session.query(Tournament).filter_by(
+                organization_id=source_id
+            ).update({'organization_id': target_id})
+            
+            # Delete source organization
+            session.delete(source)
+            session.commit()
+            return True
+    
+    def create_organization(self, display_name: str, contacts_json: str = '[]') -> Any:
+        """Create a new organization"""
+        from tournament_models import Organization
+        with self.session_scope() as session:
+            org = Organization(display_name=display_name, contacts_json=contacts_json)
+            session.add(org)
+            session.commit()
+            return org
+    
+    def get_tournaments_by_organization(self, org_id: int) -> List[Any]:
+        """Get all tournaments for an organization"""
+        from tournament_models import Tournament
+        with self.session_scope() as session:
+            return session.query(Tournament).filter_by(organization_id=org_id).all()
+    
+    def get_player_placements(self, player_id: int) -> List[Any]:
+        """Get all tournament placements for a player"""
+        from tournament_models import TournamentPlacement
+        with self.session_scope() as session:
+            return session.query(TournamentPlacement).filter_by(
+                player_id=player_id
+            ).order_by(TournamentPlacement.placement).all()
+    
+    def bulk_get_or_create_players(self, players_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Bulk create or get players"""
+        from tournament_models import Player
+        created = []
+        existing = []
+        
+        with self.session_scope() as session:
+            for player_data in players_data:
+                startgg_id = player_data.get('startgg_id')
+                if startgg_id:
+                    player = session.query(Player).filter_by(startgg_id=startgg_id).first()
+                    if player:
+                        existing.append(player)
+                    else:
+                        player = Player(**player_data)
+                        session.add(player)
+                        created.append(player)
+            
+            session.commit()
+        
+        return {'created': created, 'existing': existing}
+    
+    def get_tournaments_needing_standings(self, limit: int = 10) -> List[Any]:
+        """Get tournaments that don't have standings fetched yet"""
+        from tournament_models import Tournament
+        from sqlalchemy import and_, or_
+        
+        with self.session_scope() as session:
+            return session.query(Tournament).filter(
+                or_(
+                    Tournament.standings_fetched == False,
+                    Tournament.standings_fetched.is_(None)
+                )
+            ).limit(limit).all()
 
 
 # Singleton instance - import this

@@ -13,7 +13,7 @@ from enum import Enum
 import hashlib
 import json
 
-from database import session_scope
+from database_service import database_service
 from log_manager import LogManager
 
 

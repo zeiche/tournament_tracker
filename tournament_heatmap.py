@@ -6,7 +6,7 @@ Creates both static images and interactive HTML maps
 
 import json
 import numpy as np
-from database import session_scope
+from database_service import database_service
 from tournament_models import Tournament
 from log_manager import LogManager
 

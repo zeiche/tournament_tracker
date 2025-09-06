@@ -6,7 +6,7 @@ Normalizes event names in the database that haven't been normalized yet
 
 from sqlalchemy import func, distinct
 from event_standardizer import EventStandardizer
-from database import session_scope
+from database_service import database_service
 from tournament_models import TournamentPlacement
 from log_manager import LogManager
 

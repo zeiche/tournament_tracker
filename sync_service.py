@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from enum import Enum
 
-from database import session_scope
+from database_service import database_service
 from startgg_service import startgg_service, SyncResult
 from log_manager import LogManager
 

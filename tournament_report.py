@@ -372,22 +372,16 @@ def generate_geo_data(output_format='json'):
     Generate geographic data for tournaments
     Returns GeoJSON for mapping or regular JSON for analysis
     """
-    from database import get_session
-    from tournament_models import Tournament
     from collections import defaultdict
     import json
     
     geo_data = []
     city_stats = defaultdict(int)
     
-    with get_session() as session:
-        # Get all tournaments with geo data
-        tournaments = session.query(Tournament).filter(
-            Tournament.lat.isnot(None),
-            Tournament.lng.isnot(None)
-        ).all()
-        
-        for t in tournaments:
+    # Get all tournaments with geo data using DatabaseService
+    tournaments = database_service.get_tournaments_with_location()
+    
+    for t in tournaments:
             try:
                 lat = float(t.lat)
                 lng = float(t.lng)

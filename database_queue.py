@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Callable
 
 # Import centralized systems
-from database import get_session, clear_session
+from database_service import database_service
+from database import clear_session
 from log_manager import LogManager
 
 # Initialize logger for this module

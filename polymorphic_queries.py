@@ -8,7 +8,7 @@ Everything accepts anything and figures out what to do.
 from typing import Any, List, Optional, Union
 from sqlalchemy import func, case, desc, and_
 from sqlalchemy.orm import Session
-from database import session_scope
+from database_service import database_service
 from tournament_models import Player, Tournament, Organization, TournamentPlacement
 from formatters import PlayerFormatter, TournamentFormatter
 from points_system import PointsSystem
