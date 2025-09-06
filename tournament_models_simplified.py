@@ -59,16 +59,16 @@ class TournamentPolymorphic(PolymorphicModel):
         if session:
             from tournament_models import Tournament
             return session.query(Tournament).filter(
-                Tournament.venue_name == self.venue_name,
-                Tournament.id != self.id
-            ).order_by(Tournament.date.desc()).limit(5).all()
+                Tournament.venue_name == getattr(self, 'venue_name', None),
+                Tournament.id != getattr(self, 'id', None)
+            ).order_by(Tournament.start_date.desc()).limit(5).all()
         return []
     
     def _ask_statistics(self) -> Dict:
         """Get tournament statistics"""
         stats = {
             'name': getattr(self, 'name', None),
-            'date': getattr(self, 'date', None),
+            'date': getattr(self, 'start_date', None),
             'attendance': getattr(self, 'num_attendees', 0),
             'venue': getattr(self, 'venue_name', None),
             'game': getattr(self, 'game_name', None),
@@ -90,7 +90,7 @@ class TournamentPolymorphic(PolymorphicModel):
     def _tell_discord(self) -> str:
         """Format tournament for Discord"""
         return f"""**{getattr(self, 'name', 'Tournament')}**
-📅 {getattr(self, 'date', 'Unknown date')}
+📅 {getattr(self, 'start_date', 'Unknown date')}
 📍 {getattr(self, 'venue_name', 'Unknown venue')}
 👥 {getattr(self, 'num_attendees', 0)} players
 🎮 {getattr(self, 'game_name', 'Unknown game')}"""
@@ -181,7 +181,7 @@ class PlayerPolymorphic(PolymorphicModel):
             from tournament_models import TournamentPlacement, Tournament
             recent = session.query(TournamentPlacement).join(Tournament).filter(
                 TournamentPlacement.player_id == self.id
-            ).order_by(Tournament.date.desc()).limit(5).all()
+            ).order_by(Tournament.start_date.desc()).limit(5).all()
             return [r.tournament for r in recent]
         return []
     
@@ -263,7 +263,7 @@ class OrganizationPolymorphic(PolymorphicModel):
             from tournament_models import Tournament
             return session.query(Tournament).filter_by(
                 organization_id=self.id
-            ).order_by(Tournament.date.desc()).limit(5).all()
+            ).order_by(Tournament.start_date.desc()).limit(5).all()
         
         return []
     

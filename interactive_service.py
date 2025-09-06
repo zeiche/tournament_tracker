@@ -75,6 +75,12 @@ class InteractiveService:
                 print("""
 Interactive Mode Commands:
 
+🌟 NEW! Polymorphic 3-Method Pattern:
+  t = Tournament.find('12345')
+  t.ask("who won")           - Ask anything about the object
+  t.tell("discord")          - Format for any output
+  t.do("sync")               - Perform any action
+
 Basic Operations:
   sync()              - Sync from start.gg
   report(limit=20)    - Show console report  
@@ -94,10 +100,14 @@ Claude AI Operations:
   ai_stats()          - Show Claude AI statistics
   ai_enabled()        - Check if Claude is enabled
 
-Examples:
-  # Database operations
-  t = Tournament.find('12345')
-  t.name = 'Updated Name'
+Examples with Polymorphic Pattern:
+  # OLD WAY (200+ methods):
+  t.get_winner()
+  t.format_for_discord()
+  
+  # NEW WAY (just 3 methods):
+  t.ask("winner")
+  t.tell("discord")
   t.save()
   
   # Claude AI queries
@@ -150,6 +160,14 @@ Examples:
                 """Ask Claude a one-shot question"""
                 return ask_one_shot(question)
             
+            # Initialize polymorphic models
+            try:
+                from tournament_models_simplified import simplify_existing_models
+                if simplify_existing_models():
+                    print("\n✨ Polymorphic models enabled! Use ask(), tell(), do()")
+            except Exception as e:
+                print(f"Note: Polymorphic models not available: {e}")
+            
             # Make objects available in local scope
             local_vars = {
                 'Tournament': Tournament,
@@ -165,7 +183,9 @@ Examples:
                 'ask': ask,
                 'ai_stats': ai_stats,
                 'ai_enabled': ai_enabled,
-                'claude_ai': claude_ai
+                'claude_ai': claude_ai,
+                # Add get_session for easy database access
+                'get_session': get_session
             }
             
             # Start interactive console

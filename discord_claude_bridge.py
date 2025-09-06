@@ -86,11 +86,17 @@ class ClaudeBridgeBot:
                     # Keep only last 10 messages for context
                     self.conversations[channel_id] = self.conversations[channel_id][-10:]
                     
-                    # Get dynamic capability announcements
+                    # Get dynamic capability announcements AND enable polymorphic models
                     try:
                         from capability_announcer import get_full_context
+                        
+                        # Enable polymorphic models for Claude to discover
+                        from tournament_models_simplified import simplify_existing_models
+                        simplify_existing_models()
+                        
                         capabilities = get_full_context()
-                    except:
+                    except Exception as e:
+                        logger.warning(f"Could not get full capabilities: {e}")
                         capabilities = "Running in basic mode."
                     
                     # Build context with system knowledge

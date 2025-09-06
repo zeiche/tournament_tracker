@@ -108,7 +108,42 @@ def process_data(input: dict) -> dict:
 - [ ] CLAUDE.md updated if new command
 - [ ] Example usage provided
 
-## ⚠️ CRITICAL RULE #3: BONJOUR EVERYTHING ⚠️
+## ⚠️ CRITICAL RULE #3: DISCORD IS A CONDUIT ⚠️
+
+### 🔌 Discord is ONLY a Message Conduit - NOTHING MORE
+
+**CLAUDE: Discord is a THIN BRIDGE to you, not a feature system!**
+
+Discord's ONLY job is to:
+1. **Receive messages** from Discord users
+2. **Forward to Claude** for processing
+3. **Send back responses** from Claude
+4. **THAT'S IT** - No business logic!
+
+**NEVER put functionality in Discord:**
+- ❌ NEVER: Add command parsing in Discord
+- ❌ NEVER: Put database queries in Discord
+- ❌ NEVER: Add formatting logic in Discord
+- ❌ NEVER: Create Discord-specific features
+- ❌ NEVER: Make Discord "smart"
+
+**Discord bridge should be ~100 lines MAX:**
+```python
+# THIS IS ALL DISCORD SHOULD DO:
+async def on_message(message):
+    response = ask_claude(message.content)  # Forward to Claude
+    await message.channel.send(response)    # Send back response
+```
+
+**Why?**
+- Discord is an ABSTRACTION from the core system
+- Users talk to Claude THROUGH Discord, not TO Discord
+- Discord knows NOTHING about tournaments, players, or data
+- All intelligence lives in Claude and the polymorphic models
+
+**If Discord code is getting complex, YOU'RE DOING IT WRONG!**
+
+## ⚠️ CRITICAL RULE #4: BONJOUR EVERYTHING ⚠️
 
 ### 📡 Make Everything Self-Announce Like Bonjour
 
@@ -145,6 +180,50 @@ class NewFeature:
 - System self-describes in real-time
 - Debugging becomes trivial
 - Services find each other
+
+## ⚠️ CRITICAL RULE #5: TRUE OOP - JUST 3 METHODS ⚠️
+
+### 🎯 The 3-Method Polymorphic Pattern
+
+**CLAUDE: We've evolved from C to TRUE OOP!**
+
+Instead of 200+ specific methods, use just THREE polymorphic methods:
+1. **ask(question)** - Query anything about the object
+2. **tell(format)** - Format the object for any output
+3. **do(action)** - Perform any action with the object
+
+**OLD C-STYLE THINKING (BAD):**
+```python
+# 200+ methods to remember!
+tournament.get_winner()
+tournament.get_top_8_placements()
+tournament.calculate_growth_rate()
+tournament.format_for_discord()
+tournament.sync_from_api()
+# ... 195 more methods
+```
+
+**TRUE OOP THINKING (GOOD):**
+```python
+# Just 3 methods that understand intent!
+tournament.ask("who won")
+tournament.ask("top 8")
+tournament.tell("discord")
+tournament.do("sync")
+```
+
+**The objects FIGURE OUT what you want!**
+- Natural language instead of method names
+- No documentation needed - just ASK
+- Objects are intelligent and self-aware
+- Claude doesn't need a method reference
+
+**When to use each method:**
+- **ask()** - Getting information: winners, stats, attendance, etc.
+- **tell()** - Formatting output: Discord, JSON, brief, Claude
+- **do()** - Taking actions: sync, calculate, save, validate
+
+**This is the ULTIMATE simplification!**
 
 ## ⚠️ OTHER CRITICAL RULES ⚠️
 
