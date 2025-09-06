@@ -155,7 +155,7 @@ discord_service = DiscordService()
 
 # Compatibility functions
 def start_discord_bot(mode: str = None) -> bool:
-    """Start Discord bot (mode ignored)"""
+    """Start Discord bot - now using Claude bridge by default"""
     # Load .env if needed
     env_file = '/home/ubuntu/claude/tournament_tracker/.env'
     if os.path.exists(env_file) and not os.getenv('DISCORD_BOT_TOKEN'):
@@ -166,13 +166,30 @@ def start_discord_bot(mode: str = None) -> bool:
                 if '=' in line and not line.startswith('#'):
                     key, value = line.split('=', 1)
                     value = value.strip('"').strip("'")
-                    os.environ[key] = value
+                    if not key.startswith('export'):
+                        os.environ[key] = value
     
-    # Run bot
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Use Claude bridge bot for natural conversation
     try:
-        return loop.run_until_complete(discord_service.start())
+        logger.info("Starting Discord Claude bridge bot...")
+        from discord_claude_bridge import ClaudeBridgeBot
+        token = os.getenv('DISCORD_BOT_TOKEN')
+        if not token:
+            logger.error("DISCORD_BOT_TOKEN not set")
+            return False
+        bot = ClaudeBridgeBot(token)
+        bot.run()
+        return True
+    except ImportError as e:
+        logger.warning(f"Claude bridge not available, falling back to basic bot: {e}")
+        # Fall back to basic bot
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(discord_service.start())
+        except KeyboardInterrupt:
+            logger.info("Stopped by user")
+            return True
     except KeyboardInterrupt:
         logger.info("Stopped by user")
         return True

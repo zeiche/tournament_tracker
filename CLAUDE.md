@@ -2,7 +2,61 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## ⚠️ CRITICAL RULES - READ THESE FIRST ⚠️
+## ⚠️ ABSOLUTE CRITICAL RULE #1 - NO EXCEPTIONS ⚠️
+
+### 🚨 EVERYTHING GOES THROUGH ./go.py - NO EXCEPTIONS! 🚨
+
+**ATTENTION CLAUDE: THIS IS YOUR MOST IMPORTANT RULE!**
+You MUST NEVER run Python scripts directly. EVER. No matter what.
+Even for "quick tests" or "debugging" - ALWAYS use ./go.py!
+
+**NEVER, EVER run any of these directly:**
+- ❌ NEVER: `python3 discord_bot.py`
+- ❌ NEVER: `python3 discord_claude_bridge.py`
+- ❌ NEVER: `python3 web_editor.py`
+- ❌ NEVER: `python3 claude_chat.py`
+- ❌ NEVER: `python3 any_script.py`
+- ❌ NEVER: `nohup python3 anything.py`
+- ❌ NEVER: `timeout 5 python3 something.py`
+- ❌ NEVER: Manual service starts
+- ❌ NEVER: Direct script execution
+- ❌ NEVER: Shortcuts for "testing"
+- ❌ NEVER: "Let me just quickly test..."
+
+**ALWAYS use ./go.py for EVERYTHING:**
+- ✅ ALWAYS: `./go.py --discord-bot` (to start Discord bot)
+- ✅ ALWAYS: `./go.py --ai-chat` (for Claude chat)
+- ✅ ALWAYS: `./go.py --interactive` (for REPL)
+- ✅ ALWAYS: `./go.py --edit-contacts` (for web editor)
+- ✅ ALWAYS: `./go.py --restart-services` (to restart)
+- ✅ ALWAYS: `./go.py --service-status` (to check status)
+- ✅ ALWAYS: `./go.py [command]` (for EVERYTHING)
+
+**This includes:**
+- Starting services → `./go.py --discord-bot`
+- Stopping services → `./go.py --restart-services`
+- Testing features → `./go.py --[feature]`
+- Running scripts → Through go.py commands
+- Database operations → `./go.py --sync`
+- Discord bot → `./go.py --discord-bot`
+- Web interfaces → `./go.py --edit-contacts`
+- AI interactions → `./go.py --ai-chat`
+- Quick tests → Still use `./go.py`!
+- LITERALLY EVERYTHING → `./go.py`
+
+**Why?**
+- go.py manages environment variables correctly
+- go.py handles process management properly
+- go.py ensures consistent configuration
+- go.py is the SINGLE ENTRY POINT
+- go.py prevents duplicate processes
+- go.py maintains proper logging
+- go.py loads .env automatically
+- go.py manages service lifecycle
+
+**CLAUDE: If you're about to type `python3` - STOP! Use `./go.py` instead!**
+
+## ⚠️ OTHER CRITICAL RULES ⚠️
 
 ### 0. CHECK EXISTING MODULES FIRST
 **ALWAYS check `EXISTING_MODULES.md` before creating ANY new functionality!**
