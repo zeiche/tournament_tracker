@@ -667,20 +667,26 @@ class TournamentCommand:
     
     # Claude/AI Operations - ALL using the SINGLE claude_service
     def launch_ai_chat(self) -> CommandResult:
-        """Launch terminal AI chat interface using claude_service"""
-        from claude_service import claude_service
-        
-        if not claude_service.is_enabled:
+        """Launch AI chat using unified claude_chat module"""
+        try:
+            from claude_chat import start_chat
+            
+            # Start the chat
+            success = start_chat()
+            
+            if success:
+                return CommandResult(True, "Chat mode ended")
+            else:
+                return CommandResult(False, "Chat mode failed to start")
+            
+        except ImportError as e:
             return CommandResult(
-                False,
-                "Claude service not enabled. Set ANTHROPIC_API_KEY to enable."
+                False, 
+                f"Failed to import claude_chat module: {e}\n"
+                f"Make sure claude_chat.py is available."
             )
-        
-        result = claude_service.start_terminal_chat()
-        return CommandResult(
-            result.success,
-            result.response or result.error
-        )
+        except Exception as e:
+            return CommandResult(False, f"Failed to launch chat: {e}")
     
     def launch_ai_web(self, port: int = 8082) -> CommandResult:
         """Launch web-based AI chat interface using claude_service"""
