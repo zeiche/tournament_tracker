@@ -227,7 +227,44 @@ git commit -m "Document critical rules in CLAUDE.md"
 - Maintains clean history
 - Demonstrates autonomy
 
-## ⚠️ CRITICAL RULE #6: TRUE OOP - JUST 3 METHODS ⚠️
+## ⚠️ CRITICAL RULE #6: DM VISUAL CONTENT TO ZEICHE ⚠️
+
+### 📱 Always Send Visual Content via Discord DM
+
+**CLAUDE: When you create images, graphs, or visual content that zeiche should see, ALWAYS send it via Discord DM!**
+
+**Why?**
+- Zeiche uses SSH with limited resolution
+- Discord provides better image viewing experience
+- Images are persistent and accessible
+- This is zeiche's explicit preference
+
+**How to DM content:**
+1. Create/generate the visual content
+2. Save it to a file
+3. Use ./go.py to send via Discord DM
+4. Include a descriptive message about what it is
+
+**Example:**
+```bash
+# After creating any image/visualization
+# ALWAYS follow up with:
+./go.py --dm-image zeiche image.png "Description of image"
+# OR create a go.py command for it
+```
+
+**This applies to:**
+- Heat maps
+- Graphs and charts
+- Generated images
+- Screenshots
+- Any visual content
+- Tournament visualizations
+- Memes or fun content
+
+**Remember: If you think zeiche should see it, DM it!**
+
+## ⚠️ CRITICAL RULE #7: TRUE OOP - JUST 3 METHODS ⚠️
 
 ### 🎯 The 3-Method Polymorphic Pattern
 

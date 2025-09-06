@@ -754,6 +754,83 @@ class TournamentCommand:
             return CommandResult(False, f"Failed to get statistics: {e}")
     
     # Discord Bot Operations - ALL using the SINGLE discord_service
+    def send_dm_image(self, user: str, image_path: str, message: str) -> CommandResult:
+        """Send an image to a Discord user via DM"""
+        import os
+        import asyncio
+        import discord
+        
+        # Check if image exists
+        if not os.path.exists(image_path):
+            return CommandResult(False, f"Image file not found: {image_path}")
+        
+        # Get Discord token
+        token = os.getenv('DISCORD_BOT_TOKEN')
+        if not token:
+            # Try loading from .env
+            env_file = '/home/ubuntu/claude/tournament_tracker/.env'
+            if os.path.exists(env_file):
+                with open(env_file, 'r') as f:
+                    for line in f:
+                        if line.startswith('DISCORD_BOT_TOKEN='):
+                            token = line.split('=', 1)[1].strip().strip('"').strip("'")
+                            break
+        
+        if not token:
+            return CommandResult(False, "Discord bot token not found")
+        
+        async def send_dm():
+            intents = discord.Intents.default()
+            intents.message_content = True
+            intents.guilds = True
+            intents.members = True
+            
+            client = discord.Client(intents=intents)
+            
+            success = False
+            error_msg = None
+            
+            @client.event
+            async def on_ready():
+                nonlocal success, error_msg
+                
+                # Find user
+                target_user = None
+                for guild in client.guilds:
+                    await guild.chunk()
+                    for member in guild.members:
+                        if user.lower() in member.name.lower():
+                            target_user = member
+                            break
+                    if target_user:
+                        break
+                
+                if not target_user:
+                    error_msg = f"User '{user}' not found in any guild"
+                else:
+                    try:
+                        channel = await target_user.create_dm()
+                        with open(image_path, 'rb') as f:
+                            file = discord.File(f, os.path.basename(image_path))
+                            await channel.send(message, file=file)
+                        success = True
+                    except Exception as e:
+                        error_msg = str(e)
+                
+                await client.close()
+            
+            await client.start(token)
+            return success, error_msg
+        
+        try:
+            success, error = asyncio.run(send_dm())
+            if success:
+                return CommandResult(True, f"Image sent to {user} via DM")
+            else:
+                return CommandResult(False, f"Failed to send DM: {error}")
+        except Exception as e:
+            return CommandResult(False, f"Error sending DM: {e}")
+    
     def show_discord_stats(self) -> CommandResult:
         """Show Discord service statistics"""
         from discord_service import discord_service
@@ -907,6 +984,8 @@ Examples:
                                   default='conversational', help='Discord bot mode')
         discord_group.add_argument('--discord-stats', action='store_true',
                                   help='Show Discord service statistics')
+        discord_group.add_argument('--dm-image', nargs=3, metavar=('USER', 'IMAGE', 'MESSAGE'),
+                                  help='DM an image to a Discord user (e.g., --dm-image zeiche image.png "Check this out!")')
         
         # Shopify Options - ALL through shopify_service (SINGLE SOURCE OF TRUTH)
         shopify_group = parser.add_argument_group('Shopify Publishing (SINGLE SOURCE OF TRUTH)')
@@ -1112,6 +1191,12 @@ Examples:
             
             if args.discord_stats:
                 result = self.command.show_discord_stats()
+                return 0 if result.success else 1
+            
+            if args.dm_image:
+                user, image, message = args.dm_image
+                result = self.command.send_dm_image(user, image, message)
+                print(f"{'✅' if result.success else '❌'} {result.message}")
                 return 0 if result.success else 1
             
             # Shopify operations - ALL through shopify_service
