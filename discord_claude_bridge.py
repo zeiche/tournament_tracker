@@ -86,12 +86,28 @@ class ClaudeBridgeBot:
                     # Keep only last 10 messages for context
                     self.conversations[channel_id] = self.conversations[channel_id][-10:]
                     
-                    # Build context
+                    # Get dynamic capability announcements
+                    try:
+                        from capability_announcer import get_full_context
+                        capabilities = get_full_context()
+                    except:
+                        capabilities = "Running in basic mode."
+                    
+                    # Build context with system knowledge
+                    system_prompt = f"""You are a tournament tracker assistant in Discord.
+You help users understand FGC tournaments, players, and events.
+You're talking to Discord users who want tournament information.
+
+{capabilities}
+
+Use these announced capabilities to help answer user questions."""
+                    
                     context = {
                         'source': 'discord',
                         'user': message.author.name,
                         'channel': message.channel.name if hasattr(message.channel, 'name') else 'DM',
-                        'conversation_history': self.conversations[channel_id]
+                        'conversation_history': self.conversations[channel_id],
+                        'system_prompt': system_prompt
                     }
                     
                     # Get Claude's response

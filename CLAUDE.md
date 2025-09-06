@@ -108,6 +108,44 @@ def process_data(input: dict) -> dict:
 - [ ] CLAUDE.md updated if new command
 - [ ] Example usage provided
 
+## ⚠️ CRITICAL RULE #3: BONJOUR EVERYTHING ⚠️
+
+### 📡 Make Everything Self-Announce Like Bonjour
+
+**CLAUDE: Every component MUST announce itself!**
+
+When creating ANY new code:
+1. **Import the announcer** - `from capability_announcer import announcer`
+2. **Announce on init** - Tell the system you exist
+3. **Announce capabilities** - Say what you can do
+4. **Announce state changes** - Broadcast updates
+5. **Announce errors** - Even failures should announce
+
+**Example for EVERY new class/function:**
+```python
+from capability_announcer import announcer
+
+class NewFeature:
+    def __init__(self):
+        announcer.announce(
+            "NewFeature",
+            ["I can do X", "I can do Y"],
+            examples=["Use me like this"]
+        )
+    
+    def do_something(self):
+        announcer.announce("NewFeature.do_something", ["Processing..."])
+        # actual work
+        announcer.announce("NewFeature.do_something", ["Complete!"])
+```
+
+**Why Bonjour?**
+- Claude discovers features automatically
+- No need to update documentation
+- System self-describes in real-time
+- Debugging becomes trivial
+- Services find each other
+
 ## ⚠️ OTHER CRITICAL RULES ⚠️
 
 ### 0. CHECK EXISTING MODULES FIRST
@@ -133,6 +171,22 @@ Tournament Tracker is an advanced Python application for tracking and managing F
 **IMPORTANT**: See `SYSTEM_ARCHITECTURE.md` for the complete system design and data flow.
 
 ## Architecture Philosophy
+
+### Bonjour-Style Service Discovery (NEW CORE PRINCIPLE!)
+Everything in the system announces itself like Bonjour/mDNS:
+- **Self-Announcing Services**: Every component announces what it can do
+- **Dynamic Discovery**: Claude discovers capabilities at runtime, not from static docs
+- **Real-time State**: Services announce their current state and availability
+- **Zero Configuration**: Components find each other automatically
+- **Living Documentation**: The system describes itself through announcements
+
+**CRITICAL**: See `BONJOUR_INTEGRATION.md` for deep integration strategy
+
+When implementing ANY feature:
+1. Make it announce itself when loaded
+2. Announce capabilities dynamically
+3. Announce state changes
+4. Let Claude discover it automatically
 
 ### Polymorphic Paradigm
 The system follows a **polymorphic paradigm** where "everything accepts anything":

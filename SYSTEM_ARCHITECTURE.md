@@ -50,11 +50,13 @@ Service Layer:
 ## What Claude Can Do
 
 ### In Discord Mode
-- Receive messages from users
-- Process with conversation context
+- Receive messages from Discord users
+- Process with conversation context  
 - Respond naturally about tournaments
-- Suggest go.py commands
+- Provide tournament information conversationally
+- Act as a helpful FGC assistant
 - Cannot execute code directly
+- NOT for system administration - for end users
 
 ### In Interactive Mode  
 - Receive Python objects
