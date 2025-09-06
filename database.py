@@ -265,6 +265,8 @@ __all__ = [
     'engine',
 ]
 
-print("📊 Database module initialized (SINGLE ENTRY POINT)")
-print(f"   Database URL: {DATABASE_URL}")
-print("   ✅ This is the ONLY place database connections are created")
+# Only print if explicitly requested via environment variable
+if os.getenv('DEBUG_DATABASE_INIT'):
+    print("📊 Database module initialized (SINGLE ENTRY POINT)")
+    print(f"   Database URL: {DATABASE_URL}")
+    print("   ✅ This is the ONLY place database connections are created")

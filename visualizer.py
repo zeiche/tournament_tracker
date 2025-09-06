@@ -15,8 +15,6 @@ from pathlib import Path
 
 # Import polymorphic handler
 from polymorphic_inputs import InputHandler, to_list, to_dict
-from database import session_scope
-from tournament_models import Tournament, Organization, Player, TournamentPlacement
 from log_manager import LogManager
 
 # Get logger
@@ -481,50 +479,43 @@ class UnifiedVisualizer:
         """Extract location data from parsed input"""
         points = []
         
-        with session_scope() as session:
-            if isinstance(parsed, dict):
-                # Direct coordinate data
-                if 'lat' in parsed and 'lng' in parsed:
-                    weight = parsed.get('weight', 1)
-                    points.append((parsed['lat'], parsed['lng'], weight))
-                
-                # List of items
-                elif 'items' in parsed:
-                    for item in parsed['items']:
-                        if isinstance(item, tuple):
-                            # Direct tuple format: (lat, lng) or (lat, lng, weight)
-                            if len(item) >= 2:
-                                lat, lng = item[0], item[1]
-                                weight = item[2] if len(item) > 2 else 1
-                                points.append((float(lat), float(lng), float(weight)))
-                        elif isinstance(item, dict):
-                            if 'lat' in item and 'lng' in item:
-                                points.append((item['lat'], item['lng'], item.get('weight', 1)))
-                        elif hasattr(item, 'lat') and hasattr(item, 'lng'):
-                            if item.lat and item.lng:
-                                weight = item.get_heatmap_weight() if hasattr(item, 'get_heatmap_weight') else 1
-                                points.append((float(item.lat), float(item.lng), float(weight), str(item)))
-                
-                # Model data
-                elif 'model' in parsed and parsed['model'] == 'Tournament':
-                    # Get tournament from database
-                    if 'id' in parsed:
-                        t = session.query(Tournament).get(parsed['id'])
-                        if t and t.has_location:
-                            points.append((*t.coordinates, t.get_heatmap_weight(), str(t)))
+        if isinstance(parsed, dict):
+            # Direct coordinate data
+            if 'lat' in parsed and 'lng' in parsed:
+                weight = parsed.get('weight', 1)
+                points.append((parsed['lat'], parsed['lng'], weight))
             
-            # If no points yet, try to get all tournaments
-            if not points and ('tournament' in str(parsed).lower() or not parsed):
-                tournaments = session.query(Tournament).filter(
-                    Tournament.lat.isnot(None),
-                    Tournament.lng.isnot(None)
-                ).all()
-                
-                for t in tournaments:
-                    if t.has_location:
-                        lat, lng = t.coordinates
+            # List of items
+            elif 'items' in parsed:
+                for item in parsed['items']:
+                    if isinstance(item, tuple):
+                        # Direct tuple format: (lat, lng) or (lat, lng, weight)
+                        if len(item) >= 2:
+                            lat, lng = item[0], item[1]
+                            weight = item[2] if len(item) > 2 else 1
+                            points.append((float(lat), float(lng), float(weight)))
+                    elif isinstance(item, dict):
+                        if 'lat' in item and 'lng' in item:
+                            points.append((item['lat'], item['lng'], item.get('weight', 1)))
+                    elif hasattr(item, 'lat') and hasattr(item, 'lng'):
+                        if item.lat and item.lng:
+                            weight = item.get_heatmap_weight() if hasattr(item, 'get_heatmap_weight') else 1
+                            points.append((float(item.lat), float(item.lng), float(weight), str(item)))
+            
+            # Model data - use DatabaseService instead of direct query
+            elif 'model' in parsed and parsed['model'] == 'Tournament':
+                if 'id' in parsed:
+                    from database_service import database_service
+                    t = database_service.get_tournament_by_id(parsed['id'])
+                    if t and hasattr(t, 'lat') and hasattr(t, 'lng') and t.lat and t.lng:
                         weight = t.get_heatmap_weight() if hasattr(t, 'get_heatmap_weight') else 1
+                        lat, lng = t.lat, t.lng
                         points.append((float(lat), float(lng), float(weight), str(t)))
+        
+        # If no points yet, get all tournaments with locations from DatabaseService
+        if not points and ('tournament' in str(parsed).lower() or not parsed):
+            from database_service import database_service
+            points = database_service.get_tournament_heatmap_data()
         
         return points
     
@@ -1114,20 +1105,17 @@ if __name__ == "__main__":
     print("\nTesting with tournament data...")
     
     # Test with actual data
-    with session_scope() as session:
-        # Get some tournaments
-        tournaments = session.query(Tournament).filter(
-            Tournament.lat.isnot(None)
-        ).limit(10).all()
+    from database_service import database_service
+    tournaments = database_service.get_tournaments_with_location(limit=10)
+    
+    if tournaments:
+        print(f"\nFound {len(tournaments)} tournaments with location data")
         
-        if tournaments:
-            print(f"\nFound {len(tournaments)} tournaments with location data")
-            
-            # Test different visualizations
-            print("\n1. Testing heatmap with tournament list...")
-            result = heatmap(tournaments, "test_heatmap.html")
-            if result:
-                print(f"   ✅ Created: {result}")
+        # Test different visualizations
+        print("\n1. Testing heatmap with tournament list...")
+        result = heatmap(tournaments, "test_heatmap.html")
+        if result:
+            print(f"   ✅ Created: {result}")
             
             print("\n2. Testing point map with single tournament...")
             result = map(tournaments[0], "test_point.html")

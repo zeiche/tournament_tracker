@@ -287,6 +287,41 @@ class DatabaseService:
             rankings.sort(key=lambda x: x['points'], reverse=True)
             
             return rankings[:limit] if limit else rankings
+    
+    def get_tournament_by_id(self, tournament_id: int) -> Optional[Any]:
+        """Get a tournament by ID"""
+        from tournament_models import Tournament
+        with self.session_scope() as session:
+            return session.query(Tournament).get(tournament_id)
+    
+    def get_tournaments_with_location(self, limit: Optional[int] = None) -> List[Any]:
+        """Get tournaments that have location data"""
+        from tournament_models import Tournament
+        with self.session_scope() as session:
+            query = session.query(Tournament).filter(
+                Tournament.lat.isnot(None),
+                Tournament.lng.isnot(None)
+            )
+            if limit:
+                query = query.limit(limit)
+            return query.all()
+    
+    def get_tournament_heatmap_data(self) -> List[tuple]:
+        """Get tournament data formatted for heatmap visualization"""
+        from tournament_models import Tournament
+        points = []
+        with self.session_scope() as session:
+            tournaments = session.query(Tournament).filter(
+                Tournament.lat.isnot(None),
+                Tournament.lng.isnot(None)
+            ).all()
+            
+            for t in tournaments:
+                if hasattr(t, 'lat') and hasattr(t, 'lng'):
+                    weight = t.get_heatmap_weight() if hasattr(t, 'get_heatmap_weight') else 1.0
+                    points.append((t.lat, t.lng, weight, str(t)))
+        
+        return points
 
 
 # Singleton instance - import this
