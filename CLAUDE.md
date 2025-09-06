@@ -56,6 +56,58 @@ Even for "quick tests" or "debugging" - ALWAYS use ./go.py!
 
 **CLAUDE: If you're about to type `python3` - STOP! Use `./go.py` instead!**
 
+## ⚠️ CRITICAL RULE #2: DOCUMENT WHILE CODING ⚠️
+
+### 📝 ALWAYS Document AS You Code
+
+**CLAUDE: You MUST document WHILE writing code, not after!**
+
+When creating or modifying code:
+1. **Write the docstring FIRST** - Before implementing the function
+2. **Update relevant .md files IMMEDIATELY** - Don't wait until "later"
+3. **Add inline comments for complex logic** - As you write it
+4. **Update SYSTEM_ARCHITECTURE.md** - When adding new modules/flows
+
+**Documentation locations:**
+- **New module?** → Update `SYSTEM_ARCHITECTURE.md` immediately
+- **New command?** → Update `CLAUDE.md` command list
+- **New capability?** → Document in module docstring
+- **Complex logic?** → Inline comments as you write
+- **Breaking change?** → Update all affected .md files
+
+**Example workflow:**
+```python
+# WRONG: Write code first, document "later" (never happens)
+def process_data(input):
+    result = complex_operation(input)
+    return result
+
+# RIGHT: Document FIRST, then code
+def process_data(input: dict) -> dict:
+    """
+    Process tournament data for display.
+    
+    Args:
+        input: Dict with 'tournaments' and 'players' keys
+        
+    Returns:
+        Dict with formatted rankings
+        
+    Note: Updates SYSTEM_ARCHITECTURE.md data flow
+    """
+    # Document what this does
+    result = complex_operation(input)
+    return result
+```
+
+**Documentation checklist for new code:**
+- [ ] Docstring written BEFORE implementation
+- [ ] Type hints added
+- [ ] Complex logic has inline comments
+- [ ] SYSTEM_ARCHITECTURE.md updated if new flow
+- [ ] CLAUDE.md updated if new command
+- [ ] Example usage provided
+
 ## ⚠️ OTHER CRITICAL RULES ⚠️
 
 ### 0. CHECK EXISTING MODULES FIRST
@@ -77,6 +129,8 @@ See `IMPORTANT_SHOPIFY_RULES.md` for details. The `shopify_separated_publisher.p
 ## Project Overview
 
 Tournament Tracker is an advanced Python application for tracking and managing Fighting Game Community (FGC) tournaments in Southern California. It features a sophisticated OOP architecture with intelligent data models, real-time synchronization from start.gg, and AI-powered analytics.
+
+**IMPORTANT**: See `SYSTEM_ARCHITECTURE.md` for the complete system design and data flow.
 
 ## Architecture Philosophy
 
