@@ -78,79 +78,22 @@ class DatabaseService:
             )
     
     def get_attendance_rankings(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get attendance rankings for reporting"""
+        """Get attendance rankings for reporting
+        
+        Now uses UnifiedTabulator for consistent ranking logic.
+        """
+        from unified_tabulator import UnifiedTabulator
+        
         with self.session_scope() as session:
-            from tournament_models import Organization, Tournament
+            # Use the unified tabulator for organization attendance rankings
+            ranked_items = UnifiedTabulator.tabulate_org_attendance(session, limit)
             
-            # Get all tournaments to calculate attendance
-            all_tournaments = session.query(Tournament).all()
-            
-            # Group tournaments by their matching organizations
-            org_attendance = {}
-            
-            for tournament in all_tournaments:
-                # Find which org this tournament belongs to (if any)
-                org_match = None
-                primary_contact = tournament.primary_contact
-                
-                if primary_contact:
-                    # Check all organizations for a matching contact
-                    orgs = session.query(Organization).all()
-                    for org in orgs:
-                        for contact in org.contacts:
-                            if contact.get('value') and contact['value'].lower() in primary_contact.lower():
-                                org_match = org.display_name
-                                break
-                        if org_match:
-                            break
-                
-                # If no org match, normalize and use primary contact as org name
-                if not org_match:
-                    if primary_contact:
-                        # Normalize the contact for display
-                        normalized = self.normalize_contact(primary_contact)
-                        # For display, convert discord codes and emails to better names
-                        if 'discord.gg/' in primary_contact.lower() or 'discord.com/' in primary_contact.lower():
-                            # Extract the invite code
-                            org_match = f"Discord Group ({normalized})"
-                        elif '@' in primary_contact:
-                            # Use the part before @ for email addresses
-                            username = primary_contact.split('@')[0]
-                            # Clean up the username for display
-                            org_match = username.replace('.', ' ').replace('_', ' ').replace('-', ' ').title()
-                        else:
-                            org_match = primary_contact
-                    else:
-                        org_match = 'Unknown'
-                
-                # Add to totals
-                if org_match not in org_attendance:
-                    org_attendance[org_match] = {
-                        'display_name': org_match,
-                        'tournament_count': 0,
-                        'total_attendance': 0,
-                        'tournaments': []
-                    }
-                
-                org_attendance[org_match]['tournament_count'] += 1
-                org_attendance[org_match]['total_attendance'] += tournament.num_attendees or 0
-                org_attendance[org_match]['tournaments'].append(tournament.name)
-            
-            # Convert to list and calculate averages
+            # Convert to expected format for backward compatibility
             rankings = []
-            for org_name, data in org_attendance.items():
-                rankings.append({
-                    'display_name': data['display_name'],
-                    'tournament_count': data['tournament_count'],
-                    'total_attendance': data['total_attendance'],
-                    'avg_attendance': data['total_attendance'] / data['tournament_count'] if data['tournament_count'] > 0 else 0
-                })
-            
-            # Sort by total attendance
-            rankings.sort(key=lambda x: x['total_attendance'], reverse=True)
-            
-            if limit:
-                rankings = rankings[:limit]
+            for item in ranked_items:
+                meta = item.metadata.copy()
+                meta['rank'] = item.rank
+                rankings.append(meta)
             
             return rankings
     
@@ -249,45 +192,34 @@ class DatabaseService:
             return result
     
     def get_player_rankings(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Get player rankings with points and statistics"""
-        from tournament_models import Player, TournamentPlacement
+        """Get player rankings with points and statistics
+        
+        Now uses UnifiedTabulator to eliminate duplicate ranking logic.
+        """
+        from unified_tabulator import UnifiedTabulator
         
         with self.session_scope() as session:
-            # Get all players
-            players = session.query(Player).all()
+            # Use the unified tabulator for consistent ranking
+            ranked_items = UnifiedTabulator.tabulate_player_points(session, limit)
             
+            # Convert to expected format for backward compatibility
             rankings = []
-            for player in players:
-                # Calculate points from placements
-                total_points = 0
-                first_places = 0
-                top_3s = 0
-                event_count = 0
-                
-                for placement in player.placements:
-                    total_points += placement.get_points()
-                    event_count += 1
-                    if placement.placement == 1:
-                        first_places += 1
-                    if placement.placement <= 3:
-                        top_3s += 1
-                
-                if total_points > 0:
-                    rankings.append({
-                        'player_id': player.id,
-                        'name': player.name,
-                        'points': total_points,
-                        'events': event_count,
-                        'first_places': first_places,
-                        'top_3s': top_3s,
-                        'win_rate': (first_places / event_count * 100) if event_count > 0 else 0,
-                        'podium_rate': (top_3s / event_count * 100) if event_count > 0 else 0
-                    })
+            for item in ranked_items:
+                meta = item.metadata.copy()
+                meta['rank'] = item.rank
+                meta['points'] = int(item.score)
+                # Rename some fields for backward compatibility
+                meta['events'] = meta.pop('tournament_count', 0)
+                meta['top_3s'] = meta.pop('top_3_finishes', 0)
+                if meta['events'] > 0:
+                    meta['win_rate'] = (meta.get('first_places', 0) / meta['events'] * 100)
+                    meta['podium_rate'] = (meta.get('top_3s', 0) / meta['events'] * 100)
+                else:
+                    meta['win_rate'] = 0
+                    meta['podium_rate'] = 0
+                rankings.append(meta)
             
-            # Sort by points
-            rankings.sort(key=lambda x: x['points'], reverse=True)
-            
-            return rankings[:limit] if limit else rankings
+            return rankings
     
     def get_tournament_by_id(self, tournament_id: int) -> Optional[Any]:
         """Get a tournament by ID"""

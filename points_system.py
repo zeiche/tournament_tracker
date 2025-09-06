@@ -134,11 +134,13 @@ class PointsSystem:
         from tournament_models import TournamentPlacement
         
         # Build case expression for SQL queries
-        case_args = []
+        # SQLAlchemy case wants tuples as *args, not a list
+        whens = []
         for placement, points in cls.PLACEMENT_POINTS.items():
-            case_args.append((TournamentPlacement.placement == placement, points))
+            whens.append((TournamentPlacement.placement == placement, points))
         
-        return case(*case_args, else_=0)
+        # Unpack the list of tuples as positional arguments
+        return case(*whens, else_=0)
 
 
 # Convenience functions for direct import

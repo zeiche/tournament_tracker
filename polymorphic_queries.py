@@ -88,29 +88,24 @@ class PolymorphicQuery:
     
     @classmethod
     def _get_top_players(cls, session: Session, limit: int = 8, event: Optional[str] = None) -> List[Player]:
-        """Get top players by points with calculated stats"""
-        # Use the centralized points system
-        points_case = PointsSystem.get_sql_case_expression()
+        """Get top players by points with calculated stats
         
-        query = session.query(
-            Player,
-            func.sum(points_case).label('total_points'),
-            func.count(TournamentPlacement.id).label('tournament_count')
-        ).join(TournamentPlacement).group_by(Player.id)
+        Now uses UnifiedTabulator for consistent ranking logic.
+        """
+        from unified_tabulator import UnifiedTabulator
         
-        # Filter by event if specified
-        if event:
-            query = query.filter(TournamentPlacement.event_name.ilike(f'%{event}%'))
+        # Use the unified tabulator
+        ranked_items = UnifiedTabulator.tabulate_player_points(session, limit, event)
         
-        query = query.order_by(desc('total_points')).limit(limit)
-        results = query.all()
-        
-        # Attach calculated stats to player objects for easy access
+        # Extract just the Player objects with attached metadata
         players_with_stats = []
-        for player, points, events in results:
-            player._total_points = int(points or 0)
-            player._tournament_count = events
-            players_with_stats.append(player)
+        for item in ranked_items:
+            player = session.query(Player).get(item.metadata['player_id'])
+            if player:
+                # Attach calculated stats for backward compatibility
+                player._total_points = int(item.score)
+                player._tournament_count = item.metadata['tournament_count']
+                players_with_stats.append(player)
         
         return players_with_stats
     
