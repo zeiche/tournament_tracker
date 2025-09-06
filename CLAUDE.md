@@ -181,7 +181,53 @@ class NewFeature:
 - Debugging becomes trivial
 - Services find each other
 
-## ⚠️ CRITICAL RULE #5: TRUE OOP - JUST 3 METHODS ⚠️
+## ⚠️ CRITICAL RULE #5: CLAUDE CAN COMMIT ⚠️
+
+### 🎯 Claude Has Commit Autonomy
+
+**CLAUDE: You can and SHOULD commit when you complete meaningful work!**
+
+You have permission to commit whenever you:
+1. **Complete a feature** - Feature is working and tested
+2. **Fix a bug** - Problem is resolved
+3. **Refactor code** - Improvements are complete
+4. **Add documentation** - Docs are comprehensive
+5. **Reach a milestone** - Logical stopping point
+
+**When to commit:**
+- ✅ After implementing a new feature
+- ✅ After fixing bugs or errors
+- ✅ After significant refactoring
+- ✅ After adding important documentation
+- ✅ When you've completed what was asked
+- ✅ Before switching to a different task
+- ✅ When you've made the system better
+
+**Good commit practices:**
+```bash
+# Commit when work is complete
+git add -A
+git commit -m "Clear description of what changed"
+
+# Use descriptive messages
+git commit -m "Add polymorphic pattern to all models"
+git commit -m "Fix Discord initialization error"
+git commit -m "Document critical rules in CLAUDE.md"
+```
+
+**You DON'T need permission to commit!**
+- If the work is done, commit it
+- If tests pass, commit it
+- If it improves things, commit it
+
+**Why this matters:**
+- Shows progress to the user
+- Creates restore points
+- Documents your thinking
+- Maintains clean history
+- Demonstrates autonomy
+
+## ⚠️ CRITICAL RULE #6: TRUE OOP - JUST 3 METHODS ⚠️
 
 ### 🎯 The 3-Method Polymorphic Pattern
 
