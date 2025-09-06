@@ -273,9 +273,28 @@ tournament.do("sync")
 
 ## ⚠️ OTHER CRITICAL RULES ⚠️
 
-### 0. CHECK EXISTING MODULES FIRST
-**ALWAYS check `EXISTING_MODULES.md` before creating ANY new functionality!**
-We have a chronic problem of creating duplicate modules. STOP IT!
+### 0. CHECK EXISTING FUNCTIONS AND METHODS FIRST
+**ALWAYS check for existing functions EVERYWHERE before implementing new functionality!**
+
+**CURRENT STATE:** The codebase is transitioning from 200+ traditional methods to the 3-method polymorphic pattern:
+- **Legacy**: `tournament_models.py` still has 237 traditional methods
+- **New Pattern**: Polymorphic models with just `ask()`, `tell()`, `do()` methods
+- **Both exist**: Check BOTH approaches before implementing anything new!
+
+**Before writing ANY new function:**
+1. Check if the polymorphic pattern already handles it:
+   - Try `object.ask("what you want")`
+   - Try `object.tell("format")`
+   - Try `object.do("action")`
+2. Search the traditional model methods (still 200+ in tournament_models.py)
+3. Check service modules for existing implementations
+4. Look at polymorphic_model.py and tournament_models_simplified.py
+5. Use grep/search to find if it already exists somewhere
+
+**The polymorphic approach means you might NOT need a new function at all!**
+Just use the 3 universal methods that figure out intent.
+
+We have a chronic problem of creating duplicate functionality. STOP IT!
 
 ### 1. SHOPIFY PUBLISHING
 **NEVER CREATE NEW SHOPIFY PAGES!** We ONLY update `/pages/attendance` via the theme template.

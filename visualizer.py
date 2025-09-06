@@ -567,10 +567,127 @@ class UnifiedVisualizer:
         return self._create_stats_chart(parsed, output, **kwargs)
     
     def _create_network_graph(self, parsed: Dict, output: Optional[str], **kwargs) -> Any:
-        """Create a network graph visualization"""
-        # TODO: Implement network visualization
-        logger.warning("Network visualization not yet implemented")
-        return None
+        """Create a network graph visualization showing relationships between entities"""
+        try:
+            import networkx as nx
+            import matplotlib.pyplot as plt
+            
+            # Create directed graph
+            G = nx.DiGraph()
+            
+            # Build network from parsed data
+            if 'nodes' in parsed and 'edges' in parsed:
+                for node in parsed['nodes']:
+                    G.add_node(node.get('id', node), **node)
+                for edge in parsed['edges']:
+                    G.add_edge(edge['from'], edge['to'], **edge)
+            else:
+                # Auto-detect relationships in data
+                self._auto_build_network(G, parsed)
+            
+            if G.number_of_nodes() == 0:
+                logger.warning("No nodes to visualize in network")
+                return None
+            
+            # Create visualization
+            plt.figure(figsize=(12, 8))
+            pos = nx.spring_layout(G, k=2, iterations=50)
+            
+            # Draw nodes with different colors based on type
+            node_colors = []
+            node_sizes = []
+            for node in G.nodes():
+                node_data = G.nodes[node]
+                node_type = node_data.get('type', 'default')
+                
+                if node_type == 'tournament':
+                    node_colors.append('lightblue')
+                    node_sizes.append(1000)
+                elif node_type == 'player':
+                    node_colors.append('lightgreen')
+                    node_sizes.append(500)
+                elif node_type == 'organization':
+                    node_colors.append('lightcoral')
+                    node_sizes.append(1500)
+                else:
+                    node_colors.append('lightgray')
+                    node_sizes.append(700)
+            
+            # Draw the network
+            nx.draw_networkx_nodes(G, pos, node_color=node_colors, 
+                                 node_size=node_sizes, alpha=0.9)
+            nx.draw_networkx_labels(G, pos, font_size=8)
+            nx.draw_networkx_edges(G, pos, edge_color='gray', 
+                                 arrows=True, alpha=0.5, arrowsize=10)
+            
+            # Add title and legend
+            plt.title(parsed.get('title', 'Network Visualization'), fontsize=16)
+            
+            # Create legend
+            from matplotlib.lines import Line2D
+            legend_elements = [
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='lightblue', 
+                      markersize=10, label='Tournament'),
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='lightgreen', 
+                      markersize=10, label='Player'),
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='lightcoral', 
+                      markersize=10, label='Organization')
+            ]
+            plt.legend(handles=legend_elements, loc='upper left')
+            
+            plt.axis('off')
+            plt.tight_layout()
+            
+            # Save to file
+            if not output:
+                output = 'network_visualization.png'
+            plt.savefig(output, dpi=150, bbox_inches='tight')
+            plt.close()
+            
+            logger.info(f"Network visualization saved to {output}")
+            return output
+            
+        except ImportError:
+            logger.error("NetworkX not installed. Run: pip install networkx")
+            return None
+        except Exception as e:
+            logger.error(f"Error creating network visualization: {e}")
+            return None
+    
+    def _auto_build_network(self, G, data: dict) -> None:
+        """Auto-build network from tournament data structure"""
+        # Handle tournaments
+        if 'tournaments' in data:
+            for t in data['tournaments']:
+                t_name = t.get('name', f"Tournament_{t.get('id', 'unknown')}")
+                G.add_node(t_name, type='tournament', **t)
+                
+                # Add organization relationship
+                if 'organization' in t and t['organization']:
+                    org_name = t['organization'].get('display_name', 
+                                                    f"Org_{t['organization'].get('id', 'unknown')}")
+                    G.add_node(org_name, type='organization')
+                    G.add_edge(org_name, t_name, relationship='organizes')
+        
+        # Handle players
+        if 'players' in data:
+            for p in data['players']:
+                p_name = p.get('gamertag', f"Player_{p.get('id', 'unknown')}")
+                G.add_node(p_name, type='player', **p)
+                
+                # Add tournament relationships if present
+                if 'tournaments' in p:
+                    for t in p['tournaments']:
+                        t_name = t.get('name', f"Tournament_{t.get('id', 'unknown')}")
+                        if t_name not in G:
+                            G.add_node(t_name, type='tournament')
+                        G.add_edge(p_name, t_name, relationship='competed_in')
+        
+        # Handle organizations
+        if 'organizations' in data:
+            for o in data['organizations']:
+                o_name = o.get('display_name', f"Org_{o.get('id', 'unknown')}")
+                G.add_node(o_name, type='organization', **o)
     
     def _determine_html_type(self, parsed: Dict) -> str:
         """Determine the type of HTML to generate"""
