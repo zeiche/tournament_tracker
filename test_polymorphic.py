@@ -1,137 +1,67 @@
 #!/usr/bin/env python3
 """
-test_polymorphic.py - Test the 3-method polymorphic approach
-Shows how much simpler the interface becomes.
+Test the TRULY polymorphic tabulator with various object types
 """
-from database import get_session, init_database
-from tournament_models_simplified import simplify_existing_models
+from polymorphic_tabulator import tabulate, PolymorphicTabulator
+from database import get_session
+from tournament_models import Player, Tournament, Organization
+from datetime import datetime
+import random
 
+print("=" * 70)
+print("TESTING TRUE POLYMORPHIC TABULATION")
+print("=" * 70)
 
-def test_polymorphic_models():
-    """
-    Test the simplified 3-method approach.
-    """
-    print("=" * 60)
-    print("Testing Polymorphic 3-Method Models")
-    print("=" * 60)
-    
-    # Initialize and simplify
-    init_database()
-    simplify_existing_models()
-    
+# Test 1: Raw numbers
+print("\n1. RAW NUMBERS (no hint needed):")
+numbers = [42, 17, 99, 17, 3, 88, 42, 100]
+for rank, num, score in tabulate(numbers)[:6]:
+    print(f"  Rank {rank}: {num}")
+
+# Test 2: Strings 
+print("\n2. STRINGS (auto-detects alphabetical):")
+words = ["zebra", "apple", "banana", "Apple", "cherry", "banana"]
+for rank, word, score in tabulate(words, "alphabetical")[:5]:
+    print(f"  Rank {rank}: {word}")
+
+# Test 3: Database objects with natural language hints
+print("\n3. PLAYERS WITH NATURAL LANGUAGE HINTS:")
+try:
     with get_session() as session:
-        # Get a tournament
-        from tournament_models import Tournament
-        tournament = session.query(Tournament).first()
+        players = session.query(Player).limit(10).all()
         
-        if tournament:
-            print("\n📊 Testing Tournament Polymorphic Methods:")
-            print("-" * 40)
+        if players:
+            print("\n  A) 'most wins':")
+            for rank, player, score in tabulate(players, "most wins")[:5]:
+                print(f"    Rank {rank}: {player.gamer_tag} ({score} wins)")
             
-            # Test ask() - query anything
-            print("\n1. ASK - Query anything:")
-            print(f"   tournament.ask('winner'): {tournament.ask('winner', session)}")
-            print(f"   tournament.ask('attendance'): {tournament.ask('attendance')}")
-            print(f"   tournament.ask('top 3'): {tournament.ask('top 3', session)}")
-            
-            # Test tell() - format anything
-            print("\n2. TELL - Format for any output:")
-            print(f"   tournament.tell('brief'): {tournament.tell('brief')}")
-            print(f"   tournament.tell('discord'):\n{tournament.tell('discord')}")
-            
-            # Test do() - perform any action
-            print("\n3. DO - Perform any action:")
-            print(f"   tournament.do('announce'): {tournament.do('announce')}")
-            print(f"   tournament.do('calculate'): {tournament.do('calculate')}")
-        
-        # Get a player
-        from tournament_models import Player
-        player = session.query(Player).first()
-        
-        if player:
-            print("\n\n🎮 Testing Player Polymorphic Methods:")
-            print("-" * 40)
-            
-            print("\n1. ASK - Query anything:")
-            print(f"   player.ask('wins'): {player.ask('wins', session)}")
-            print(f"   player.ask('recent'): {player.ask('recent', session)}")
-            print(f"   player.ask('statistics'): {player.ask('statistics')}")
-            
-            print("\n2. TELL - Format for any output:")
-            print(f"   player.tell('discord'):\n{player.tell('discord')}")
-            
-            print("\n3. DO - Perform any action:")
-            print(f"   player.do('announce'): {player.do('announce')}")
-        
-        # Get an organization
-        from tournament_models import Organization
-        org = session.query(Organization).first()
-        
-        if org:
-            print("\n\n🏢 Testing Organization Polymorphic Methods:")
-            print("-" * 40)
-            
-            print("\n1. ASK - Query anything:")
-            print(f"   org.ask('total attendance'): {org.ask('total attendance')}")
-            print(f"   org.ask('recent'): {org.ask('recent', session)}")
-            
-            print("\n2. TELL - Format for any output:")
-            print(f"   org.tell('discord'):\n{org.tell('discord')}")
-            
-            print("\n3. DO - Perform any action:")
-            print(f"   org.do('validate'): {org.do('validate')}")
+            print("\n  B) 'highest points':")
+            for rank, player, score in tabulate(players, "highest points")[:5]:
+                print(f"    Rank {rank}: {player.gamer_tag} ({score} points)")
+except Exception as e:
+    print(f"  Database error: {e}")
+
+# Test 4: Custom objects
+print("\n4. CUSTOM OBJECTS:")
+class CustomThing:
+    def __init__(self, name, value, priority):
+        self.name = name
+        self.value = value
+        self.priority = priority
     
-    print("\n" + "=" * 60)
-    print("COMPARISON:")
-    print("-" * 60)
-    print("OLD WAY (200+ methods):")
-    print("  tournament.get_winner()")
-    print("  tournament.get_top_8_placements()")
-    print("  tournament.format_for_discord()")
-    print("  tournament.calculate_statistics()")
-    print("  tournament.sync_from_api()")
-    print("  ... 195 more methods")
-    
-    print("\nNEW WAY (just 3 methods):")
-    print("  tournament.ask('anything')")
-    print("  tournament.tell('any format')")
-    print("  tournament.do('any action')")
-    
-    print("\nThe object figures out what you want!")
-    print("=" * 60)
+    def __str__(self):
+        return f"{self.name}(v={self.value})"
 
+things = [
+    CustomThing("Alpha", 100, 3),
+    CustomThing("Beta", 50, 1),
+    CustomThing("Gamma", 75, 1),
+]
 
-def demonstrate_claude_interaction():
-    """
-    Show how Claude would interact with these simplified models.
-    """
-    print("\n" + "=" * 60)
-    print("How Claude Uses Polymorphic Models")
-    print("=" * 60)
-    
-    print("""
-When Claude receives a model object, it can:
+print("\n  Auto-detection finds scoring attribute:")
+for rank, thing, score in tabulate(things):
+    print(f"    Rank {rank}: {thing} - score: {score}")
 
-1. Ask for ANYTHING without knowing method names:
-   result = tournament.ask("who won")
-   result = player.ask("recent performance")
-   result = org.ask("growth rate")
-
-2. Get formatted output for ANY context:
-   discord_msg = tournament.tell("discord")
-   json_data = player.tell("json")
-   explanation = org.tell("claude")
-
-3. Trigger ANY action polymorphically:
-   tournament.do("sync from api")
-   player.do("recalculate stats")
-   org.do("merge duplicates")
-
-Claude doesn't need to know 200+ method names!
-Just ask(), tell(), and do() - the objects handle the rest.
-    """)
-
-
-if __name__ == "__main__":
-    test_polymorphic_models()
-    demonstrate_claude_interaction()
+print("\n" + "=" * 70)
+print("TRUE POLYMORPHISM - One tabulator for EVERYTHING!")
+print("=" * 70)
