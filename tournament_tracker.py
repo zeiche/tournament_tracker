@@ -6,10 +6,15 @@ Fixed to use centralized session management and logging with cleaned up imports
 import sys
 import os
 import argparse
+import time
 from datetime import datetime
 
 # Import centralized systems
-from log_utils import log_info, log_debug, log_error, LogContext, init_logging, LogLevel
+# FIXED: Using LogManager instead of deprecated log_utils
+from log_manager import LogManager
+
+# Get logger for this module
+logger = LogManager().get_logger('tournament_tracker')
 from database import init_database
 from database_service import database_service
 from sync_service import sync_service
@@ -23,7 +28,7 @@ class TournamentTracker:
     
     def __init__(self, database_url=None):
         """Initialize the tracker"""
-        log_info("Starting Tournament Tracker", "tracker")
+        logger.info("Starting Tournament Tracker")
         
         # Store database URL but don't initialize yet (lazy loading)
         self.database_url = database_url
@@ -43,178 +48,199 @@ class TournamentTracker:
     def _ensure_db_initialized(self):
         """Lazy database initialization - only when actually needed"""
         if not self._initialized:
-            log_info("Initializing database connection", "tracker")
+            logger.info("Initializing database connection")
             init_database()
             self._initialized = True
-            log_debug("Database initialization completed", "tracker")
+            logger.debug("Database initialization completed")
     
     def sync_tournaments(self, page_size=250, fetch_standings=False, standings_limit=5):
         """Sync tournaments from start.gg"""
         self._ensure_db_initialized()
         
-        with LogContext(f"Sync tournaments from start.gg"):
-            log_info(f"Starting tournament sync (page_size: {page_size})", "tracker")
+        logger.info("Starting Sync tournaments from start.gg...")
+        logger.info(f"Starting tournament sync (page_size: {page_size})")
             
-            try:
-                stats = sync_from_startgg(
-                    page_size=page_size, 
-                    fetch_standings=fetch_standings, 
-                    standings_limit=standings_limit
-                )
+        try:
+            stats = sync_from_startgg(
+                page_size=page_size, 
+                fetch_standings=fetch_standings, 
+                standings_limit=standings_limit
+            )
+            
+            if stats:
+                self.operation_tracker.record_tournament_success(stats['summary']['tournaments_processed'])
                 
-                if stats:
-                    self.operation_tracker.record_tournament_success(stats['summary']['tournaments_processed'])
-                    
-                    log_info("Sync completed successfully!", "tracker")
-                    log_info(f"   API calls: {stats['api_stats']['api_calls']}", "tracker")
-                    log_info(f"   Tournaments processed: {stats['summary']['tournaments_processed']}", "tracker")
-                    log_info(f"   Organizations created: {stats['summary']['organizations_created']}", "tracker")
-                    log_info(f"   Processing time: {stats['summary']['total_processing_time']:.2f}s", "tracker")
-                    log_info(f"   Success rate: {stats['summary']['success_rate']:.1f}%", "tracker")
-                    
-                    self.session_stats['operations_performed'].append(('sync', stats))
-                    return True
-                else:
-                    self.operation_tracker.record_failure("Sync returned no stats", "sync")
-                    return False
-                    
-            except Exception as e:
-                error_msg = f"Sync failed: {e}"
-                self.operation_tracker.record_failure(error_msg, "sync")
-                self.session_stats['errors_encountered'].append(('sync', error_msg))
+                logger.info("Sync completed successfully!")
+                logger.info(f"   API calls: {stats['api_stats']['api_calls']}")
+                logger.info(f"   Tournaments processed: {stats['summary']['tournaments_processed']}")
+                logger.info(f"   Organizations created: {stats['summary']['organizations_created']}")
+                logger.info(f"   Processing time: {stats['summary']['total_processing_time']:.2f}s")
+                logger.info(f"   Success rate: {stats['summary']['success_rate']:.1f}%")
+                
+                self.session_stats['operations_performed'].append(('sync', stats))
+                logger.info("Completed Sync tournaments from start.gg")
+                return True
+            else:
+                self.operation_tracker.record_failure("Sync returned no stats", "sync")
+                logger.info("Completed Sync tournaments from start.gg")
                 return False
+                
+        except Exception as e:
+            error_msg = f"Sync failed: {e}"
+            self.operation_tracker.record_failure(error_msg, "sync")
+            self.session_stats['errors_encountered'].append(('sync', error_msg))
+            logger.info("Completed Sync tournaments from start.gg")
+            return False
     
     def generate_html_report(self, limit=None, output_file=None):
-        """Generate HTML attendance report"""
+        """Generate HTML attendance report using UnifiedVisualizer"""
         self._ensure_db_initialized()
         
-        with LogContext("Generate HTML report"):
-            log_info("Generating HTML tournament report", "tracker")
+        logger.info("Starting Generate HTML report...")
+        logger.info("Generating HTML tournament report")
+        
+        try:
+            # Use UnifiedVisualizer instead of duplicate HTML generation
+            from visualizer import UnifiedVisualizer
+            from database_service import DatabaseService
             
-            try:
-                # Get data from database in the format expected by format_html_table
-                attendance_tracker, org_names = get_legacy_attendance_data()
-                
-                # Generate HTML
-                html = format_html_table(attendance_tracker, org_names)
-                
-                if output_file:
-                    with open(output_file, 'w', encoding='utf-8') as f:
-                        f.write(html)
-                    log_info(f"HTML report saved to {output_file}", "tracker")
-                else:
-                    log_debug("HTML report generated (console output)", "tracker")
-                    print("HTML Report Generated:")
-                    print("-" * 80)
-                    print(html)
-                    print("-" * 80)
-                
-                return html
-                
-            except Exception as e:
-                error_msg = f"HTML generation failed: {e}"
-                self.operation_tracker.record_failure(error_msg, "html")
-                self.session_stats['errors_encountered'].append(('html', error_msg))
-                return None
+            viz = UnifiedVisualizer()
+            db = DatabaseService()
+            
+            # Get organization data
+            org_stats = db.get_organizations_with_stats()
+            
+            # Format for visualizer
+            data = {
+                'organizations': org_stats[:limit] if limit else org_stats,
+                'title': 'Tournament Attendance Report'
+            }
+            
+            # Generate HTML using visualizer
+            html = viz.render(data, template='report')
+            
+            if output_file:
+                viz.save_page(html, output_file)
+                logger.info(f"HTML report saved to {output_file}")
+            else:
+                logger.debug("HTML report generated (console output)")
+                print("HTML Report Generated:")
+                print("-" * 80)
+                print(html)
+                print("-" * 80)
+            
+            logger.info("Completed Generate HTML report")
+            return html
+            
+        except Exception as e:
+            error_msg = f"HTML generation failed: {e}"
+            self.operation_tracker.record_failure(error_msg, "html")
+            self.session_stats['errors_encountered'].append(('html', error_msg))
+            logger.info("Completed Generate HTML report")
+            return None
     
     def show_console_report(self, limit=20):
         """Show console attendance report"""
         self._ensure_db_initialized()
         
-        with LogContext("Show console report"):
-            log_info(f"Displaying console report (top {limit})", "tracker")
-            format_console_table(limit=limit)
+        logger.info("Starting Show console report...")
+        logger.info(f"Displaying console report (top {limit})")
+        format_console_table(limit=limit)
+        logger.info("Completed Show console report")
     
     def publish_to_shopify(self):
-        """Publish to Shopify using legacy compatibility"""
+        """Publish to Shopify using PublishOperation"""
         self._ensure_db_initialized()
         
-        with LogContext("Publish to Shopify"):
-            log_info("Publishing tournament data to Shopify", "tracker")
+        logger.info("Starting Publish to Shopify...")
+        logger.info("Publishing tournament data to Shopify")
+        
+        try:
+            # Use PublishOperation instead of legacy code
+            from publish_operation import PublishOperation
             
-            try:
-                # Convert to legacy format for existing Shopify code
-                attendance_tracker, org_names = get_legacy_attendance_data()
-                
-                # Import and use existing Shopify publisher
-                try:
-                    from shopify_service import shopify_service
-                    success = publish_table(attendance_tracker, org_names)
-                    
-                    if success:
-                        log_info("Successfully published to Shopify", "tracker")
-                        return True
-                    else:
-                        log_error("Shopify publishing failed", "tracker")
-                        return False
-                        
-                except ImportError:
-                    log_error("Shopify publisher module not available", "tracker")
-                    log_error("Check shopify_publish.py or ACCESS_TOKEN configuration", "tracker")
-                    return False
-                    
-            except Exception as e:
-                error_msg = f"Shopify publishing failed: {e}"
-                self.operation_tracker.record_failure(error_msg, "shopify")
-                self.session_stats['errors_encountered'].append(('shopify', error_msg))
+            operation = PublishOperation()
+            result = operation.execute()
+            
+            if result['success']:
+                logger.info("Successfully published to Shopify")
+                logger.info("Completed Publish to Shopify")
+                return True
+            else:
+                logger.error(f"Shopify publishing failed: {result.get('error', 'Unknown error')}")
+                logger.info("Completed Publish to Shopify")
                 return False
+                
+        except ImportError:
+            logger.error("Shopify publisher module not available")
+            logger.error("Check publish_operation.py or SHOPIFY_ACCESS_TOKEN configuration")
+            logger.info("Completed Publish to Shopify")
+            return False
+                
+        except Exception as e:
+            error_msg = f"Shopify publishing failed: {e}"
+            self.operation_tracker.record_failure(error_msg, "shopify")
+            self.session_stats['errors_encountered'].append(('shopify', error_msg))
+            logger.info("Completed Publish to Shopify")
+            return False
     
     def show_statistics(self):
         """Show detailed statistics"""
         self._ensure_db_initialized()
         
-        with LogContext("Show statistics"):
-            log_info("Generating system statistics", "tracker")
-            
-            print("Tournament Tracker Statistics")
-            print("=" * 60)
-            
-            # Database stats
-            stats = database_service.get_summary_stats()
-            print("Database Statistics:")
-            print(f"   Organizations: {stats.total_organizations}")
-            print(f"   Tournaments: {stats.total_tournaments}")
-            print(f"   Players: {stats.total_players}")
-            print(f"   Total Placements: {stats.total_placements:,}")
-            
-            # Queue stats
-            q_stats = queue_stats()
-            if q_stats['total_operations'] > 0:
-                print("Queue Statistics:")
-                print(f"   Pages processed: {q_stats['pages_processed']}")
-                print(f"   Operations successful: {q_stats['operations_successful']}")
-                print(f"   Operations failed: {q_stats['operations_failed']}")
-                print(f"   Success rate: {q_stats['success_rate']:.1f}%")
-                print(f"   Average page time: {q_stats['avg_page_time']:.2f}s")
-            
-            # Operation tracker stats
-            tracker_stats = self.operation_tracker.get_stats()
-            if tracker_stats['total_operations'] > 0:
-                print("Operation Tracker Statistics:")
-                print(f"   Total operations: {tracker_stats['total_operations']}")
-                print(f"   Success rate: {tracker_stats['success_rate']:.1f}%")
-                print(f"   Tournaments processed: {tracker_stats['tournaments_processed']}")
-                print(f"   Organizations processed: {tracker_stats['organizations_processed']}")
-            
-            # Session stats
-            session_time = datetime.now() - self.session_stats['start_time']
-            print("Session Statistics:")
-            print(f"   Session duration: {session_time}")
-            print(f"   Operations performed: {len(self.session_stats['operations_performed'])}")
-            print(f"   Errors encountered: {len(self.session_stats['errors_encountered'])}")
-            
-            if self.session_stats['errors_encountered']:
-                print("Errors:")
-                for operation, error in self.session_stats['errors_encountered']:
-                    print(f"   {operation}: {error}")
-            
-            log_debug("Statistics display completed", "tracker")
+        logger.info("Starting Show statistics...")
+        logger.info("Generating system statistics")
+        
+        print("Tournament Tracker Statistics")
+        print("=" * 60)
+        
+        # Database stats
+        stats = database_service.get_summary_stats()
+        print("Database Statistics:")
+        print(f"   Organizations: {stats.total_organizations}")
+        print(f"   Tournaments: {stats.total_tournaments}")
+        print(f"   Players: {stats.total_players}")
+        print(f"   Total Placements: {stats.total_placements:,}")
+        
+        # Queue stats
+        q_stats = queue_stats()
+        if q_stats['total_operations'] > 0:
+            print("Queue Statistics:")
+            print(f"   Pages processed: {q_stats['pages_processed']}")
+            print(f"   Operations successful: {q_stats['operations_successful']}")
+            print(f"   Operations failed: {q_stats['operations_failed']}")
+            print(f"   Success rate: {q_stats['success_rate']:.1f}%")
+            print(f"   Average page time: {q_stats['avg_page_time']:.2f}s")
+        
+        # Operation tracker stats
+        tracker_stats = self.operation_tracker.get_stats()
+        if tracker_stats['total_operations'] > 0:
+            print("Operation Tracker Statistics:")
+            print(f"   Total operations: {tracker_stats['total_operations']}")
+            print(f"   Success rate: {tracker_stats['success_rate']:.1f}%")
+            print(f"   Tournaments processed: {tracker_stats['tournaments_processed']}")
+            print(f"   Organizations processed: {tracker_stats['organizations_processed']}")
+        
+        # Session stats
+        session_time = datetime.now() - self.session_stats['start_time']
+        print("Session Statistics:")
+        print(f"   Session duration: {session_time}")
+        print(f"   Operations performed: {len(self.session_stats['operations_performed'])}")
+        print(f"   Errors encountered: {len(self.session_stats['errors_encountered'])}")
+        
+        if self.session_stats['errors_encountered']:
+            print("Errors:")
+            for operation, error in self.session_stats['errors_encountered']:
+                print(f"   {operation}: {error}")
+        
+        logger.debug("Statistics display completed")
+        logger.info("Completed Show statistics")
     
     def interactive_mode(self):
         """Start interactive REPL mode"""
         self._ensure_db_initialized()
         
-        log_info("Entering interactive mode", "tracker")
+        logger.info("Entering interactive mode")
         print("Tournament Tracker Interactive Mode")
         print("Available objects: Tournament, Organization, tracker")
         print("Type 'help()' for commands, 'exit()' to quit")
@@ -263,100 +289,102 @@ Tournament Tracker Interactive Mode Commands:
         print(f'{org.display_name}: {org.total_attendance}')
         """
         print(help_text)
-        log_debug("Interactive help displayed", "tracker")
+        logger.debug("Interactive help displayed")
 
 def create_sample_data():
     """Create sample data for testing"""
-    log_info("Creating sample tournament data", "sample")
+    logger.info("Creating sample tournament data")
     
-    with LogContext("Create sample data"):
-        from database_queue import batch_operations
-        from database_service import database_service
-        normalize_contact = database_service.normalize_contact
-        from tournament_models import Tournament, Organization, OrganizationContact, AttendanceRecord
+    logger.info("Starting Create sample data...")
+    from database_queue import batch_operations
+    from database_service import database_service
+    normalize_contact = database_service.normalize_contact
+    from tournament_models import Tournament, Organization, OrganizationContact, AttendanceRecord
+    
+    sample_tournaments = [
+        {
+            'id': 'sample001',
+            'name': 'SoCal Regionals 2024',
+            'num_attendees': 250,
+            'primary_contact': 'socal@fgc.com',
+            'tournament_state': 3
+        },
+        {
+            'id': 'sample002', 
+            'name': 'Wednesday Night Fights',
+            'num_attendees': 85,
+            'primary_contact': 'levelup@discord.gg/levelup',
+            'tournament_state': 3
+        },
+        {
+            'id': 'sample003',
+            'name': 'Combo Breaker Qualifier',
+            'num_attendees': 120,
+            'primary_contact': 'socal@fgc.com',
+            'tournament_state': 3
+        },
+        {
+            'id': 'sample004',
+            'name': 'FGC Local Weekly',
+            'num_attendees': 45,
+            'primary_contact': 'weeklyfgc@gmail.com',
+            'tournament_state': 3
+        },
+        {
+            'id': 'sample005',
+            'name': 'Major Tournament',
+            'num_attendees': 300,
+            'primary_contact': 'major.tournament@events.com',
+            'tournament_state': 3
+        }
+    ]
         
-        sample_tournaments = [
-            {
-                'id': 'sample001',
-                'name': 'SoCal Regionals 2024',
-                'num_attendees': 250,
-                'primary_contact': 'socal@fgc.com',
-                'tournament_state': 3
-            },
-            {
-                'id': 'sample002', 
-                'name': 'Wednesday Night Fights',
-                'num_attendees': 85,
-                'primary_contact': 'levelup@discord.gg/levelup',
-                'tournament_state': 3
-            },
-            {
-                'id': 'sample003',
-                'name': 'Combo Breaker Qualifier',
-                'num_attendees': 120,
-                'primary_contact': 'socal@fgc.com',
-                'tournament_state': 3
-            },
-            {
-                'id': 'sample004',
-                'name': 'FGC Local Weekly',
-                'num_attendees': 45,
-                'primary_contact': 'weeklyfgc@gmail.com',
-                'tournament_state': 3
-            },
-            {
-                'id': 'sample005',
-                'name': 'Major Tournament',
-                'num_attendees': 300,
-                'primary_contact': 'major.tournament@events.com',
-                'tournament_state': 3
-            }
-        ]
+    try:
+        with batch_operations(page_size=10) as queue:
+            for tournament_data in sample_tournaments:
+                # Normalize contact
+                tournament_data['normalized_contact'] = normalize_contact(tournament_data['primary_contact'])
+                tournament_data['sync_timestamp'] = int(time.time())
+                tournament_data['end_at'] = int(time.time()) - 86400  # Yesterday
+                
+                # Create tournament
+                queue.create(Tournament, **tournament_data)
+                
+                # Create organization and attendance - DISABLED (normalized_key no longer exists)
+                # normalized_key = tournament_data['normalized_contact']
+                # if normalized_key:
+                #     def create_org_and_attendance(session, norm_key, raw_contact, tourney_id, attendance):
+                #         # Get or create organization
+                #         org = session.query(Organization).filter_by(normalized_key=norm_key).first()
+                #         if not org:
+                #             display_name = raw_contact if '@' not in raw_contact and 'discord' not in raw_contact.lower() else raw_contact
+                #             org = Organization(
+                #                 normalized_key=norm_key,
+                #                 display_name=display_name
+                #             )
+                #             session.add(org)
+                #             session.flush()
+                # Rest of code disabled - references removed tables
         
-        try:
-            with batch_operations(page_size=10) as queue:
-                for tournament_data in sample_tournaments:
-                    # Normalize contact
-                    tournament_data['normalized_contact'] = normalize_contact(tournament_data['primary_contact'])
-                    tournament_data['sync_timestamp'] = int(time.time())
-                    tournament_data['end_at'] = int(time.time()) - 86400  # Yesterday
-                    
-                    # Create tournament
-                    queue.create(Tournament, **tournament_data)
-                    
-                    # Create organization and attendance - DISABLED (normalized_key no longer exists)
-                    # normalized_key = tournament_data['normalized_contact']
-                    # if normalized_key:
-                    #     def create_org_and_attendance(session, norm_key, raw_contact, tourney_id, attendance):
-                    #         # Get or create organization
-                    #         org = session.query(Organization).filter_by(normalized_key=norm_key).first()
-                    #         if not org:
-                    #             display_name = raw_contact if '@' not in raw_contact and 'discord' not in raw_contact.lower() else raw_contact
-                    #             org = Organization(
-                    #                 normalized_key=norm_key,
-                    #                 display_name=display_name
-                    #             )
-                    #             session.add(org)
-                    #             session.flush()
-                    # Rest of code disabled - references removed tables
-            
-            log_info("Sample data created successfully", "sample")
-            
-            # Show what was created
-            stats = database_service.get_summary_stats()
-            log_info(f"Sample data summary:", "sample")
-            log_info(f"   {stats['total_tournaments']} tournaments", "sample")
-            log_info(f"   {stats['total_organizations']} organizations", "sample") 
-            log_info(f"   {stats['total_attendance']:,} total attendance", "sample")
-            
-            # Show sample report
-            print("\nSample Tournament Report:")
-            format_console_table(limit=10)
-            
-        except Exception as e:
-            log_error(f"Failed to create sample data: {e}", "sample")
-            import traceback
-            traceback.print_exc()
+        logger.info("Sample data created successfully")
+        
+        # Show what was created
+        stats = database_service.get_summary_stats()
+        logger.info(f"Sample data summary:")
+        logger.info(f"   {stats['total_tournaments']} tournaments")
+        logger.info(f"   {stats['total_organizations']} organizations")
+        logger.info(f"   {stats['total_attendance']:,} total attendance")
+        
+        # Show sample report
+        print("\nSample Tournament Report:")
+        format_console_table(limit=10)
+        logger.info("Completed Create sample data")
+        
+    except Exception as e:
+        logger.error(f"Failed to create sample data: {e}")
+        import traceback
+        traceback.print_exc()
+        logger.info("Completed Create sample data")
 
 def main():
     """Main application entry point with centralized logging"""
@@ -399,7 +427,7 @@ def main():
     # Set debug logging level if requested
     if args.debug:
         init_logging(console=True, level=LogLevel.DEBUG, debug_file="tracker_debug.txt")
-        log_debug("Debug logging enabled", "tracker")
+        logger.debug("Debug logging enabled")
     
     # Handle sample data creation (standalone operation)
     if args.create_sample:
@@ -421,19 +449,19 @@ def main():
         )
         
         if not args.skip_sync and should_sync:
-            log_debug("Auto-sync triggered", "tracker")
+            logger.debug("Auto-sync triggered")
             success = tracker.sync_tournaments(
                 page_size=args.page_size, 
                 fetch_standings=args.fetch_standings,
                 standings_limit=args.standings_limit
             )
             if not success and not args.interactive:
-                log_error("Sync failed, exiting", "tracker")
+                logger.error("Sync failed, exiting")
                 sys.exit(1)
         
         # Generate outputs
         if args.console:
-           tracker.show_console_report(limit=args.limit)
+            tracker.show_console_report(limit=args.limit)
         
         if args.html:
             tracker.generate_html_report(limit=args.limit, output_file=args.html)
@@ -451,10 +479,10 @@ def main():
         tracker.operation_tracker.end_operation()
         
     except KeyboardInterrupt:
-        log_info("Interrupted by user", "tracker")
+        logger.info("Interrupted by user")
         sys.exit(130)
     except Exception as e:
-        log_error(f"Fatal error: {e}", "tracker")
+        logger.error(f"Fatal error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -462,49 +490,49 @@ def main():
 # Test functions for tournament tracker
 def test_tournament_tracker():
     """Test main tournament tracker functionality"""
-    log_info("=" * 60, "test")
-    log_info("TESTING TOURNAMENT TRACKER", "test")
-    log_info("=" * 60, "test")
+    logger.info("=" * 60)
+    logger.info("TESTING TOURNAMENT TRACKER")
+    logger.info("=" * 60)
     
     try:
         # Initialize logging for tests
         init_logging(console=True, level=LogLevel.DEBUG, debug_file="tracker_test.txt")
         
         # Test 1: Tracker initialization
-        log_info("TEST 1: Tracker initialization", "test")
+        logger.info("TEST 1: Tracker initialization")
         tracker = TournamentTracker()
-        log_info("✅ Tracker initialized", "test")
+        logger.info("✅ Tracker initialized")
         
         # Test 2: Database initialization (lazy loading)
-        log_info("TEST 2: Database lazy loading", "test")
+        logger.info("TEST 2: Database lazy loading")
         tracker._ensure_db_initialized()
         if tracker._initialized:
-            log_info("✅ Database lazy loading works", "test")
+            logger.info("✅ Database lazy loading works")
         else:
-            log_error("❌ Database lazy loading failed", "test")
+            logger.error("❌ Database lazy loading failed")
         
         # Test 3: Statistics display
-        log_info("TEST 3: Statistics display", "test")
+        logger.info("TEST 3: Statistics display")
         tracker.show_statistics()
-        log_info("✅ Statistics displayed", "test")
+        logger.info("✅ Statistics displayed")
         
         # Test 4: Console report
-        log_info("TEST 4: Console report", "test")
+        logger.info("TEST 4: Console report")
         tracker.show_console_report(limit=5)
-        log_info("✅ Console report displayed", "test")
+        logger.info("✅ Console report displayed")
         
         # Test 5: HTML report generation  
-        log_info("TEST 5: HTML report generation", "test")
+        logger.info("TEST 5: HTML report generation")
         html = tracker.generate_html_report(limit=3)
         if html and len(html) > 100:
-            log_info("✅ HTML report generated", "test")
+            logger.info("✅ HTML report generated")
         else:
-            log_error("❌ HTML report failed", "test")
+            logger.error("❌ HTML report failed")
         
-        log_info("✅ Tournament tracker tests completed", "test")
+        logger.info("✅ Tournament tracker tests completed")
         
     except Exception as e:
-        log_error(f"Tournament tracker test failed: {e}", "test")
+        logger.error(f"Tournament tracker test failed: {e}")
         import traceback
         traceback.print_exc()
 
