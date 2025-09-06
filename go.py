@@ -665,14 +665,14 @@ class TournamentCommand:
         except Exception as e:
             return CommandResult(False, f"Editor error: {e}")
     
-    # Claude/AI Operations - ALL using the SINGLE claude_service
+    # Interactive Operations - ALL through interactive_service
     def launch_ai_chat(self) -> CommandResult:
-        """Launch AI chat using unified claude_chat module"""
+        """Launch AI chat through interactive service"""
         try:
-            from claude_chat import start_chat
+            from interactive_service import get_interactive_service
+            service = get_interactive_service(self.database_url)
             
-            # Start the chat
-            success = start_chat()
+            success = service.start_ai_chat()
             
             if success:
                 return CommandResult(True, "Chat mode ended")
@@ -682,8 +682,7 @@ class TournamentCommand:
         except ImportError as e:
             return CommandResult(
                 False, 
-                f"Failed to import claude_chat module: {e}\n"
-                f"Make sure claude_chat.py is available."
+                f"Failed to import interactive_service: {e}"
             )
         except Exception as e:
             return CommandResult(False, f"Failed to launch chat: {e}")
@@ -705,59 +704,54 @@ class TournamentCommand:
         )
     
     def ask_ai(self, question: str) -> CommandResult:
-        """Ask Claude a single question using claude_service"""
-        from claude_service import claude_service
-        
-        if not claude_service.is_enabled:
-            return CommandResult(
-                False,
-                "Claude service not enabled. Set ANTHROPIC_API_KEY to enable."
-            )
-        
-        # Check if this is a heatmap-related question
-        if any(word in question.lower() for word in ['heat map', 'heatmap', 'heat-map']):
-            if any(word in question.lower() for word in ['make', 'create', 'generate', 'update']):
-                # Generate heatmaps first
-                heatmap_result = self.generate_heatmaps()
+        """Ask Claude a single question through interactive service"""
+        try:
+            from interactive_service import get_interactive_service
+            service = get_interactive_service(self.database_url)
+            
+            # Check if this is a heatmap-related question
+            if any(word in question.lower() for word in ['heat map', 'heatmap', 'heat-map']):
+                if any(word in question.lower() for word in ['make', 'create', 'generate', 'update']):
+                    # Generate heatmaps first
+                    heatmap_result = self.generate_heatmaps()
+                    question = f"{question}\n\nNote: {heatmap_result.message}"
+            
+            # Ask the question through interactive service
+            response = service.ask_ai(question)
+            
+            if response:
+                return CommandResult(True, "Question answered")
+            else:
+                return CommandResult(False, "Failed to get response")
                 
-                # Ask Claude with context about heatmaps
-                result = claude_service.ask_question(
-                    question,
-                    context={'heatmap_generated': True, 'heatmap_result': heatmap_result.message}
-                )
-                
-                if result.success:
-                    response = f"{result.response}\n\n{heatmap_result.message}"
-                    return CommandResult(True, response)
-                else:
-                    return CommandResult(False, result.error)
-        
-        # Regular question
-        result = claude_service.ask_question(question)
-        return CommandResult(
-            result.success,
-            result.response or result.error
-        )
+        except Exception as e:
+            return CommandResult(False, f"Failed to ask question: {e}")
     
     def show_claude_stats(self) -> CommandResult:
-        """Show Claude service statistics"""
-        from claude_service import claude_service
-        
-        stats = claude_service.get_statistics()
-        
-        # Format statistics for display
-        output = "\n=== Claude Service Statistics ===\n"
-        output += f"Enabled: {stats['enabled']}\n"
-        
-        if stats['enabled']:
-            output += f"Model: {stats['config']['model']}\n"
-            output += f"\nUsage:\n"
-            for key, value in stats['usage'].items():
-                output += f"  {key}: {value}\n"
-            output += f"\nHistory size: {stats['history_size']} conversations\n"
-        
-        print(output)
-        return CommandResult(True, "Claude statistics displayed")
+        """Show Claude statistics through interactive service"""
+        try:
+            from interactive_service import get_interactive_service
+            service = get_interactive_service(self.database_url)
+            
+            stats = service.get_ai_stats()
+            
+            # Format statistics for display
+            output = "\n=== Claude AI Statistics ===\n"
+            output += f"Enabled: {stats.get('enabled', False)}\n"
+            output += f"Model: {stats.get('model', 'N/A')}\n"
+            
+            if 'statistics' in stats:
+                st = stats['statistics']
+                output += f"\nUsage:\n"
+                output += f"  Total queries: {st.get('total_queries', 0)}\n"
+                output += f"  Successful: {st.get('successful_queries', 0)}\n"
+                output += f"  Failed: {st.get('failed_queries', 0)}\n"
+                output += f"  Success rate: {st.get('success_rate', 0):.1f}%\n"
+            
+            print(output)
+            return CommandResult(True, "Claude statistics displayed")
+        except Exception as e:
+            return CommandResult(False, f"Failed to get statistics: {e}")
     
     # Discord Bot Operations - ALL using the SINGLE discord_service
     def show_discord_stats(self) -> CommandResult:
@@ -826,11 +820,17 @@ class TournamentCommand:
             return CommandResult(False, f"Identification error: {e}")
     
     def launch_interactive_mode(self) -> CommandResult:
-        """Launch interactive mode"""
+        """Launch interactive REPL mode through interactive service"""
         try:
-            from go_interactive import start_interactive_mode
-            start_interactive_mode(database_url=self.database_url)
-            return CommandResult(True, "Interactive mode ended")
+            from interactive_service import get_interactive_service
+            service = get_interactive_service(self.database_url)
+            
+            success = service.start_repl()
+            
+            if success:
+                return CommandResult(True, "Interactive mode ended")
+            else:
+                return CommandResult(False, "Interactive mode failed")
         except Exception as e:
             return CommandResult(False, f"Interactive mode error: {e}")
 
