@@ -242,6 +242,95 @@ class PlayerPolymorphic(PolymorphicModel):
         }
 
 
+class TournamentPlacementPolymorphic(PolymorphicModel):
+    """
+    TournamentPlacement-specific implementation of the 3-method pattern.
+    """
+    
+    def _ask_prize(self) -> Any:
+        """Get prize information"""
+        if hasattr(self, 'prize_amount') and self.prize_amount:
+            return f"${self.prize_amount / 100:.2f}"
+        return None
+    
+    def _ask_medal(self) -> str:
+        """Get medal/placement emoji"""
+        placement = getattr(self, 'placement', 0)
+        medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+        return medals.get(placement, f"#{placement}")
+    
+    def _ask_event_type(self) -> str:
+        """Determine event type"""
+        event_name = getattr(self, 'event_name', '').lower()
+        if any(word in event_name for word in ['doubles', 'teams', '2v2', '3v3']):
+            return "doubles"
+        return "singles"
+    
+    def _ask_statistics(self) -> Dict:
+        """Get placement statistics"""
+        return {
+            'placement': getattr(self, 'placement', None),
+            'prize': self._ask_prize(),
+            'event': getattr(self, 'event_name', None),
+            'medal': self._ask_medal(),
+            'type': self._ask_event_type()
+        }
+    
+    def _tell_discord(self) -> str:
+        """Format placement for Discord"""
+        medal = self._ask_medal()
+        player = getattr(self, 'player', None)
+        tournament = getattr(self, 'tournament', None)
+        
+        output = f"{medal} "
+        if player:
+            output += f"**{player.gamertag if hasattr(player, 'gamertag') else 'Player'}**"
+        
+        if tournament:
+            output += f" at {tournament.name if hasattr(tournament, 'name') else 'Tournament'}"
+        
+        prize = self._ask_prize()
+        if prize:
+            output += f" 💰 {prize}"
+        
+        return output
+    
+    def _tell_claude(self) -> Dict:
+        """Explain placement to Claude"""
+        return {
+            'type': 'TournamentPlacement',
+            'placement': getattr(self, 'placement', None),
+            'capabilities': [
+                'ask("prize") - Get prize money',
+                'ask("medal") - Get medal emoji',
+                'ask("event type") - Singles or doubles',
+                'tell("discord") - Format for Discord',
+                'do("validate") - Validate placement'
+            ],
+            'current_data': self._ask_statistics()
+        }
+    
+    def _do_validate(self, **kwargs) -> Dict:
+        """Validate placement data"""
+        errors = []
+        
+        if not hasattr(self, 'placement') or not self.placement:
+            errors.append("Missing placement number")
+        elif self.placement < 1:
+            errors.append("Invalid placement (must be >= 1)")
+        
+        if not hasattr(self, 'player_id'):
+            errors.append("Missing player")
+        
+        if not hasattr(self, 'tournament_id'):
+            errors.append("Missing tournament")
+        
+        return {
+            'valid': len(errors) == 0,
+            'errors': errors
+        }
+
+
 class OrganizationPolymorphic(PolymorphicModel):
     """
     Organization-specific implementation of the 3-method pattern.
@@ -324,13 +413,14 @@ def simplify_existing_models():
     without removing their current methods.
     """
     try:
-        from tournament_models import Tournament, Player, Organization
+        from tournament_models import Tournament, Player, Organization, TournamentPlacement
         
         # Add the polymorphic base to existing models
         # This gives them ask(), tell(), do() while keeping existing methods
         Tournament.__bases__ += (TournamentPolymorphic,)
         Player.__bases__ += (PlayerPolymorphic,)
         Organization.__bases__ += (OrganizationPolymorphic,)
+        TournamentPlacement.__bases__ += (TournamentPlacementPolymorphic,)
         
         # Announce the simplification
         announcer.announce(
