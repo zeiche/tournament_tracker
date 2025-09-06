@@ -470,49 +470,30 @@ class TournamentCommand:
     
     # Shopify Operations - ALL using the SINGLE shopify_service
     def publish_to_shopify(self, format: str = "html") -> CommandResult:
-        """Publish to Shopify using unified visualizer with tabs"""
-        # Use the unified visualizer with tabs for both player and org rankings
+        """Publish to Shopify using publish_operation module"""
+        from publish_operation import PublishOperation
+        
         try:
-            from shopify_unified_visualizer import UnifiedRankingsVisualizer
-            publisher = UnifiedRankingsVisualizer()
+            print("[INFO] Publishing to Shopify...")
+            operation = PublishOperation()
+            result = operation.execute()
             
-            print("[INFO] Using unified Shopify publisher with tabs")
-            success = publisher.publish_to_shopify()
-            
-            if success:
+            if result['success']:
                 return CommandResult(
                     True,
-                    "✅ Published unified rankings with tabs to Shopify"
+                    f"✅ Published to Shopify successfully"
                 )
             else:
+                error_msg = result.get('error', 'Unknown error')
                 return CommandResult(
                     False,
-                    "❌ Failed to publish using unified visualizer"
+                    f"❌ Failed to publish: {error_msg}"
                 )
-        except ImportError:
-            # Fall back to original service
-            from shopify_service import shopify_service, PublishFormat
-            
-            if not shopify_service.is_enabled:
-                return CommandResult(
-                    False,
-                    "Shopify service not enabled. Set SHOPIFY_DOMAIN and SHOPIFY_ACCESS_TOKEN."
-                )
-            
-            try:
-                format_enum = PublishFormat(format.lower())
-            except ValueError:
-                return CommandResult(False, f"Invalid format: {format}. Use html, json, markdown, or csv")
-            
-            result = shopify_service.publish_tournament_rankings(format=format_enum)
-        
-        if result.success:
+        except Exception as e:
             return CommandResult(
-                True,
-                f"Published to Shopify successfully (ID: {result.resource_id}, Size: {result.data_size} bytes)"
+                False,
+                f"❌ Fatal error during publish: {e}"
             )
-        else:
-            return CommandResult(False, f"Shopify publishing failed: {result.error}")
     
     def show_shopify_stats(self) -> CommandResult:
         """Show Shopify service statistics"""

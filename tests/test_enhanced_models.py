@@ -6,7 +6,10 @@ test_enhanced_models.py - Test the enhanced ORM architecture with location mixin
 import sys
 from database_utils import init_db, get_session
 from tournament_models import Tournament, Organization, Player, TournamentPlacement
-from log_utils import init_logging, log_info, log_error, LogLevel
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('test_enhanced_models')
 
 def test_location_features():
     """Test the new LocationMixin features"""
@@ -195,8 +198,7 @@ def test_heatmap_integration():
 
 def main():
     """Run all tests"""
-    # Initialize database and logging
-    init_logging(console=True, level=LogLevel.INFO)
+    # Initialize database
     init_db()
     
     print("\n" + "="*60)
@@ -224,7 +226,7 @@ def main():
         print("\nModels now properly leverage SQLAlchemy's ORM capabilities!")
         
     except Exception as e:
-        log_error(f"Test failed: {e}", "test")
+        logger.error(f"Test failed: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

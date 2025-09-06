@@ -10,7 +10,10 @@ from datetime import datetime
 from collections import defaultdict
 
 # Import our centralized modules
-from log_utils import log_info, log_debug, log_error, log_api_call, LogContext
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('startgg_sync')
 from database import init_database, session_scope
 from database_service import database_service
 from database_queue import get_queue, commit_queue, queue_stats, batch_operations
@@ -137,11 +140,11 @@ class StartGGSyncClient:
             'rate_limit_sleeps': 0
         }
         
-        log_info(f"StartGG client initialized for {current_year}", "startgg")
+        logger.info(f"StartGG client initialized for {current_year}")
     
     def fetch_tournaments(self, year_filter=True, max_pages=10):
         """Fetch tournaments from start.gg API with pagination"""
-        log_info(f"Fetching SoCal tournaments from start.gg", "startgg")
+        logger.info(f"Fetching SoCal tournaments from start.gg")
         
         all_tournaments = []
         page = 1
@@ -159,7 +162,7 @@ class StartGGSyncClient:
                 variables["after"] = self.current_year_start
                 variables["before"] = self.current_year_end
                 if page == 1:
-                    log_debug(f"Filtering for {self.current_year} tournaments only", "startgg")
+                    logger.debug(f"Filtering for {self.current_year} tournaments only")
             
             payload = {
                 "query": SOCAL_TOURNAMENTS_QUERY,
@@ -180,7 +183,7 @@ class StartGGSyncClient:
                 data = response.json()
                 
                 if 'errors' in data:
-                    log_error(f"start.gg API error: {data['errors']}", "startgg")
+                    logger.error(f"start.gg API error: {data['errors']}")
                     raise RuntimeError(f"start.gg API error: {data['errors']}")
                 
                 tournament_data = data.get('data', {}).get('tournaments', {})
@@ -191,7 +194,7 @@ class StartGGSyncClient:
                 if page == 1:
                     total_pages = page_info.get('totalPages', 1)
                     total_count = page_info.get('total', 0)
-                    log_info(f"Found {total_count} tournaments across {total_pages} pages", "startgg")
+                    logger.info(f"Found {total_count} tournaments across {total_pages} pages")
                 
                 all_tournaments.extend(tournaments)
                 
@@ -201,23 +204,23 @@ class StartGGSyncClient:
                 self.api_stats['api_time'] += api_time
                 
                 year_info = f" ({self.current_year} only)" if year_filter else ""
-                log_api_call(f"tournaments{year_info} page {page}", api_time, success=True, context="startgg")
-                log_debug(f"Fetched page {page}/{total_pages}: {len(tournaments)} tournaments", "startgg")
+                logger.debug(f"API call tournaments{year_info} page {page}: {api_time:.2f}s - success")
+                logger.debug(f"Fetched page {page}/{total_pages}: {len(tournaments)} tournaments")
                 
                 page += 1
                 
             except Exception as e:
                 api_time = time.time() - start_time
                 self.api_stats['api_calls'] += 1
-                log_api_call(f"tournaments page {page}", api_time, success=False, context="startgg")
+                logger.debug(f"API call tournaments page {page}: {api_time:.2f}s - failed")
                 raise
         
-        log_info(f"Fetched {len(all_tournaments)} tournaments from start.gg", "startgg")
+        logger.info(f"Fetched {len(all_tournaments)} tournaments from start.gg")
         return all_tournaments
     
     def fetch_standings(self, tournament_id):
         """Fetch top 8 standings for a specific tournament"""
-        log_debug(f"Fetching standings for tournament {tournament_id}", "startgg")
+        logger.debug(f"Fetching standings for tournament {tournament_id}")
         
         variables = {"tournamentId": tournament_id}
         payload = {
@@ -240,17 +243,17 @@ class StartGGSyncClient:
             self.api_stats['api_time'] += api_time
             
             if 'errors' in data:
-                log_error(f"Standings error for {tournament_id}: {data['errors']}", "startgg")
+                logger.error(f"Standings error for {tournament_id}: {data['errors']}")
                 return None, f"API error: {data['errors']}"
             
             tournament_data = data.get('data', {}).get('tournament')
             if not tournament_data:
-                log_debug(f"No tournament data for {tournament_id}", "startgg")
+                logger.debug(f"No tournament data for {tournament_id}")
                 return None, "no tournament data"
             
             events = tournament_data.get('events', [])
             if not events:
-                log_debug(f"No events found for {tournament_id}", "startgg")
+                logger.debug(f"No events found for {tournament_id}")
                 return None, "no events found"
             
             # Collect standings from all events
@@ -266,15 +269,15 @@ class StartGGSyncClient:
                     standing['event_id'] = event_id
                     all_standings.append(standing)
             
-            log_api_call(f"standings/{tournament_id}", api_time, success=True, context="startgg")
-            log_debug(f"Fetched {len(all_standings)} standings for {tournament_id}", "startgg")
+            logger.debug(f"API call standings/{tournament_id}: {api_time:.2f}s - success")
+            logger.debug(f"Fetched {len(all_standings)} standings for {tournament_id}")
             
             return all_standings, None
             
         except Exception as e:
             api_time = time.time() - start_time
             self.api_stats['api_calls'] += 1
-            log_api_call(f"standings/{tournament_id}", api_time, success=False, context="startgg")
+            logger.debug(f"API call standings/{tournament_id}: {api_time:.2f}s - failed")
             return None, str(e)
     
     def get_stats(self):
@@ -299,7 +302,7 @@ class TournamentSyncProcessor:
     
     def process_tournaments(self, tournaments_data):
         """Process tournament data using paged queue system"""
-        log_info(f"Processing {len(tournaments_data)} tournaments", "sync")
+        logger.info(f"Processing {len(tournaments_data)} tournaments", "sync")
         
         with batch_operations(page_size=self.page_size) as queue:
             for tournament_data in tournaments_data:
@@ -309,15 +312,15 @@ class TournamentSyncProcessor:
                     
                 except Exception as e:
                     self.sync_stats['processing_errors'] += 1
-                    log_error(f"Failed to process tournament {tournament_data.get('id', 'unknown')}: {e}", "sync")
+                    logger.error(f"Failed to process tournament {tournament_data.get('id', 'unknown')}: {e}", "sync")
         
-        log_info(f"Tournament processing completed - {self.sync_stats['tournaments_processed']} processed", "sync")
+        logger.info(f"Tournament processing completed - {self.sync_stats['tournaments_processed']} processed", "sync")
     
     def _process_single_tournament(self, queue, tournament_data):
         """Process a single tournament"""
         tournament_id = tournament_data.get('id')
         if not tournament_id:
-            log_error("Tournament missing ID, skipping", "sync")
+            logger.error("Tournament missing ID, skipping", "sync")
             return
         
         # Convert tournament ID to string to match database schema
@@ -395,7 +398,7 @@ class TournamentSyncProcessor:
         if not standings_data:
             return
         
-        log_debug(f"Processing {len(standings_data)} standings for {tournament_id}", "sync")
+        logger.debug(f"Processing {len(standings_data)} standings for {tournament_id}", "sync")
         
         with batch_operations(page_size=50) as queue:
             for standing in standings_data:
@@ -404,7 +407,7 @@ class TournamentSyncProcessor:
                     self.sync_stats['standings_processed'] += 1
                     
                 except Exception as e:
-                    log_error(f"Failed to process standing: {e}", "sync")
+                    logger.error(f"Failed to process standing: {e}", "sync")
     
     def _process_single_standing(self, queue, standing, tournament_id):
         """Process a single standing entry"""
@@ -419,7 +422,7 @@ class TournamentSyncProcessor:
         
         # Only process Ultimate events (already filtered by API, but double-check)
         if event_info['game'] != 'ultimate':
-            log_debug(f"Skipping non-Ultimate event: {event_name} (detected as {event_info['game']})", "sync")
+            logger.debug(f"Skipping non-Ultimate event: {event_name} (detected as {event_info['game']})", "sync")
             return
         
         # Use the standardized name for storage
@@ -503,7 +506,7 @@ class TournamentSyncProcessor:
 
 def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
     """Main synchronization function"""
-    log_info("Starting start.gg synchronization", "sync")
+    logger.info("Starting start.gg synchronization", "sync")
     
     sync_start_time = time.time()
     
@@ -517,7 +520,7 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
             tournaments = client.fetch_tournaments(year_filter=True)
         
         if not tournaments:
-            log_error("No tournaments fetched from start.gg", "sync")
+            logger.error("No tournaments fetched from start.gg", "sync")
             return None
         
         # Process tournaments
@@ -526,7 +529,7 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
         
         # Fetch standings if requested
         if fetch_standings and tournaments:
-            log_info(f"Fetching standings for top {standings_limit} tournaments", "sync")
+            logger.info(f"Fetching standings for top {standings_limit} tournaments", "sync")
             
             # Sort by attendance and take top tournaments
             # Filter out tournaments with None attendees
@@ -544,20 +547,20 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
                 tournament_id = tournament.get('id')
                 tournament_name = tournament.get('name', 'Unknown')
                 
-                log_debug(f"Fetching standings for {tournament_name}", "sync")
+                logger.debug(f"Fetching standings for {tournament_name}", "sync")
                 standings, error = client.fetch_standings(tournament_id)
                 
                 if standings:
                     processor.process_standings(standings, tournament_id)
                 elif error:
-                    log_error(f"Standings fetch failed for {tournament_name}: {error}", "sync")
+                    logger.error(f"Standings fetch failed for {tournament_name}: {error}", "sync")
         
         # Normalize event names after fetching standings
         if fetch_standings:
-            log_info("Normalizing event names in database", "sync")
+            logger.info("Normalizing event names in database", "sync")
             from normalize_events import normalize_database_events
             norm_stats = normalize_database_events(dry_run=False)
-            log_info(f"Normalized {norm_stats['events_normalized']} events ({norm_stats['placements_updated']} placements)", "sync")
+            logger.info(f"Normalized {norm_stats['events_normalized']} events ({norm_stats['placements_updated']} placements)", "sync")
         
         # Calculate final stats
         sync_time = time.time() - sync_start_time
@@ -582,20 +585,20 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
         }
         
         # Log final summary
-        log_info("=" * 60, "sync")
-        log_info("SYNCHRONIZATION COMPLETED", "sync")
-        log_info("=" * 60, "sync")
-        log_info(f"API calls: {client_stats['api_stats']['api_calls']}", "sync")
-        log_info(f"Tournaments processed: {processor_stats['tournaments_processed']}", "sync")
-        log_info(f"Organizations created: {processor_stats['organizations_created']}", "sync")
-        log_info(f"Processing time: {sync_time:.2f}s", "sync")
-        log_info(f"Success rate: {final_stats['summary']['success_rate']:.1f}%", "sync")
-        log_info("=" * 60, "sync")
+        logger.info("=" * 60, "sync")
+        logger.info("SYNCHRONIZATION COMPLETED", "sync")
+        logger.info("=" * 60, "sync")
+        logger.info(f"API calls: {client_stats['api_stats']['api_calls']}", "sync")
+        logger.info(f"Tournaments processed: {processor_stats['tournaments_processed']}", "sync")
+        logger.info(f"Organizations created: {processor_stats['organizations_created']}", "sync")
+        logger.info(f"Processing time: {sync_time:.2f}s", "sync")
+        logger.info(f"Success rate: {final_stats['summary']['success_rate']:.1f}%", "sync")
+        logger.info("=" * 60, "sync")
         
         return final_stats
         
     except Exception as e:
-        log_error(f"Synchronization failed: {e}", "sync")
+        logger.error(f"Synchronization failed: {e}", "sync")
         import traceback
         traceback.print_exc()
         return None

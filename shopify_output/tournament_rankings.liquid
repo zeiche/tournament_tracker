@@ -1,0 +1,397 @@
+{% comment %}
+  Tournament Rankings - Dynamic Data Loading Template
+  Generated: 2025-09-06 00:40:50
+  
+  This template loads ranking data dynamically from separate JSON files.
+  Files required:
+  - player_rankings.json
+  - organization_rankings.json
+{% endcomment %}
+
+<div class="tournament-rankings-container">
+  <style>
+    .tournament-rankings-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .rankings-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding: 2rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+    }
+    
+    .rankings-header h1 {
+      font-size: 2.5rem;
+      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+    }
+    
+    .rankings-header p {
+      margin: 0.5rem 0;
+      opacity: 0.95;
+      font-size: 1.1rem;
+    }
+    
+    .tab-nav {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      border-bottom: 2px solid #ddd;
+    }
+    
+    .tab-button {
+      padding: 10px 20px;
+      background: #f5f5f5;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px 5px 0 0;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .tab-button:hover {
+      background: #e0e0e0;
+    }
+    
+    .tab-button.active {
+      background: #667eea;
+      color: white;
+    }
+    
+    .tab-content {
+      display: none;
+      min-height: 400px;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-message {
+      background: #fee;
+      color: #c00;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    
+    .rankings-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .rankings-table thead {
+      background: #f8f9fa;
+    }
+    
+    .rankings-table th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #495057;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      border-bottom: 2px solid #dee2e6;
+    }
+    
+    .rankings-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .rankings-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .rankings-table tbody tr:hover {
+      background: #f8f9fa;
+      transition: background 0.15s ease;
+    }
+    
+    .rank-cell {
+      font-weight: 700;
+      width: 80px;
+      text-align: center;
+    }
+    
+    .rank-1 { color: #FFD700; font-size: 1.3rem; }
+    .rank-2 { color: #C0C0C0; font-size: 1.2rem; }
+    .rank-3 { color: #CD7F32; font-size: 1.1rem; }
+    
+    .update-info {
+      text-align: center;
+      margin-top: 30px;
+      padding: 20px;
+      color: #718096;
+      font-size: 0.95rem;
+    }
+    
+    @media (max-width: 768px) {
+      .rankings-header h1 { font-size: 1.75rem; }
+      .rankings-table { font-size: 0.9rem; }
+      .rankings-table th, .rankings-table td { padding: 0.75rem 0.5rem; }
+    }
+  </style>
+  
+  <div class="rankings-header">
+    <h1>🏆 Tournament Rankings</h1>
+    <p>Southern California FGC Rankings</p>
+    <p id="data-status" style="font-size: 0.9rem; opacity: 0.8;">Loading data...</p>
+  </div>
+  
+  <div class="tab-nav">
+    <button class="tab-button active" onclick="showTab('organizations')" id="org-tab">Organization Rankings</button>
+    <button class="tab-button" onclick="showTab('players')" id="player-tab">Player Rankings</button>
+  </div>
+  
+  <div id="organizations" class="tab-content active">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading organization rankings...</p>
+    </div>
+  </div>
+  
+  <div id="players" class="tab-content">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading player rankings...</p>
+    </div>
+  </div>
+  
+  <div class="update-info">
+    <p>Rankings are calculated based on tournament placements and participation.</p>
+    <p>Data sourced from start.gg • Updated in Pacific Time (PST)</p>
+  </div>
+</div>
+
+<script>
+  // Configuration - URLs are set to Shopify pages containing the JSON data
+  const PLAYER_DATA_URL = '{{ shop.url }}/pages/player-rankings-data';
+  const ORG_DATA_URL = '{{ shop.url }}/pages/organization-rankings-data';
+  
+  // Cache for loaded data
+  let playerData = null;
+  let orgData = null;
+  let currentTab = 'organizations';
+  
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    loadOrganizationData();
+  });
+  
+  function showTab(tabName) {
+    // Update active states
+    document.querySelectorAll('.tab-content').forEach(tab => {
+      tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-button').forEach(button => {
+      button.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tabName).classList.add('active');
+    document.getElementById(tabName === 'organizations' ? 'org-tab' : 'player-tab').classList.add('active');
+    
+    currentTab = tabName;
+    
+    // Load data if not already loaded
+    if (tabName === 'organizations' && !orgData) {
+      loadOrganizationData();
+    } else if (tabName === 'players' && !playerData) {
+      loadPlayerData();
+    }
+  }
+  
+  async function loadOrganizationData() {
+    const container = document.getElementById('organizations');
+    
+    try {
+      // Fetch data from Shopify page
+      const response = await fetch(ORG_DATA_URL);
+      if (!response.ok) throw new Error('Failed to load organization data');
+      
+      // Extract JSON from the HTML page
+      const pageHtml = await response.text();
+      const jsonMatch = pageHtml.match(/<pre>([\s\S]*?)<\/pre>/);
+      if (!jsonMatch) throw new Error('No JSON data found in page');
+      
+      orgData = JSON.parse(jsonMatch[1]);
+      
+      // Generate table HTML
+      let html = `
+        <table class="rankings-table">
+          <thead>
+            <tr>
+              <th class="rank-cell">Rank</th>
+              <th>Organization</th>
+              <th>Tournaments</th>
+              <th>Total Attendance</th>
+              <th>Avg Attendance</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      orgData.rankings.forEach(org => {
+        const rankClass = org.rank <= 3 ? `rank-${org.rank}` : '';
+        html += `
+          <tr>
+            <td class="rank-cell ${rankClass}">${org.rank}</td>
+            <td style="font-weight: 600;">${org.name}</td>
+            <td style="text-align: center;">${org.tournament_count}</td>
+            <td style="text-align: center;">${org.total_attendance.toLocaleString()}</td>
+            <td style="text-align: center;">${org.average_attendance}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table>';
+      container.innerHTML = html;
+      
+      // Update status
+      updateDataStatus(orgData.metadata);
+      
+    } catch (error) {
+      console.error('Error loading organization data:', error);
+      container.innerHTML = `
+        <div class="error-message">
+          <p>Unable to load organization rankings.</p>
+          <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+        </div>
+      `;
+    }
+  }
+  
+  async function loadPlayerData() {
+    const container = document.getElementById('players');
+    
+    try {
+      // Fetch data from Shopify page
+      const response = await fetch(PLAYER_DATA_URL);
+      if (!response.ok) throw new Error('Failed to load player data');
+      
+      // Extract JSON from the HTML page
+      const pageHtml = await response.text();
+      const jsonMatch = pageHtml.match(/<pre>([\s\S]*?)<\/pre>/);
+      if (!jsonMatch) throw new Error('No JSON data found in page');
+      
+      playerData = JSON.parse(jsonMatch[1]);
+      
+      // Generate table HTML
+      let html = `
+        <table class="rankings-table">
+          <thead>
+            <tr>
+              <th class="rank-cell">Rank</th>
+              <th>Player</th>
+              <th>Points</th>
+              <th>Events</th>
+              <th>1st Places</th>
+              <th>Top 3s</th>
+              <th>Win %</th>
+              <th>Podium %</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      playerData.rankings.forEach(player => {
+        const rankClass = player.rank <= 3 ? `rank-${player.rank}` : '';
+        html += `
+          <tr>
+            <td class="rank-cell ${rankClass}">${player.rank}</td>
+            <td style="font-weight: 600; color: #2d3748;">${player.name}</td>
+            <td style="text-align: center; font-weight: 700; color: #667eea;">${player.points}</td>
+            <td style="text-align: center;">${player.events}</td>
+            <td style="text-align: center;">${player.first_places}</td>
+            <td style="text-align: center;">${player.top_3s}</td>
+            <td style="text-align: center;">${player.win_rate}%</td>
+            <td style="text-align: center;">${player.podium_rate}%</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table>';
+      container.innerHTML = html;
+      
+      // Update status
+      updateDataStatus(playerData.metadata);
+      
+    } catch (error) {
+      console.error('Error loading player data:', error);
+      container.innerHTML = `
+        <div class="error-message">
+          <p>Unable to load player rankings.</p>
+          <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+        </div>
+      `;
+    }
+  }
+  
+  function updateDataStatus(metadata) {
+    const statusElement = document.getElementById('data-status');
+    if (metadata && metadata.updated) {
+      statusElement.textContent = `Last updated: ${metadata.updated}`;
+    }
+  }
+  
+  // Alternative: Load from embedded JSON (if files are hosted elsewhere)
+  function loadFromEmbedded() {
+    // This function can be used if you want to embed the JSON directly
+    // in Shopify metafields or assets instead of separate files
+    
+    // Example usage with Shopify metafields:
+    // const playerData = {{ shop.metafields.tournament_data.player_rankings | json }};
+    // const orgData = {{ shop.metafields.tournament_data.organization_rankings | json }};
+  }
+</script>
+
+{% comment %}
+  Instructions for Shopify Integration:
+  
+  1. Upload the JSON files to Shopify:
+     - Option A: Upload as assets in theme
+     - Option B: Create pages with JSON content
+     - Option C: Use metafields to store JSON data
+  
+  2. Update the DATA_BASE_URL in the script to match your setup
+  
+  3. If using metafields, uncomment and modify the loadFromEmbedded() function
+  
+  4. The template will dynamically load the appropriate data file when tabs are clicked
+{% endcomment %}

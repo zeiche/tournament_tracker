@@ -1,0 +1,359 @@
+{
+  "rankings": [
+    {
+      "rank": 1,
+      "name": "Shark Tank",
+      "tournament_count": 33,
+      "total_attendance": 1223,
+      "average_attendance": 37.1
+    },
+    {
+      "rank": 2,
+      "name": "Game Lab Smash",
+      "tournament_count": 32,
+      "total_attendance": 1199,
+      "average_attendance": 37.5
+    },
+    {
+      "rank": 3,
+      "name": "Pow?! Gaming",
+      "tournament_count": 39,
+      "total_attendance": 1144,
+      "average_attendance": 29.3
+    },
+    {
+      "rank": 4,
+      "name": "Unknown",
+      "tournament_count": 45,
+      "total_attendance": 929,
+      "average_attendance": 20.6
+    },
+    {
+      "rank": 5,
+      "name": "Coopers Irvine SSBU",
+      "tournament_count": 33,
+      "total_attendance": 709,
+      "average_attendance": 21.5
+    },
+    {
+      "rank": 6,
+      "name": "BACKYARD TRY-HARDS",
+      "tournament_count": 16,
+      "total_attendance": 653,
+      "average_attendance": 40.8
+    },
+    {
+      "rank": 7,
+      "name": "Josue Lopez",
+      "tournament_count": 32,
+      "total_attendance": 591,
+      "average_attendance": 18.5
+    },
+    {
+      "rank": 8,
+      "name": "Soul Melter Smash",
+      "tournament_count": 30,
+      "total_attendance": 588,
+      "average_attendance": 19.6
+    },
+    {
+      "rank": 9,
+      "name": "Smash",
+      "tournament_count": 16,
+      "total_attendance": 457,
+      "average_attendance": 28.6
+    },
+    {
+      "rank": 10,
+      "name": "Eye of the Storm",
+      "tournament_count": 6,
+      "total_attendance": 338,
+      "average_attendance": 56.3
+    },
+    {
+      "rank": 11,
+      "name": "Fernando Zaragoza",
+      "tournament_count": 6,
+      "total_attendance": 287,
+      "average_attendance": 47.8
+    },
+    {
+      "rank": 12,
+      "name": "Smash Ultimate @ UCI",
+      "tournament_count": 17,
+      "total_attendance": 249,
+      "average_attendance": 14.6
+    },
+    {
+      "rank": 13,
+      "name": "LAN Hero X Frostburn",
+      "tournament_count": 15,
+      "total_attendance": 225,
+      "average_attendance": 15.0
+    },
+    {
+      "rank": 14,
+      "name": "Claremont Clash",
+      "tournament_count": 23,
+      "total_attendance": 216,
+      "average_attendance": 9.4
+    },
+    {
+      "rank": 15,
+      "name": "SC Biweeklies",
+      "tournament_count": 6,
+      "total_attendance": 174,
+      "average_attendance": 29.0
+    },
+    {
+      "rank": 16,
+      "name": "LIMIT/BREAK",
+      "tournament_count": 10,
+      "total_attendance": 167,
+      "average_attendance": 16.7
+    },
+    {
+      "rank": 17,
+      "name": "Smash at the Den",
+      "tournament_count": 10,
+      "total_attendance": 142,
+      "average_attendance": 14.2
+    },
+    {
+      "rank": 18,
+      "name": "LAN Hero",
+      "tournament_count": 7,
+      "total_attendance": 126,
+      "average_attendance": 18.0
+    },
+    {
+      "rank": 19,
+      "name": "Wild Smash Wednesday",
+      "tournament_count": 4,
+      "total_attendance": 123,
+      "average_attendance": 30.8
+    },
+    {
+      "rank": 20,
+      "name": "Isiac Ruiz",
+      "tournament_count": 8,
+      "total_attendance": 123,
+      "average_attendance": 15.4
+    },
+    {
+      "rank": 21,
+      "name": "Logan Villanueva",
+      "tournament_count": 5,
+      "total_attendance": 101,
+      "average_attendance": 20.2
+    },
+    {
+      "rank": 22,
+      "name": "jams ge",
+      "tournament_count": 3,
+      "total_attendance": 96,
+      "average_attendance": 32.0
+    },
+    {
+      "rank": 23,
+      "name": "Nickolas Morales",
+      "tournament_count": 5,
+      "total_attendance": 96,
+      "average_attendance": 19.2
+    },
+    {
+      "rank": 24,
+      "name": "Tuesday Throwdown",
+      "tournament_count": 8,
+      "total_attendance": 87,
+      "average_attendance": 10.9
+    },
+    {
+      "rank": 25,
+      "name": "Smash T Hill",
+      "tournament_count": 3,
+      "total_attendance": 84,
+      "average_attendance": 28.0
+    },
+    {
+      "rank": 26,
+      "name": "Erick Lopez",
+      "tournament_count": 8,
+      "total_attendance": 83,
+      "average_attendance": 10.4
+    },
+    {
+      "rank": 27,
+      "name": "Darren C.",
+      "tournament_count": 2,
+      "total_attendance": 76,
+      "average_attendance": 38.0
+    },
+    {
+      "rank": 28,
+      "name": "Port Town Beatdown",
+      "tournament_count": 9,
+      "total_attendance": 74,
+      "average_attendance": 8.2
+    },
+    {
+      "rank": 29,
+      "name": "Mur Town Smash",
+      "tournament_count": 5,
+      "total_attendance": 61,
+      "average_attendance": 12.2
+    },
+    {
+      "rank": 30,
+      "name": "Adan Valenzuela",
+      "tournament_count": 1,
+      "total_attendance": 60,
+      "average_attendance": 60.0
+    },
+    {
+      "rank": 31,
+      "name": "Try-Hards @ Red Engine: Brew Battles",
+      "tournament_count": 5,
+      "total_attendance": 55,
+      "average_attendance": 11.0
+    },
+    {
+      "rank": 32,
+      "name": "SUMMER AGT",
+      "tournament_count": 4,
+      "total_attendance": 43,
+      "average_attendance": 10.8
+    },
+    {
+      "rank": 33,
+      "name": "Alex Prichett",
+      "tournament_count": 2,
+      "total_attendance": 43,
+      "average_attendance": 21.5
+    },
+    {
+      "rank": 34,
+      "name": "Casa De Cafe",
+      "tournament_count": 6,
+      "total_attendance": 39,
+      "average_attendance": 6.5
+    },
+    {
+      "rank": 35,
+      "name": "Lynn V.",
+      "tournament_count": 2,
+      "total_attendance": 37,
+      "average_attendance": 18.5
+    },
+    {
+      "rank": 36,
+      "name": "SSBU",
+      "tournament_count": 2,
+      "total_attendance": 36,
+      "average_attendance": 18.0
+    },
+    {
+      "rank": 37,
+      "name": "Prince Corona",
+      "tournament_count": 5,
+      "total_attendance": 33,
+      "average_attendance": 6.6
+    },
+    {
+      "rank": 38,
+      "name": "DeAngelo Gonzales",
+      "tournament_count": 2,
+      "total_attendance": 31,
+      "average_attendance": 15.5
+    },
+    {
+      "rank": 39,
+      "name": "Kyle :3",
+      "tournament_count": 3,
+      "total_attendance": 28,
+      "average_attendance": 9.3
+    },
+    {
+      "rank": 40,
+      "name": "Grayson Quintero",
+      "tournament_count": 2,
+      "total_attendance": 28,
+      "average_attendance": 14.0
+    },
+    {
+      "rank": 41,
+      "name": "Lewis Andres",
+      "tournament_count": 1,
+      "total_attendance": 27,
+      "average_attendance": 27.0
+    },
+    {
+      "rank": 42,
+      "name": "Origins Game Shop GT",
+      "tournament_count": 2,
+      "total_attendance": 26,
+      "average_attendance": 13.0
+    },
+    {
+      "rank": 43,
+      "name": "Jericho @ Biola",
+      "tournament_count": 3,
+      "total_attendance": 24,
+      "average_attendance": 8.0
+    },
+    {
+      "rank": 44,
+      "name": "Jerry V.",
+      "tournament_count": 2,
+      "total_attendance": 20,
+      "average_attendance": 10.0
+    },
+    {
+      "rank": 45,
+      "name": "Cody Conlin",
+      "tournament_count": 1,
+      "total_attendance": 20,
+      "average_attendance": 20.0
+    },
+    {
+      "rank": 46,
+      "name": "Guido M.",
+      "tournament_count": 1,
+      "total_attendance": 19,
+      "average_attendance": 19.0
+    },
+    {
+      "rank": 47,
+      "name": "Do or Di",
+      "tournament_count": 2,
+      "total_attendance": 17,
+      "average_attendance": 8.5
+    },
+    {
+      "rank": 48,
+      "name": "Danny Rojas",
+      "tournament_count": 1,
+      "total_attendance": 17,
+      "average_attendance": 17.0
+    },
+    {
+      "rank": 49,
+      "name": "Justin Tablante",
+      "tournament_count": 3,
+      "total_attendance": 16,
+      "average_attendance": 5.3
+    },
+    {
+      "rank": 50,
+      "name": "Mayron Castro",
+      "tournament_count": 1,
+      "total_attendance": 14,
+      "average_attendance": 14.0
+    }
+  ],
+  "metadata": {
+    "updated": "2025-09-06 00:40:50 PST",
+    "total_organizations": 50,
+    "data_source": "start.gg"
+  }
+}

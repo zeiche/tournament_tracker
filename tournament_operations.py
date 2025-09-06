@@ -7,7 +7,10 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 
 # Import centralized logging
-from log_utils import log_info, log_debug, log_error, log_warn, LogContext
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('tournament_operations')
 
 class TournamentOperationTracker:
     """Track statistics for tournament processing operations"""
@@ -28,31 +31,31 @@ class TournamentOperationTracker:
             'errors': []
         }
         
-        log_debug(f"Operation tracker created: {operation_name}", "operations")
+        logger.debug(f"Operation tracker created: {operation_name}")
     
     def start_operation(self):
         """Mark operation start"""
         self.stats['start_time'] = datetime.now()
         self.stats['attempts'] += 1
-        log_info(f"Starting {self.operation_name}", "operations")
+        logger.info(f"Starting {self.operation_name}")
     
     def record_tournament_success(self, tournament_count=1):
         """Record successful tournament processing"""
         self.stats['successes'] += 1
         self.stats['tournaments_processed'] += tournament_count
-        log_debug(f"Tournament processing success: +{tournament_count}", "operations")
+        logger.debug(f"Tournament processing success: +{tournament_count}")
     
     def record_organization_success(self, org_count=1):
         """Record successful organization processing"""
         self.stats['successes'] += 1
         self.stats['organizations_processed'] += org_count
-        log_debug(f"Organization processing success: +{org_count}", "operations")
+        logger.debug(f"Organization processing success: +{org_count}")
     
     def record_player_success(self, player_count=1):
         """Record successful player processing"""
         self.stats['successes'] += 1
         self.stats['players_processed'] += player_count
-        log_debug(f"Player processing success: +{player_count}", "operations")
+        logger.debug(f"Player processing success: +{player_count}")
     
     def record_failure(self, error_msg, context=None):
         """Record failed operation"""
@@ -63,7 +66,7 @@ class TournamentOperationTracker:
         if context:
             full_context += f" ({context})"
             
-        log_error(f"{full_context}: {error_msg}", "operations")
+        logger.error(f"{full_context}: {error_msg}")
     
     def end_operation(self):
         """Mark operation end and log summary"""
@@ -89,16 +92,16 @@ class TournamentOperationTracker:
         """Log operation summary"""
         stats = self.get_stats()
         
-        log_info(f"{self.operation_name} completed!", "operations")
-        log_info(f"   Attempts: {stats['attempts']}", "operations")
-        log_info(f"   Success rate: {stats['success_rate']:.1f}%", "operations")
-        log_info(f"   Tournaments: {stats['tournaments_processed']}", "operations")
-        log_info(f"   Organizations: {stats['organizations_processed']}", "operations") 
-        log_info(f"   Players: {stats['players_processed']}", "operations")
-        log_info(f"   Processing time: {stats['total_processing_time']:.2f}s", "operations")
+        logger.info(f"{self.operation_name} completed!")
+        logger.info(f"   Attempts: {stats['attempts']}")
+        logger.info(f"   Success rate: {stats['success_rate']:.1f}%")
+        logger.info(f"   Tournaments: {stats['tournaments_processed']}")
+        logger.info(f"   Organizations: {stats['organizations_processed']}") 
+        logger.info(f"   Players: {stats['players_processed']}")
+        logger.info(f"   Processing time: {stats['total_processing_time']:.2f}s")
         
         if stats['failures'] > 0:
-            log_warn(f"   Errors: {stats['failures']}", "operations")
+            logger.warning(f"   Errors: {stats['failures']}")
 
 class TournamentProcessor(ABC):
     """Base class for tournament data processing operations"""
@@ -112,8 +115,8 @@ class TournamentProcessor(ABC):
         self.tracker.start_operation()
         
         try:
-            with LogContext(f"Execute {self.operation_name}"):
-                result = self.execute(**kwargs)
+            # Execute operation with logging context
+            result = self.execute(**kwargs)
                 
             return result
         except Exception as e:
@@ -136,7 +139,7 @@ class TournamentProcessor(ABC):
         """Log processing progress"""
         if total > 0:
             percent = (current / total) * 100
-            log_info(f"   Progress: {current}/{total} {item_type} ({percent:.1f}%)", "operations")
+            logger.info(f"   Progress: {current}/{total} {item_type} ({percent:.1f}%)")
 
 class TournamentSyncProcessor(TournamentProcessor):
     """Processor for tournament synchronization operations"""
@@ -144,7 +147,7 @@ class TournamentSyncProcessor(TournamentProcessor):
     def execute(self, **kwargs):
         """Execute tournament sync"""
         # This would be implemented by sync modules
-        log_info("Tournament sync processor executed", "operations")
+        logger.info("Tournament sync processor executed")
         return {"status": "success"}
 
 class OrganizationCleanupProcessor(TournamentProcessor):
@@ -153,7 +156,7 @@ class OrganizationCleanupProcessor(TournamentProcessor):
     def execute(self, **kwargs):
         """Execute organization cleanup"""
         # This would be implemented by editor modules
-        log_info("Organization cleanup processor executed", "operations")
+        logger.info("Organization cleanup processor executed")
         return {"status": "success"}
 
 def handle_tournament_error(operation_name, error, context=None, continue_on_error=True):
@@ -164,26 +167,26 @@ def handle_tournament_error(operation_name, error, context=None, continue_on_err
     if context:
         full_context = f"operations-{context}"
     
-    log_error(error_msg, full_context)
+    logger.error(f"{full_context}: {error_msg}")
     
     if continue_on_error:
-        log_warn("Continuing with remaining operations...", "operations")
+        logger.warning("Continuing with remaining operations...")
         return False
     else:
-        log_error("Stopping due to error", "operations")
+        logger.error("Stopping due to error")
         raise RuntimeError(error_msg)
 
 def log_tournament_operation_start(operation_name, details=""):
     """Log start of tournament operation"""
-    log_info(f"Starting {operation_name}", "operations")
+    logger.info(f"Starting {operation_name}")
     if details:
-        log_debug(f"   {details}", "operations")
+        logger.debug(f"   {details}")
 
 def log_tournament_progress(current, total, item_type="tournaments"):
     """Log tournament processing progress"""
     if total > 0:
         percent = (current / total) * 100
-        log_info(f"   Progress: {current}/{total} {item_type} ({percent:.1f}%)", "operations")
+        logger.info(f"   Progress: {current}/{total} {item_type} ({percent:.1f}%)")
 
 def validate_tournament_config(required_vars):
     """Validate required configuration for tournament operations"""
@@ -194,10 +197,10 @@ def validate_tournament_config(required_vars):
     
     if missing:
         error_msg = f"Required tournament configuration missing: {', '.join(missing)}"
-        log_error(error_msg, "operations")
+        logger.error(error_msg)
         raise RuntimeError(error_msg)
     
-    log_info(f"Tournament configuration validated: {', '.join(required_vars)}", "operations")
+    logger.info(f"Tournament configuration validated: {', '.join(required_vars)}")
     return True
 
 def validate_startgg_config():
@@ -211,27 +214,27 @@ def validate_shopify_config():
 # Tournament-specific operation patterns
 def track_sync_operation(tournaments_count, organizations_count=0, api_calls=0):
     """Track tournament sync operation metrics"""
-    log_info(f"Sync metrics: {tournaments_count} tournaments, {organizations_count} orgs, {api_calls} API calls", "operations")
+    logger.info(f"Sync metrics: {tournaments_count} tournaments, {organizations_count} orgs, {api_calls} API calls")
 
 def track_cleanup_operation(organizations_changed, organizations_skipped=0):
     """Track organization cleanup operation metrics"""
-    log_info(f"Cleanup metrics: {organizations_changed} changed, {organizations_skipped} skipped", "operations")
+    logger.info(f"Cleanup metrics: {organizations_changed} changed, {organizations_skipped} skipped")
 
 def track_report_operation(report_type, organizations_count, output_size=None):
     """Track report generation metrics"""
     size_info = f", {output_size} chars" if output_size else ""
-    log_info(f"Report metrics: {report_type} for {organizations_count} orgs{size_info}", "operations")
+    logger.info(f"Report metrics: {report_type} for {organizations_count} orgs{size_info}")
 
 # Test functions for tournament operations
 def test_tournament_tracker():
     """Test tournament operation tracker"""
-    log_info("=" * 60, "test")
-    log_info("TESTING TOURNAMENT OPERATION TRACKER", "test")
-    log_info("=" * 60, "test")
+    logger.info("=" * 60)
+    logger.info("TESTING TOURNAMENT OPERATION TRACKER")
+    logger.info("=" * 60)
     
     try:
         # Test 1: Basic tracking
-        log_info("TEST 1: Basic operation tracking", "test")
+        logger.info("TEST 1: Basic operation tracking")
         tracker = TournamentOperationTracker("test_sync_operation")
         
         tracker.start_operation()
@@ -242,12 +245,12 @@ def test_tournament_tracker():
         
         stats = tracker.get_stats()
         if stats['tournaments_processed'] == 5 and stats['success_rate'] > 0:
-            log_info("✅ Basic tracking works", "test")
+            logger.info("✅ Basic tracking works")
         else:
-            log_error("❌ Basic tracking failed", "test")
+            logger.error("❌ Basic tracking failed")
         
         # Test 2: Error tracking
-        log_info("TEST 2: Error tracking", "test")
+        logger.info("TEST 2: Error tracking")
         error_tracker = TournamentOperationTracker("test_error_operation")
         
         error_tracker.start_operation()
@@ -257,60 +260,60 @@ def test_tournament_tracker():
         
         error_stats = error_tracker.get_stats()
         if error_stats['failures'] == 1 and len(error_stats['errors']) == 1:
-            log_info("✅ Error tracking works", "test")
+            logger.info("✅ Error tracking works")
         else:
-            log_error("❌ Error tracking failed", "test")
+            logger.error("❌ Error tracking failed")
         
-        log_info("✅ Tournament tracker tests completed", "test")
+        logger.info("✅ Tournament tracker tests completed")
         
     except Exception as e:
-        log_error(f"Tournament tracker test failed: {e}", "test")
+        logger.error(f"Tournament tracker test failed: {e}")
         import traceback
         traceback.print_exc()
 
 def test_tournament_processor():
     """Test tournament processor base class"""
-    log_info("=" * 60, "test")
-    log_info("TESTING TOURNAMENT PROCESSOR", "test")
-    log_info("=" * 60, "test")
+    logger.info("=" * 60)
+    logger.info("TESTING TOURNAMENT PROCESSOR")
+    logger.info("=" * 60)
     
     try:
         # Test 1: Successful processor
-        log_info("TEST 1: Successful processor", "test")
+        logger.info("TEST 1: Successful processor")
         sync_processor = TournamentSyncProcessor("test_sync")
         result = sync_processor.run()
         
         if result and result['status'] == 'success':
-            log_info("✅ Sync processor works", "test")
+            logger.info("✅ Sync processor works")
         else:
-            log_error("❌ Sync processor failed", "test")
+            logger.error("❌ Sync processor failed")
         
         # Test 2: Cleanup processor
-        log_info("TEST 2: Cleanup processor", "test")
+        logger.info("TEST 2: Cleanup processor")
         cleanup_processor = OrganizationCleanupProcessor("test_cleanup")
         result = cleanup_processor.run()
         
         if result and result['status'] == 'success':
-            log_info("✅ Cleanup processor works", "test")
+            logger.info("✅ Cleanup processor works")
         else:
-            log_error("❌ Cleanup processor failed", "test")
+            logger.error("❌ Cleanup processor failed")
         
-        log_info("✅ Tournament processor tests completed", "test")
+        logger.info("✅ Tournament processor tests completed")
         
     except Exception as e:
-        log_error(f"Tournament processor test failed: {e}", "test")
+        logger.error(f"Tournament processor test failed: {e}")
         import traceback
         traceback.print_exc()
 
 def test_tournament_config():
     """Test tournament configuration validation"""
-    log_info("=" * 60, "test")
-    log_info("TESTING TOURNAMENT CONFIG VALIDATION", "test")
-    log_info("=" * 60, "test")
+    logger.info("=" * 60)
+    logger.info("TESTING TOURNAMENT CONFIG VALIDATION")
+    logger.info("=" * 60)
     
     try:
         # Test 1: Missing config (should fail gracefully)
-        log_info("TEST 1: Missing configuration", "test")
+        logger.info("TEST 1: Missing configuration")
         
         # Clear AUTH_KEY temporarily
         original_auth = os.getenv('AUTH_KEY')
@@ -319,9 +322,9 @@ def test_tournament_config():
         
         try:
             validate_startgg_config()
-            log_error("❌ Should have failed with missing AUTH_KEY", "test")
+            logger.error("❌ Should have failed with missing AUTH_KEY")
         except RuntimeError:
-            log_info("✅ Correctly detected missing AUTH_KEY", "test")
+            logger.info("✅ Correctly detected missing AUTH_KEY")
         
         # Restore AUTH_KEY if it existed
         if original_auth:
@@ -329,38 +332,38 @@ def test_tournament_config():
         
         # Test 2: Valid config (if AUTH_KEY exists)
         if os.getenv('AUTH_KEY'):
-            log_info("TEST 2: Valid configuration", "test")
+            logger.info("TEST 2: Valid configuration")
             try:
                 validate_startgg_config()
-                log_info("✅ start.gg config validation works", "test")
+                logger.info("✅ start.gg config validation works")
             except RuntimeError:
-                log_warn("AUTH_KEY exists but validation failed", "test")
+                logger.warning("AUTH_KEY exists but validation failed")
         
-        log_info("✅ Config validation tests completed", "test")
+        logger.info("✅ Config validation tests completed")
         
     except Exception as e:
-        log_error(f"Config validation test failed: {e}", "test")
+        logger.error(f"Config validation test failed: {e}")
         import traceback
         traceback.print_exc()
 
 def test_operation_helpers():
     """Test operation helper functions"""
-    log_info("=" * 60, "test")
-    log_info("TESTING OPERATION HELPERS", "test")
-    log_info("=" * 60, "test")
+    logger.info("=" * 60)
+    logger.info("TESTING OPERATION HELPERS")
+    logger.info("=" * 60)
     
     try:
         # Test 1: Progress tracking
-        log_info("TEST 1: Progress tracking", "test")
+        logger.info("TEST 1: Progress tracking")
         log_tournament_operation_start("Test Operation", "Testing progress tracking")
         
         for i in range(1, 6):
             log_tournament_progress(i, 5, "test_items")
         
-        log_info("✅ Progress tracking works", "test")
+        logger.info("✅ Progress tracking works")
         
         # Test 2: Error handling
-        log_info("TEST 2: Error handling", "test")
+        logger.info("TEST 2: Error handling")
         
         # Test continue on error
         continue_result = handle_tournament_error(
@@ -371,32 +374,28 @@ def test_operation_helpers():
         )
         
         if continue_result == False:  # Should return False for continue
-            log_info("✅ Continue on error works", "test")
+            logger.info("✅ Continue on error works")
         else:
-            log_error("❌ Continue on error failed", "test")
+            logger.error("❌ Continue on error failed")
         
         # Test 3: Operation metrics
-        log_info("TEST 3: Operation metrics", "test")
+        logger.info("TEST 3: Operation metrics")
         track_sync_operation(tournaments_count=50, organizations_count=25, api_calls=10)
         track_cleanup_operation(organizations_changed=15, organizations_skipped=5)
         track_report_operation("HTML", organizations_count=30, output_size=15000)
-        log_info("✅ Operation metrics logging works", "test")
+        logger.info("✅ Operation metrics logging works")
         
-        log_info("✅ Operation helpers tests completed", "test")
+        logger.info("✅ Operation helpers tests completed")
         
     except Exception as e:
-        log_error(f"Operation helpers test failed: {e}", "test")
+        logger.error(f"Operation helpers test failed: {e}")
         import traceback
         traceback.print_exc()
 
 def run_tournament_operations_tests():
     """Run all tournament operations tests"""
     try:
-        # Initialize logging
-        from log_utils import init_logging, LogLevel
-        init_logging(console=True, level=LogLevel.DEBUG, debug_file="operations_test.txt")
-        
-        log_info("Starting tournament operations tests", "test")
+        logger.info("Starting tournament operations tests")
         
         # Run test suites
         test_tournament_tracker()
@@ -407,10 +406,10 @@ def run_tournament_operations_tests():
         print()  # Spacing
         test_operation_helpers()
         
-        log_info("All tournament operations tests completed - check operations_test.txt for details", "test")
+        logger.info("All tournament operations tests completed")
         
     except Exception as e:
-        log_error(f"Tournament operations test suite failed: {e}", "test")
+        logger.error(f"Tournament operations test suite failed: {e}")
         import traceback
         traceback.print_exc()
 

@@ -8,7 +8,10 @@ import json
 import numpy as np
 from database import session_scope
 from tournament_models import Tournament
-from log_utils import log_info, log_error
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('tournament_heatmap')
 
 def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_map_background=True):
     """
@@ -23,10 +26,10 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
         if use_map_background:
             import contextily as ctx
     except ImportError as e:
-        log_error(f"Missing dependencies: {e}. Run: pip3 install matplotlib scipy contextily", "heatmap")
+        logger.error(f"Missing dependencies: {e}. Run: pip3 install matplotlib scipy contextily")
         return False
     
-    log_info("Generating static heat map", "heatmap")
+    logger.info("Generating static heat map")
     
     # Get tournament data using new location methods
     lats = []
@@ -41,7 +44,7 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
         ).all()
         
         if not tournaments:
-            log_error("No tournaments with geographic data found", "heatmap")
+            logger.error("No tournaments with geographic data found")
             return False
         
         # Extract data using new methods
@@ -54,10 +57,10 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
                 weights.append(t.get_heatmap_weight())
     
     if not lats:
-        log_error("No valid tournament locations found", "heatmap")
+        logger.error("No valid tournament locations found")
         return False
     
-    log_info(f"Processing {len(lats)} tournament locations", "heatmap")
+    logger.info(f"Processing {len(lats)} tournament locations")
     
     # Create figure
     if use_map_background:
@@ -114,9 +117,9 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
                           source=ctx.providers.CartoDB.Positron,  # Light map style
                           zoom=10,
                           alpha=1.0)
-            log_info("Added map background", "heatmap")
+            logger.info("Added map background")
         except Exception as e:
-            log_error(f"Could not add map background: {e}", "heatmap")
+            logger.error(f"Could not add map background: {e}")
             use_map_background = False  # Fall back to no background
     
     # Plot heat map on top of map
@@ -182,7 +185,7 @@ def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_m
     plt.savefig(output_file, dpi=dpi, facecolor=save_bg, edgecolor='none')
     plt.close()
     
-    log_info(f"Heat map saved to {output_file}", "heatmap")
+    logger.info(f"Heat map saved to {output_file}")
     return True
 
 def generate_interactive_heatmap(output_file='tournament_heatmap.html'):
@@ -194,10 +197,10 @@ def generate_interactive_heatmap(output_file='tournament_heatmap.html'):
         import folium
         from folium.plugins import HeatMap, MarkerCluster
     except ImportError:
-        log_error("folium not installed. Run: pip3 install folium", "heatmap")
+        logger.error("folium not installed. Run: pip3 install folium")
         return False
     
-    log_info("Generating interactive heat map", "heatmap")
+    logger.info("Generating interactive heat map")
     
     # Create base map centered on LA
     center_lat, center_lng = 33.8, -117.9
@@ -215,7 +218,7 @@ def generate_interactive_heatmap(output_file='tournament_heatmap.html'):
         tournaments = Tournament.with_location().all()
         
         if not tournaments:
-            log_error("No tournaments with geographic data found", "heatmap")
+            logger.error("No tournaments with geographic data found")
             return False
         
         for t in tournaments:
@@ -286,7 +289,7 @@ def generate_interactive_heatmap(output_file='tournament_heatmap.html'):
     
     # Save map
     m.save(output_file)
-    log_info(f"Interactive heat map saved to {output_file}", "heatmap")
+    logger.info(f"Interactive heat map saved to {output_file}")
     return True
 
 def generate_attendance_heatmap(output_file='attendance_heatmap.png', use_map_background=True):
@@ -301,10 +304,10 @@ def generate_attendance_heatmap(output_file='attendance_heatmap.png', use_map_ba
         if use_map_background:
             import contextily as ctx
     except ImportError as e:
-        log_error(f"Missing dependencies: {e}", "heatmap")
+        logger.error(f"Missing dependencies: {e}")
         return False
     
-    log_info("Generating attendance density map", "heatmap")
+    logger.info("Generating attendance density map")
     
     # Create figure
     if use_map_background:
@@ -371,10 +374,10 @@ def generate_attendance_heatmap(output_file='attendance_heatmap.png', use_map_ba
     if use_map_background:
         try:
             ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.CartoDB.Positron, zoom=10)
-            log_info("Added map background", "heatmap")
+            logger.info("Added map background")
             text_color = 'black'
         except Exception as e:
-            log_error(f"Could not add map background: {e}", "heatmap") 
+            logger.error(f"Could not add map background: {e}") 
             text_color = 'white'
     else:
         text_color = 'white'
@@ -409,7 +412,7 @@ def generate_attendance_heatmap(output_file='attendance_heatmap.png', use_map_ba
         plt.savefig(output_file, dpi=150, facecolor='black')
     plt.close()
     
-    log_info(f"Attendance density map saved to {output_file}", "heatmap")
+    logger.info(f"Attendance density map saved to {output_file}")
     return True
 
 if __name__ == "__main__":

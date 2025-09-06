@@ -9,7 +9,10 @@ import json
 from datetime import datetime, timedelta
 from database_utils import init_db, get_session
 from tournament_models import Tournament, Organization, Player, TournamentPlacement
-from log_utils import init_logging, log_info, log_error, LogLevel
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('test_all_models')
 
 def test_tournament_model():
     """Test all Tournament model enhancements"""
@@ -417,8 +420,7 @@ def test_json_serialization():
 
 def main():
     """Run all tests"""
-    # Initialize database and logging
-    init_logging(console=True, level=LogLevel.INFO)
+    # Initialize database
     init_db()
     
     print("\n" + "="*60)
@@ -445,7 +447,7 @@ def main():
         print("\nEvery piece of data is now accessible through intuitive methods!")
         
     except Exception as e:
-        log_error(f"Test failed: {e}", "test")
+        logger.error(f"Test failed: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

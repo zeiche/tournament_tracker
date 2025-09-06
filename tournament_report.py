@@ -9,7 +9,10 @@ import datetime
 import time
 from collections import defaultdict
 from database_service import database_service
-from log_utils import log_info, log_debug, log_error
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('tournament_report')
 from visualizer import UnifiedVisualizer
 from tournament_stylesheet import get_inline_styles, format_rank_badge
 
@@ -40,10 +43,10 @@ def get_display_name(primary_contact, data, org_names):
 
 def format_html_table(attendance_tracker, org_names):
     """Generate complete HTML table from attendance data using templates"""
-    log_debug(f"Formatting HTML table with {len(attendance_tracker)} entries", "report")
+    logger.debug(f"Formatting HTML table with {len(attendance_tracker)} entries")
     
     if not attendance_tracker:
-        log_error("No attendance data for HTML table", "report")
+        logger.error("No attendance data for HTML table")
         return "<p>No tournament data available.</p>"
     
     # Use unified visualizer for HTML generation
@@ -90,7 +93,7 @@ def format_html_table(attendance_tracker, org_names):
         """
     
     if html_template:
-        log_debug("Using HTML template file", "report")
+        logger.debug("Using HTML template file")
         html = html_template.replace("{{title}}", "SoCal FGC Tournament Attendance")
         html = html.replace("{{total_orgs}}", f"{total_orgs:,}")
         html = html.replace("{{total_tournaments}}", f"{total_tournaments:,}")
@@ -100,7 +103,7 @@ def format_html_table(attendance_tracker, org_names):
         
         return html
     else:
-        log_debug("Using visualizer for HTML generation", "report")
+        logger.debug("Using visualizer for HTML generation")
         # Prepare data for visualizer
         table_data = []
         headers = ["#", "Organization", "Tournaments", "Attendance"]
@@ -124,12 +127,21 @@ def format_html_table(attendance_tracker, org_names):
 # Function removed - now using visualizer for all HTML generation
 
 def find_store_and_theme():
-    """Find Shopify store and theme configuration"""
-    access_token = os.getenv("ACCESS_TOKEN")
-    if not access_token:
-        raise RuntimeError("ACCESS_TOKEN not set")
+    """Find Shopify store and theme configuration
     
-    store_url = "8ccd49-4.myshopify.com"
+    ⚠️ IMPORTANT: All configuration comes from .env file
+    - SHOPIFY_ACCESS_TOKEN: The Shopify API token (starts with shpat_)
+    - SHOPIFY_DOMAIN: The store domain (e.g., 8ccd49-4.myshopify.com)
+    - ACCESS_TOKEN is NOT for Shopify - it's a legacy token
+    
+    See ENV_CONFIGURATION.md for details.
+    """
+    # Get from .env - NEVER hardcode these values!
+    access_token = os.getenv("SHOPIFY_ACCESS_TOKEN")
+    if not access_token:
+        raise RuntimeError("SHOPIFY_ACCESS_TOKEN not set in .env file")
+    
+    store_url = os.getenv("SHOPIFY_DOMAIN", "8ccd49-4.myshopify.com")
     headers = {"X-Shopify-Access-Token": access_token, "Content-Type": "application/json"}
     
     with httpx.Client(timeout=10.0) as client:
@@ -141,7 +153,11 @@ def find_store_and_theme():
     raise RuntimeError("Could not connect to Shopify store")
 
 def update_template(store_url, theme_id, access_token, html_content, attendance_tracker, org_names):
-    """Update Shopify template with tournament data"""
+    """Update Shopify template with tournament data
+    
+    ⚠️ CRITICAL: This updates templates/page.attendance.json ONLY
+    We NEVER create new pages! See IMPORTANT_SHOPIFY_RULES.md
+    """
     template = "templates/page.attendance.json"
     headers = {"X-Shopify-Access-Token": access_token, "Content-Type": "application/json"}
     
@@ -196,7 +212,7 @@ def publish_table(attendance_tracker, org_names, console_only=False):
         html_content = format_html_table(attendance_tracker, org_names)
         
         if console_only:
-            log_info("Console output mode - not publishing to Shopify", "report")
+            logger.info("Console output mode - not publishing to Shopify")
             
             # Show rankings in console
             sorted_orgs = sorted(attendance_tracker.items(), key=lambda x: x[1]["total_attendance"], reverse=True)
@@ -222,13 +238,13 @@ def publish_table(attendance_tracker, org_names, console_only=False):
             success = update_template(store_url, theme_id, access_token, html_content, attendance_tracker, org_names)
             
             if success:
-                log_info(f"Published to {store_url}", "report")
+                logger.info(f"Published to {store_url}")
             else:
-                log_error("Failed to update template", "report")
+                logger.error("Failed to update template")
             return success
             
     except Exception as e:
-        log_error(f"Publishing error: {e}", "report")
+        logger.error(f"Publishing error: {e}")
         return False
 
 def format_console_table(limit=20):
@@ -270,7 +286,7 @@ def format_console_table(limit=20):
 
 def generate_html_report(limit=None, output_file=None):
     """Generate HTML attendance report"""
-    log_info("Generating HTML report", "report")
+    logger.info("Generating HTML report")
     
     try:
         # Get data from database
@@ -283,7 +299,7 @@ def generate_html_report(limit=None, output_file=None):
         if output_file:
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(html)
-            log_info(f"HTML report saved to {output_file}", "report")
+            logger.info(f"HTML report saved to {output_file}")
         else:
             print("HTML Report Generated:")
             print("-" * 80)
@@ -293,7 +309,7 @@ def generate_html_report(limit=None, output_file=None):
         return html
         
     except Exception as e:
-        log_error(f"HTML generation failed: {e}", "report")
+        logger.error(f"HTML generation failed: {e}")
         return None
 
 def get_legacy_attendance_data():
@@ -330,7 +346,7 @@ def get_legacy_attendance_data():
 
 def publish_to_shopify():
     """Publish tournament data to Shopify"""
-    log_info("Publishing to Shopify", "report")
+    logger.info("Publishing to Shopify")
     
     try:
         # Get data from database in legacy format
@@ -341,14 +357,14 @@ def publish_to_shopify():
         success = publish_table(attendance_tracker, org_names)
         
         if success:
-            log_info("Successfully published to Shopify", "report")
+            logger.info("Successfully published to Shopify")
             return True
         else:
-            log_error("Shopify publishing failed", "report")
+            logger.error("Shopify publishing failed")
             return False
             
     except Exception as e:
-        log_error(f"Shopify publishing failed: {e}", "report")
+        logger.error(f"Shopify publishing failed: {e}")
         return False
 
 def generate_geo_data(output_format='json'):

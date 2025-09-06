@@ -1,2 +1,6 @@
 INFO  [tracker] Starting Tournament Tracker
 INFO  [operations] Starting tournament_tracker_session
+INFO  [tracker] Initializing database connection
+INFO  Starting Show statistics...
+INFO  [tracker] Generating system statistics
+INFO  Completed Show statistics (0.07s)

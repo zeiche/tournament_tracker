@@ -9,7 +9,10 @@ import numpy as np
 from typing import Dict, List, Optional, Tuple
 from database_utils import get_session
 from tournament_models import Tournament, Organization, Player, TournamentPlacement
-from log_utils import log_info, log_error
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('heatmap_advanced')
 
 
 class AdvancedHeatmapGenerator:
@@ -26,7 +29,7 @@ class AdvancedHeatmapGenerator:
         import folium
         from folium.plugins import HeatMap
         
-        log_info("Generating player skill concentration heat map", "heatmap")
+        logger.info("Generating player skill concentration heat map")
         
         # Get skill data points
         skill_points = []
@@ -46,7 +49,7 @@ class AdvancedHeatmapGenerator:
                 skill_points.append([lat, lng, weight])
         
         if not skill_points:
-            log_error("No skill data points found", "heatmap")
+            logger.error("No skill data points found")
             return False
         
         # Create map centered on SoCal
@@ -93,7 +96,7 @@ class AdvancedHeatmapGenerator:
         
         # Save
         m.save(output_file)
-        log_info(f"Player skill heat map saved to {output_file}", "heatmap")
+        logger.info(f"Player skill heat map saved to {output_file}")
         return True
     
     def generate_growth_velocity_heatmap(self, output_file: str = 'heatmap_growth_velocity.html'):
@@ -105,7 +108,7 @@ class AdvancedHeatmapGenerator:
         from folium.plugins import HeatMap
         from datetime import datetime, timedelta
         
-        log_info("Generating growth velocity heat map", "heatmap")
+        logger.info("Generating growth velocity heat map")
         
         # Compare last 6 months to previous 6 months
         now = datetime.now()
@@ -160,7 +163,7 @@ class AdvancedHeatmapGenerator:
                 growth_points.append([lat, lng, weight])
         
         if not growth_points:
-            log_error("No growth data points found", "heatmap")
+            logger.error("No growth data points found")
             return False
         
         # Create map
@@ -191,7 +194,7 @@ class AdvancedHeatmapGenerator:
         
         # Save
         m.save(output_file)
-        log_info(f"Growth velocity heat map saved to {output_file}", "heatmap")
+        logger.info(f"Growth velocity heat map saved to {output_file}")
         return True
     
     def generate_player_journey_heatmap(self, player_tag: str, output_file: str = 'heatmap_player_journey.html'):
@@ -202,7 +205,7 @@ class AdvancedHeatmapGenerator:
         import folium
         from folium.plugins import AntPath
         
-        log_info(f"Generating journey heat map for {player_tag}", "heatmap")
+        logger.info(f"Generating journey heat map for {player_tag}")
         
         # Find the player
         player = self.session.query(Player).filter(
@@ -210,7 +213,7 @@ class AdvancedHeatmapGenerator:
         ).first()
         
         if not player:
-            log_error(f"Player {player_tag} not found", "heatmap")
+            logger.error(f"Player {player_tag} not found")
             return False
         
         # Get their placements in chronological order
@@ -230,7 +233,7 @@ class AdvancedHeatmapGenerator:
                 })
         
         if len(journey_points) < 2:
-            log_error(f"Not enough location data for {player_tag}", "heatmap")
+            logger.error(f"Not enough location data for {player_tag}")
             return False
         
         # Create map centered on their activity
@@ -300,7 +303,7 @@ class AdvancedHeatmapGenerator:
         
         # Save
         m.save(output_file)
-        log_info(f"Player journey heat map saved to {output_file}", "heatmap")
+        logger.info(f"Player journey heat map saved to {output_file}")
         return True
     
     def generate_community_network_heatmap(self, output_file: str = 'heatmap_community_network.html'):
@@ -312,7 +315,7 @@ class AdvancedHeatmapGenerator:
         from folium.plugins import HeatMap
         from collections import defaultdict
         
-        log_info("Generating community network heat map", "heatmap")
+        logger.info("Generating community network heat map")
         
         # Build venue connection network
         venue_connections = defaultdict(lambda: defaultdict(set))
@@ -338,7 +341,7 @@ class AdvancedHeatmapGenerator:
                     venue_connections[v2][v1].add(player.gamer_tag)
         
         if not venue_locations:
-            log_error("No venue location data found", "heatmap")
+            logger.error("No venue location data found")
             return False
         
         # Create map
@@ -392,7 +395,7 @@ class AdvancedHeatmapGenerator:
         
         # Save
         m.save(output_file)
-        log_info(f"Community network heat map saved to {output_file}", "heatmap")
+        logger.info(f"Community network heat map saved to {output_file}")
         return True
 
 

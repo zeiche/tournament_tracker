@@ -13,13 +13,14 @@ from dataclasses import dataclass
 import asyncio
 import anthropic
 import logging
-from dotenv import load_dotenv
+# REMOVED: dotenv - go.py already loads .env file at startup
+# from dotenv import load_dotenv
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Load environment variables from .env file
-load_dotenv()
+# Environment variables are already loaded by go.py
+# load_dotenv() - REMOVED: Duplicate loading
 
 # Use the single database entry point
 from database import session_scope, get_session

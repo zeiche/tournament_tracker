@@ -6,7 +6,10 @@ Common functions for generating consistent HTML across the application
 
 import html
 from datetime import datetime, timezone, timedelta
-from log_utils import log_debug
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('html_utils')
 from tournament_stylesheet import get_themed_style_tag, get_css_stylesheet
 
 def load_template(template_name):

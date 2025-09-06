@@ -1,0 +1,509 @@
+{
+  "rankings": [
+    {
+      "rank": 1,
+      "name": "Anthony Montes",
+      "points": 76,
+      "events": 12,
+      "first_places": 7,
+      "top_3s": 10,
+      "win_rate": 58.3,
+      "podium_rate": 83.3
+    },
+    {
+      "rank": 2,
+      "name": "Andres A.",
+      "points": 71,
+      "events": 11,
+      "first_places": 6,
+      "top_3s": 9,
+      "win_rate": 54.5,
+      "podium_rate": 81.8
+    },
+    {
+      "rank": 3,
+      "name": "Michael Carmona",
+      "points": 51,
+      "events": 10,
+      "first_places": 4,
+      "top_3s": 6,
+      "win_rate": 40.0,
+      "podium_rate": 60.0
+    },
+    {
+      "rank": 4,
+      "name": "M. B.",
+      "points": 49,
+      "events": 9,
+      "first_places": 4,
+      "top_3s": 6,
+      "win_rate": 44.4,
+      "podium_rate": 66.7
+    },
+    {
+      "rank": 5,
+      "name": "Tony Ocegueda",
+      "points": 45,
+      "events": 12,
+      "first_places": 1,
+      "top_3s": 6,
+      "win_rate": 8.3,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 6,
+      "name": "Kiyarash Younessi",
+      "points": 40,
+      "events": 10,
+      "first_places": 2,
+      "top_3s": 5,
+      "win_rate": 20.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 7,
+      "name": "Andrik Miguel Gonzalez",
+      "points": 36,
+      "events": 7,
+      "first_places": 2,
+      "top_3s": 4,
+      "win_rate": 28.6,
+      "podium_rate": 57.1
+    },
+    {
+      "rank": 8,
+      "name": "Andrew P.",
+      "points": 36,
+      "events": 8,
+      "first_places": 2,
+      "top_3s": 4,
+      "win_rate": 25.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 9,
+      "name": null,
+      "points": 32,
+      "events": 8,
+      "first_places": 1,
+      "top_3s": 5,
+      "win_rate": 12.5,
+      "podium_rate": 62.5
+    },
+    {
+      "rank": 10,
+      "name": "Andrew Tamat",
+      "points": 30,
+      "events": 7,
+      "first_places": 3,
+      "top_3s": 3,
+      "win_rate": 42.9,
+      "podium_rate": 42.9
+    },
+    {
+      "rank": 11,
+      "name": "Darien F.",
+      "points": 29,
+      "events": 7,
+      "first_places": 0,
+      "top_3s": 5,
+      "win_rate": 0.0,
+      "podium_rate": 71.4
+    },
+    {
+      "rank": 12,
+      "name": null,
+      "points": 28,
+      "events": 6,
+      "first_places": 0,
+      "top_3s": 6,
+      "win_rate": 0.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 13,
+      "name": "Quazar \u200e",
+      "points": 28,
+      "events": 8,
+      "first_places": 0,
+      "top_3s": 5,
+      "win_rate": 0.0,
+      "podium_rate": 62.5
+    },
+    {
+      "rank": 14,
+      "name": "Isaac Romero",
+      "points": 27,
+      "events": 6,
+      "first_places": 1,
+      "top_3s": 4,
+      "win_rate": 16.7,
+      "podium_rate": 66.7
+    },
+    {
+      "rank": 15,
+      "name": "Leonardo Lopez",
+      "points": 24,
+      "events": 3,
+      "first_places": 3,
+      "top_3s": 3,
+      "win_rate": 100.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 16,
+      "name": "Robert R.",
+      "points": 24,
+      "events": 4,
+      "first_places": 1,
+      "top_3s": 4,
+      "win_rate": 25.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 17,
+      "name": "Reyhan Ticehurst",
+      "points": 23,
+      "events": 6,
+      "first_places": 0,
+      "top_3s": 3,
+      "win_rate": 0.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 18,
+      "name": "The Goat",
+      "points": 22,
+      "events": 5,
+      "first_places": 2,
+      "top_3s": 2,
+      "win_rate": 40.0,
+      "podium_rate": 40.0
+    },
+    {
+      "rank": 19,
+      "name": "Ken Huang",
+      "points": 22,
+      "events": 4,
+      "first_places": 1,
+      "top_3s": 4,
+      "win_rate": 25.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 20,
+      "name": "Sonam C.",
+      "points": 22,
+      "events": 4,
+      "first_places": 2,
+      "top_3s": 2,
+      "win_rate": 50.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 21,
+      "name": "Ryan Kaplan",
+      "points": 22,
+      "events": 10,
+      "first_places": 0,
+      "top_3s": 3,
+      "win_rate": 0.0,
+      "podium_rate": 30.0
+    },
+    {
+      "rank": 22,
+      "name": "Axel Perez",
+      "points": 21,
+      "events": 4,
+      "first_places": 0,
+      "top_3s": 3,
+      "win_rate": 0.0,
+      "podium_rate": 75.0
+    },
+    {
+      "rank": 23,
+      "name": "Geovanni Perezdeleon",
+      "points": 19,
+      "events": 5,
+      "first_places": 1,
+      "top_3s": 3,
+      "win_rate": 20.0,
+      "podium_rate": 60.0
+    },
+    {
+      "rank": 24,
+      "name": null,
+      "points": 18,
+      "events": 4,
+      "first_places": 1,
+      "top_3s": 2,
+      "win_rate": 25.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 25,
+      "name": null,
+      "points": 18,
+      "events": 5,
+      "first_places": 0,
+      "top_3s": 3,
+      "win_rate": 0.0,
+      "podium_rate": 60.0
+    },
+    {
+      "rank": 26,
+      "name": "Juan D.",
+      "points": 17,
+      "events": 7,
+      "first_places": 1,
+      "top_3s": 1,
+      "win_rate": 14.3,
+      "podium_rate": 14.3
+    },
+    {
+      "rank": 27,
+      "name": "David Nazarian",
+      "points": 17,
+      "events": 7,
+      "first_places": 0,
+      "top_3s": 2,
+      "win_rate": 0.0,
+      "podium_rate": 28.6
+    },
+    {
+      "rank": 28,
+      "name": null,
+      "points": 17,
+      "events": 4,
+      "first_places": 1,
+      "top_3s": 2,
+      "win_rate": 25.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 29,
+      "name": "Henry Jung",
+      "points": 17,
+      "events": 6,
+      "first_places": 0,
+      "top_3s": 1,
+      "win_rate": 0.0,
+      "podium_rate": 16.7
+    },
+    {
+      "rank": 30,
+      "name": "Josh Degante",
+      "points": 16,
+      "events": 4,
+      "first_places": 1,
+      "top_3s": 1,
+      "win_rate": 25.0,
+      "podium_rate": 25.0
+    },
+    {
+      "rank": 31,
+      "name": "Logan DeBetta",
+      "points": 16,
+      "events": 5,
+      "first_places": 0,
+      "top_3s": 3,
+      "win_rate": 0.0,
+      "podium_rate": 60.0
+    },
+    {
+      "rank": 32,
+      "name": "Cesar Santos",
+      "points": 16,
+      "events": 4,
+      "first_places": 0,
+      "top_3s": 2,
+      "win_rate": 0.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 33,
+      "name": null,
+      "points": 16,
+      "events": 2,
+      "first_places": 2,
+      "top_3s": 2,
+      "win_rate": 100.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 34,
+      "name": null,
+      "points": 16,
+      "events": 2,
+      "first_places": 2,
+      "top_3s": 2,
+      "win_rate": 100.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 35,
+      "name": "Beck Rogers",
+      "points": 16,
+      "events": 4,
+      "first_places": 1,
+      "top_3s": 2,
+      "win_rate": 25.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 36,
+      "name": null,
+      "points": 16,
+      "events": 2,
+      "first_places": 2,
+      "top_3s": 2,
+      "win_rate": 100.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 37,
+      "name": "Who's Steak!?",
+      "points": 16,
+      "events": 2,
+      "first_places": 2,
+      "top_3s": 2,
+      "win_rate": 100.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 38,
+      "name": "Luis Sanchez",
+      "points": 15,
+      "events": 5,
+      "first_places": 1,
+      "top_3s": 1,
+      "win_rate": 20.0,
+      "podium_rate": 20.0
+    },
+    {
+      "rank": 39,
+      "name": "Mark Rodriguez",
+      "points": 14,
+      "events": 4,
+      "first_places": 0,
+      "top_3s": 2,
+      "win_rate": 0.0,
+      "podium_rate": 50.0
+    },
+    {
+      "rank": 40,
+      "name": null,
+      "points": 14,
+      "events": 6,
+      "first_places": 0,
+      "top_3s": 1,
+      "win_rate": 0.0,
+      "podium_rate": 16.7
+    },
+    {
+      "rank": 41,
+      "name": "Emil L.",
+      "points": 13,
+      "events": 3,
+      "first_places": 0,
+      "top_3s": 2,
+      "win_rate": 0.0,
+      "podium_rate": 66.7
+    },
+    {
+      "rank": 42,
+      "name": "Evan Meyers",
+      "points": 13,
+      "events": 3,
+      "first_places": 0,
+      "top_3s": 2,
+      "win_rate": 0.0,
+      "podium_rate": 66.7
+    },
+    {
+      "rank": 43,
+      "name": null,
+      "points": 13,
+      "events": 4,
+      "first_places": 1,
+      "top_3s": 1,
+      "win_rate": 25.0,
+      "podium_rate": 25.0
+    },
+    {
+      "rank": 44,
+      "name": "Christian Quinteros",
+      "points": 13,
+      "events": 3,
+      "first_places": 0,
+      "top_3s": 2,
+      "win_rate": 0.0,
+      "podium_rate": 66.7
+    },
+    {
+      "rank": 45,
+      "name": null,
+      "points": 12,
+      "events": 3,
+      "first_places": 1,
+      "top_3s": 1,
+      "win_rate": 33.3,
+      "podium_rate": 33.3
+    },
+    {
+      "rank": 46,
+      "name": "Dennis Hoy",
+      "points": 12,
+      "events": 3,
+      "first_places": 0,
+      "top_3s": 1,
+      "win_rate": 0.0,
+      "podium_rate": 33.3
+    },
+    {
+      "rank": 47,
+      "name": null,
+      "points": 12,
+      "events": 2,
+      "first_places": 1,
+      "top_3s": 2,
+      "win_rate": 50.0,
+      "podium_rate": 100.0
+    },
+    {
+      "rank": 48,
+      "name": "Daniel Moran",
+      "points": 12,
+      "events": 3,
+      "first_places": 1,
+      "top_3s": 1,
+      "win_rate": 33.3,
+      "podium_rate": 33.3
+    },
+    {
+      "rank": 49,
+      "name": "april showers \ud83c\udf27\ufe0f",
+      "points": 12,
+      "events": 4,
+      "first_places": 1,
+      "top_3s": 1,
+      "win_rate": 25.0,
+      "podium_rate": 25.0
+    },
+    {
+      "rank": 50,
+      "name": null,
+      "points": 12,
+      "events": 2,
+      "first_places": 0,
+      "top_3s": 2,
+      "win_rate": 0.0,
+      "podium_rate": 100.0
+    }
+  ],
+  "metadata": {
+    "updated": "2025-09-06 00:40:50 PST",
+    "total_players": 50,
+    "data_source": "start.gg"
+  }
+}

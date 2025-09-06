@@ -2,6 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL RULES - READ THESE FIRST ⚠️
+
+### 0. CHECK EXISTING MODULES FIRST
+**ALWAYS check `EXISTING_MODULES.md` before creating ANY new functionality!**
+We have a chronic problem of creating duplicate modules. STOP IT!
+
+### 1. SHOPIFY PUBLISHING
+**NEVER CREATE NEW SHOPIFY PAGES!** We ONLY update `/pages/attendance` via the theme template.
+See `IMPORTANT_SHOPIFY_RULES.md` for details. The `shopify_separated_publisher.py` module is DEPRECATED.
+
+### 2. ENVIRONMENT CONFIGURATION
+**ALL TOKENS AND CONFIGURATION ARE IN .env FILE!**
+- Location: `/home/ubuntu/claude/tournament_tracker/.env`
+- Use `SHOPIFY_ACCESS_TOKEN` for Shopify (NOT `ACCESS_TOKEN`)
+- Use `SHOPIFY_DOMAIN` from .env (NEVER hardcode domains)
+- See `ENV_CONFIGURATION.md` for complete details
+- The .env is loaded automatically by go.py
+
 ## Project Overview
 
 Tournament Tracker is an advanced Python application for tracking and managing Fighting Game Community (FGC) tournaments in Southern California. It features a sophisticated OOP architecture with intelligent data models, real-time synchronization from start.gg, and AI-powered analytics.
@@ -318,5 +336,18 @@ class RelationshipResponder:
 - **Services are managed via go.py** - Not systemctl directly
 - **Heat maps use model methods** - Not manual calculations
 - **Discord bot uses relationships** - Not flat queries
+
+## Common Mistakes We Keep Making (STOP DOING THESE!)
+
+1. **Creating new Shopify pages** - We ONLY update `/pages/attendance`
+2. **Using ACCESS_TOKEN for Shopify** - Use SHOPIFY_ACCESS_TOKEN instead
+3. **Hardcoding domains** - Always use SHOPIFY_DOMAIN from .env
+4. **Not loading from .env** - All config is in .env, loaded by go.py
+5. **Creating new page endpoints** - NEVER create `/pages/player-rankings` etc.
+
+**BEFORE MAKING ANY SHOPIFY CHANGES:**
+- Read `IMPORTANT_SHOPIFY_RULES.md`
+- Read `ENV_CONFIGURATION.md`
+- Check that you're using the right tokens from .env
 
 This architecture represents a complete paradigm shift from procedural to object-oriented thinking, enabling analytics and visualizations that were impossible with the old C-style approach.

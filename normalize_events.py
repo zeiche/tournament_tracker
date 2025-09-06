@@ -8,7 +8,10 @@ from sqlalchemy import func, distinct
 from event_standardizer import EventStandardizer
 from database import session_scope
 from tournament_models import TournamentPlacement
-from log_utils import log_info, log_debug, log_error
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('normalize_events')
 
 def get_unnormalized_events(session):
     """Find event names that appear to be unnormalized"""
@@ -47,7 +50,7 @@ def normalize_database_events(dry_run=False):
     Returns:
         dict: Statistics about the normalization
     """
-    log_info("Starting event name normalization", "normalize")
+    logger.info("Starting event name normalization")
     
     stats = {
         'events_checked': 0,
@@ -91,18 +94,18 @@ def normalize_database_events(dry_run=False):
                     stats['events_normalized'] += 1
                     stats['placements_updated'] += count
                     
-                    log_info(f"Normalized '{original}' → '{normalized}' ({count} placements)", "normalize")
+                    logger.info(f"Normalized '{original}' → '{normalized}' ({count} placements)")
                     
             except Exception as e:
                 stats['errors'] += 1
-                log_error(f"Failed to normalize '{original}': {e}", "normalize")
+                logger.error(f"Failed to normalize '{original}': {e}")
                 if not dry_run:
                     session.rollback()
                     raise
         
         if not dry_run:
             session.commit()
-            log_info(f"Normalization complete: {stats['events_normalized']} events normalized", "normalize")
+            logger.info(f"Normalization complete: {stats['events_normalized']} events normalized")
     
     return stats
 

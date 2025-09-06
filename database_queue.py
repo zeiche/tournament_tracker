@@ -11,7 +11,10 @@ from typing import Any, Dict, List, Optional, Callable
 
 # Import centralized systems
 from database import get_session, clear_session
-from log_utils import log_info, log_debug, log_error, log_db_operation, LogContext
+from log_manager import LogManager
+
+# Initialize logger for this module
+logger = LogManager().get_logger('database_queue')
 
 class OperationType(Enum):
     CREATE = "create"
@@ -46,7 +49,7 @@ class OperationQueue:
             'errors': []
         }
         
-        log_debug(f"Queue initialized: page_size={page_size}, auto_commit={auto_commit}", "queue")
+        logger.debug(f"Queue initialized: page_size={page_size}, auto_commit={auto_commit}")
     
     def queue(self, operation_type, model_class, data, primary_key=None, callback=None):
         """Queue an operation"""
@@ -68,7 +71,7 @@ class OperationQueue:
         )
         
         self.current_page.append(operation)
-        log_debug(f"Queued {operation_type.value} operation for {model_class.__name__ if model_class else 'Custom'}", "queue")
+        logger.debug(f"Queued {operation_type.value} operation for {model_class.__name__ if model_class else 'Custom'}")
         
         # Auto-flush when page is full
         if len(self.current_page) >= self.page_size and self.auto_commit:
@@ -98,7 +101,7 @@ class OperationQueue:
         start_time = time.time()
         page_operations = len(self.current_page)
         
-        log_debug(f"Flushing page with {page_operations} operations", "queue")
+        logger.debug(f"Flushing page with {page_operations} operations")
         
         # Sort operations by priority (deletes first, creates last)
         self.current_page.sort(key=lambda op: op.priority)
@@ -116,7 +119,7 @@ class OperationQueue:
                     except Exception as e:
                         failed += 1
                         self.error_queue.append((operation, str(e)))
-                        log_error(f"Operation failed: {operation.operation_type.value} {operation.model_class.__name__ if operation.model_class else 'Custom'}: {e}", "queue")
+                        logger.error(f"Operation failed: {operation.operation_type.value} {operation.model_class.__name__ if operation.model_class else 'Custom'}: {e}")
                 
                 # Commit happens automatically via get_session() context manager
                 
@@ -125,7 +128,7 @@ class OperationQueue:
             failed = page_operations
             for operation in self.current_page:
                 self.error_queue.append((operation, f"Page failed: {e}"))
-            log_error(f"Entire page failed: {e}", "queue")
+            logger.error(f"Entire page failed: {e}")
         
         # Clear session cache after page processing
         clear_session()
@@ -138,8 +141,8 @@ class OperationQueue:
         self.stats['total_processing_time'] += processing_time
         self.stats['items_processed'] += successful
         
-        log_db_operation(f"Page {self.stats['pages_processed']}", successful, "queue")
-        log_debug(f"Page timing: {processing_time:.2f}s, {failed} failed", "queue")
+        logger.debug(f"Page {self.stats['pages_processed']}: {successful} operations successful")
+        logger.debug(f"Page timing: {processing_time:.2f}s, {failed} failed")
         
         # Clear current page
         self.current_page = []
@@ -147,24 +150,24 @@ class OperationQueue:
     def commit(self):
         """Manually flush the current page"""
         if self.current_page:
-            log_debug("Manual commit requested", "queue")
+            logger.debug("Manual commit requested")
             self.flush_page()
     
     def rollback_current_page(self):
         """Discard the current page without processing"""
         discarded = len(self.current_page)
         self.current_page = []
-        log_info(f"Discarded {discarded} queued operations", "queue")
+        logger.info(f"Discarded {discarded} queued operations")
         return discarded
     
     def retry_errors(self):
         """Retry operations that failed"""
         if not self.error_queue:
-            log_debug("No errors to retry", "queue")
+            logger.debug("No errors to retry")
             return
         
         error_count = len(self.error_queue)
-        log_info(f"Retrying {error_count} failed operations", "queue")
+        logger.info(f"Retrying {error_count} failed operations")
         
         # Move errors back to current page
         for operation, error in self.error_queue:
@@ -193,14 +196,14 @@ class OperationQueue:
         if operation.operation_type == OperationType.CREATE:
             instance = operation.model_class(**operation.data)
             session.add(instance)
-            log_debug(f"Created {operation.model_class.__name__}", "queue")
+            logger.debug(f"Created {operation.model_class.__name__}")
             
         elif operation.operation_type == OperationType.UPDATE:
             instance = session.query(operation.model_class).get(operation.primary_key)
             if instance:
                 for key, value in operation.data.items():
                     setattr(instance, key, value)
-                log_debug(f"Updated {operation.model_class.__name__}: {operation.primary_key}", "queue")
+                logger.debug(f"Updated {operation.model_class.__name__}: {operation.primary_key}")
             else:
                 raise ValueError(f"Record not found for update: {operation.primary_key}")
                 
@@ -208,14 +211,14 @@ class OperationQueue:
             instance = session.query(operation.model_class).get(operation.primary_key)
             if instance:
                 session.delete(instance)
-                log_debug(f"Deleted {operation.model_class.__name__}: {operation.primary_key}", "queue")
+                logger.debug(f"Deleted {operation.model_class.__name__}: {operation.primary_key}")
             else:
                 raise ValueError(f"Record not found for delete: {operation.primary_key}")
                 
         elif operation.operation_type == OperationType.CUSTOM:
             if operation.callback:
                 operation.callback(session, **operation.data)
-                log_debug("Executed custom operation", "queue")
+                logger.debug("Executed custom operation")
             else:
                 raise ValueError("Custom operation requires callback")
 
@@ -227,7 +230,7 @@ def get_queue(page_size=250):
     global _global_queue
     if _global_queue is None:
         _global_queue = OperationQueue(page_size=page_size)
-        log_debug(f"Created global queue with page_size={page_size}", "queue")
+        logger.debug(f"Created global queue with page_size={page_size}")
     return _global_queue
 
 def queue_create(model_class, **data):
@@ -246,7 +249,7 @@ def commit_queue():
     """Commit the global queue"""
     queue = get_queue()
     if queue.current_page:
-        log_info(f"Committing global queue with {len(queue.current_page)} operations", "queue")
+        logger.info(f"Committing global queue with {len(queue.current_page)} operations")
     queue.commit()
 
 def queue_stats():
@@ -257,23 +260,23 @@ def queue_stats():
 @contextmanager
 def batch_operations(page_size=250):
     """Context manager for batch operations with centralized session management"""
-    log_debug(f"Starting batch operations with page_size={page_size}", "queue")
+    logger.debug(f"Starting batch operations with page_size={page_size}")
     queue = OperationQueue(page_size=page_size, auto_commit=False)
     
     try:
         yield queue
         # Commit any remaining operations
         if queue.current_page:
-            log_debug(f"Committing final batch with {len(queue.current_page)} operations", "queue")
+            logger.debug(f"Committing final batch with {len(queue.current_page)} operations")
             queue.commit()
     except Exception as e:
-        log_error(f"Batch operation failed: {e}", "queue")
+        logger.error(f"Batch operation failed: {e}")
         queue.rollback_current_page()
         raise
     finally:
         # Always clear session cache after batch operations
         clear_session()
-        log_debug("Batch operations completed, session cache cleared", "queue")
+        logger.debug("Batch operations completed, session cache cleared")
 
 # Enhanced model methods that use the queue
 class QueuedModel:
@@ -289,13 +292,13 @@ class QueuedModel:
             data = {col.name: getattr(self, col.name) for col in self.__class__.__table__.columns 
                    if col.name != pk_col_name}
             queue_update(self.__class__, pk_value, **data)
-            log_debug(f"Queued update for {self.__class__.__name__}: {pk_value}", "queue")
+            logger.debug(f"Queued update for {self.__class__.__name__}: {pk_value}")
         else:
             # No primary key, it's a create
             data = {col.name: getattr(self, col.name) for col in self.__class__.__table__.columns
                    if getattr(self, col.name) is not None}
             queue_create(self.__class__, **data)
-            log_debug(f"Queued create for {self.__class__.__name__}", "queue")
+            logger.debug(f"Queued create for {self.__class__.__name__}")
         return self
     
     def queue_delete(self):
@@ -303,14 +306,14 @@ class QueuedModel:
         pk_col = self.__class__.__table__.primary_key.columns[0].name
         pk_value = getattr(self, pk_col)
         queue_delete(self.__class__, pk_value)
-        log_debug(f"Queued delete for {self.__class__.__name__}: {pk_value}", "queue")
+        logger.debug(f"Queued delete for {self.__class__.__name__}: {pk_value}")
 
 # Test functions for queue system
 def test_queue_basic_operations():
     """Test basic queue operations"""
-    log_info("=" * 60, "test")
-    log_info("TESTING QUEUE BASIC OPERATIONS", "test")
-    log_info("=" * 60, "test")
+    logger.info("=" * 60)
+    logger.info("TESTING QUEUE BASIC OPERATIONS")
+    logger.info("=" * 60)
     
     try:
         # Initialize database
@@ -318,12 +321,12 @@ def test_queue_basic_operations():
         init_db()
         
         # Test 1: Create queue
-        log_info("TEST 1: Create operation queue", "test")
+        logger.info("TEST 1: Create operation queue")
         queue = OperationQueue(page_size=5, auto_commit=False)  # Small page for testing
-        log_info("✅ Queue created", "test")
+        logger.info("✅ Queue created")
         
         # Test 2: Queue some operations
-        log_info("TEST 2: Queue operations", "test")
+        logger.info("TEST 2: Queue operations")
         from tournament_models import Tournament, Organization
         
         # Queue multiple creates
@@ -339,30 +342,30 @@ def test_queue_basic_operations():
                         num_attendees=i * 10,
                         tournament_state=3)
         
-        log_info(f"✅ Queued {len(queue.current_page)} operations", "test")
+        logger.info(f"✅ Queued {len(queue.current_page)} operations")
         
         # Test 3: Manual commit
-        log_info("TEST 3: Manual commit", "test")
+        logger.info("TEST 3: Manual commit")
         queue.commit()
         
         stats = queue.get_stats()
         if stats['operations_successful'] >= 5:
-            log_info(f"✅ Successfully processed {stats['operations_successful']} operations", "test")
+            logger.info(f"✅ Successfully processed {stats['operations_successful']} operations")
         else:
-            log_error(f"❌ Only {stats['operations_successful']} operations succeeded", "test")
+            logger.error(f"❌ Only {stats['operations_successful']} operations succeeded")
         
         # Test 4: Verify data in database
-        log_info("TEST 4: Verify database state", "test")
+        logger.info("TEST 4: Verify database state")
         all_orgs = Organization.all()
         test_orgs = [org for org in all_orgs if 'test_queue_' in org.normalized_key]
         
         if len(test_orgs) >= 3:
-            log_info(f"✅ Found {len(test_orgs)} test organizations in database", "test")
+            logger.info(f"✅ Found {len(test_orgs)} test organizations in database")
         else:
-            log_error(f"❌ Only found {len(test_orgs)} test organizations", "test")
+            logger.error(f"❌ Only found {len(test_orgs)} test organizations")
         
         # Cleanup
-        log_info("Cleaning up test data", "test")
+        logger.info("Cleaning up test data")
         for org in test_orgs:
             org.delete()
         
@@ -371,18 +374,18 @@ def test_queue_basic_operations():
         for tournament in test_tournaments:
             tournament.delete()
         
-        log_info("✅ Queue basic operations test completed", "test")
+        logger.info("✅ Queue basic operations test completed")
         
     except Exception as e:
-        log_error(f"Queue basic operations test failed: {e}", "test")
+        logger.error(f"Queue basic operations test failed: {e}")
         import traceback
         traceback.print_exc()
 
 def test_batch_operations():
     """Test batch_operations context manager"""
-    log_info("=" * 60, "test")
-    log_info("TESTING BATCH OPERATIONS CONTEXT MANAGER", "test")
-    log_info("=" * 60, "test")
+    logger.info("=" * 60)
+    logger.info("TESTING BATCH OPERATIONS CONTEXT MANAGER")
+    logger.info("=" * 60)
     
     try:
         # Initialize database
@@ -390,7 +393,7 @@ def test_batch_operations():
         init_db()
         
         # Test 1: Basic batch operations
-        log_info("TEST 1: Basic batch context", "test")
+        logger.info("TEST 1: Basic batch context")
         
         with batch_operations(page_size=10) as queue:
             from tournament_models import Organization, Tournament
@@ -408,20 +411,20 @@ def test_batch_operations():
                            num_attendees=i * 20,
                            tournament_state=3)
             
-            log_info(f"Queued {len(queue.current_page)} operations in batch", "test")
+            logger.info(f"Queued {len(queue.current_page)} operations in batch")
         
         # Verify operations completed
-        log_info("TEST 2: Verify batch completion", "test")
+        logger.info("TEST 2: Verify batch completion")
         all_orgs = Organization.all()
         batch_orgs = [org for org in all_orgs if 'batch_test_' in org.normalized_key]
         
         if len(batch_orgs) >= 7:
-            log_info(f"✅ Batch operations successful: {len(batch_orgs)} organizations created", "test")
+            logger.info(f"✅ Batch operations successful: {len(batch_orgs)} organizations created")
         else:
-            log_error(f"❌ Batch operations failed: only {len(batch_orgs)} organizations found", "test")
+            logger.error(f"❌ Batch operations failed: only {len(batch_orgs)} organizations found")
         
         # Test 3: Custom operations in batch
-        log_info("TEST 3: Custom operations", "test")
+        logger.info("TEST 3: Custom operations")
         
         with batch_operations(page_size=5) as queue:
             def custom_operation(session, test_data, multiplier):
@@ -431,7 +434,7 @@ def test_batch_operations():
                     display_name=f"Custom Org {test_data} x{multiplier}"
                 )
                 session.add(org)
-                log_debug(f"Custom operation executed: {test_data} x {multiplier}", "queue")
+                logger.debug(f"Custom operation executed: {test_data} x {multiplier}")
             
             # Queue custom operations
             for i in range(3):
@@ -442,12 +445,12 @@ def test_batch_operations():
         custom_orgs = [org for org in all_orgs if 'custom_' in org.normalized_key]
         
         if len(custom_orgs) >= 3:
-            log_info(f"✅ Custom operations successful: {len(custom_orgs)} custom organizations", "test")
+            logger.info(f"✅ Custom operations successful: {len(custom_orgs)} custom organizations")
         else:
-            log_error(f"❌ Custom operations failed: only {len(custom_orgs)} found", "test")
+            logger.error(f"❌ Custom operations failed: only {len(custom_orgs)} found")
         
         # Test 4: Error handling
-        log_info("TEST 4: Error handling", "test")
+        logger.info("TEST 4: Error handling")
         
         try:
             with batch_operations(page_size=3) as queue:
@@ -461,17 +464,17 @@ def test_batch_operations():
                            normalized_key="error_test@example.com",  # Duplicate key
                            display_name="Duplicate Org")
         except Exception:
-            log_info("✅ Error handling worked - batch rolled back on error", "test")
+            logger.info("✅ Error handling worked - batch rolled back on error")
         
         # Cleanup all test data
-        log_info("Cleaning up all test data", "test")
+        logger.info("Cleaning up all test data")
         cleanup_test_organizations()
         cleanup_test_tournaments()
         
-        log_info("✅ Batch operations test completed", "test")
+        logger.info("✅ Batch operations test completed")
         
     except Exception as e:
-        log_error(f"Batch operations test failed: {e}", "test")
+        logger.error(f"Batch operations test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -503,9 +506,9 @@ def cleanup_test_tournaments():
 
 def test_queue_stats():
     """Test queue statistics tracking"""
-    log_info("=" * 60, "test")
-    log_info("TESTING QUEUE STATISTICS", "test")
-    log_info("=" * 60, "test")
+    logger.info("=" * 60)
+    logger.info("TESTING QUEUE STATISTICS")
+    logger.info("=" * 60)
     
     try:
         # Initialize database
@@ -526,44 +529,40 @@ def test_queue_stats():
         # Get stats
         stats = queue.get_stats()
         
-        log_info("QUEUE STATISTICS:", "test")
-        log_info(f"  Pages processed: {stats['pages_processed']}", "test")
-        log_info(f"  Operations successful: {stats['operations_successful']}", "test")
-        log_info(f"  Operations failed: {stats['operations_failed']}", "test")
-        log_info(f"  Success rate: {stats['success_rate']:.1f}%", "test")
-        log_info(f"  Average page time: {stats['avg_page_time']:.3f}s", "test")
-        log_info(f"  Current page size: {stats['current_page_size']}", "test")
+        logger.info("QUEUE STATISTICS:")
+        logger.info(f"  Pages processed: {stats['pages_processed']}")
+        logger.info(f"  Operations successful: {stats['operations_successful']}")
+        logger.info(f"  Operations failed: {stats['operations_failed']}")
+        logger.info(f"  Success rate: {stats['success_rate']:.1f}%")
+        logger.info(f"  Average page time: {stats['avg_page_time']:.3f}s")
+        logger.info(f"  Current page size: {stats['current_page_size']}")
         
         if stats['operations_successful'] >= 8:
-            log_info("✅ Queue statistics test passed", "test")
+            logger.info("✅ Queue statistics test passed")
         else:
-            log_error("❌ Queue statistics test failed", "test")
+            logger.error("❌ Queue statistics test failed")
         
         # Test global queue functions
         global_stats = queue_stats()
         if global_stats['total_operations'] > 0:
-            log_info("✅ Global queue functions working", "test")
+            logger.info("✅ Global queue functions working")
         else:
-            log_error("❌ Global queue functions failed", "test")
+            logger.error("❌ Global queue functions failed")
         
         # Cleanup
         cleanup_test_organizations()
         
-        log_info("✅ Queue statistics test completed", "test")
+        logger.info("✅ Queue statistics test completed")
         
     except Exception as e:
-        log_error(f"Queue statistics test failed: {e}", "test")
+        logger.error(f"Queue statistics test failed: {e}")
         import traceback
         traceback.print_exc()
 
 def run_queue_tests():
     """Run all queue system tests"""
     try:
-        # Initialize logging
-        from log_utils import init_logging, LogLevel
-        init_logging(console=True, level=LogLevel.DEBUG, debug_file="queue_test.txt")
-        
-        log_info("Starting queue system tests", "test")
+        logger.info("Starting queue system tests")
         
         # Run test suites
         test_queue_basic_operations()
@@ -572,10 +571,10 @@ def run_queue_tests():
         print()  # Spacing
         test_queue_stats()
         
-        log_info("All queue tests completed - check queue_test.txt for details", "test")
+        logger.info("All queue tests completed")
         
     except Exception as e:
-        log_error(f"Queue test suite failed: {e}", "test")
+        logger.error(f"Queue test suite failed: {e}")
         import traceback
         traceback.print_exc()
 
