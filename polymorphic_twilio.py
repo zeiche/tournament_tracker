@@ -307,12 +307,42 @@ class PolymorphicTwilio:
                         f"From: {call_data.get('From')}"
                     ]
                 )
-                # Process speech polymorphically
-                self.call_queue.put({'type': 'speech', 'data': speech, 'call': call_data})
-                response.say(f"You said: {speech}", voice='alice')
+                
+                # Process speech through Claude chat!
+                try:
+                    from claude_chat import ask_one_shot
+                    
+                    # Get response from Claude
+                    claude_response = ask_one_shot(speech)
+                    
+                    if claude_response:
+                        # Announce Claude responded
+                        announcer.announce(
+                            "TWILIO_CLAUDE_RESPONSE",
+                            [
+                                f"🤖 Claude response generated",
+                                f"Length: {len(claude_response)} chars"
+                            ]
+                        )
+                        
+                        # Truncate if too long for TTS (Twilio has limits)
+                        if len(claude_response) > 500:
+                            claude_response = claude_response[:497] + "..."
+                        
+                        response.say(claude_response, voice='alice')
+                    else:
+                        response.say("I couldn't process that. Could you try again?", voice='alice')
+                    
+                except Exception as e:
+                    announcer.announce(
+                        "TWILIO_CLAUDE_ERROR",
+                        [f"Error connecting to Claude: {e}"]
+                    )
+                    response.say("Sorry, I'm having trouble connecting to my brain. Please try again.", voice='alice')
+                
                 response.pause(length=1)
             else:
-                response.say("Hello! This is the tournament tracker. How can I help you?", voice='alice')
+                response.say("Hello! This is the tournament tracker. Ask me anything about tournaments or players!", voice='alice')
             
             # Always gather more speech
             gather = response.gather(
