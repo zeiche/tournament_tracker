@@ -89,6 +89,8 @@ def main():
                        help='START Twilio telephony service')
     parser.add_argument('--twilio-config', action='store_true',
                        help='Generate Twilio/Asterisk configs')
+    parser.add_argument('--inbound-calls', action='store_true',
+                       help='START inbound call handler (tournament info via phone)')
     parser.add_argument('--asterisk-status', action='store_true',
                        help='Check Asterisk PBX status')
     
@@ -134,8 +136,8 @@ def main():
         subprocess.run([sys.executable, 'polymorphic_voice_test.py'])
     
     elif args.twilio_bridge:
-        # Start Twilio bridge with Claude handler
-        subprocess.run([sys.executable, 'twilio_claude_handler.py'])
+        # Start simple Twilio bridge
+        subprocess.run([sys.executable, 'twilio_simple_bridge.py'])
     
     elif args.call:
         # Make an outbound call
@@ -148,6 +150,10 @@ def main():
     elif args.twilio_config:
         # Generate Twilio configs
         subprocess.run([sys.executable, 'twilio_config.py'])
+    
+    elif args.inbound_calls:
+        # Start inbound call handler
+        subprocess.run([sys.executable, 'inbound_call_handler.py'])
     
     elif args.asterisk_status:
         # Check Asterisk status

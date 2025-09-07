@@ -63,7 +63,7 @@ class TwilioBridge:
         # Setup webhook routes
         @self.app.route('/voice', methods=['POST'])
         def handle_voice():
-            """Handle incoming calls"""
+            """Handle incoming calls - make it interactive"""
             # Announce the call
             announcer.announce(
                 "TWILIO_CALL",
@@ -74,19 +74,43 @@ class TwilioBridge:
                 ]
             )
             
-            # Let handlers process it
             response = VoiceResponse()
-            for handler in self.call_handlers:
-                try:
-                    handler_response = handler(request.values)
-                    if handler_response:
-                        response.say(handler_response)
-                        break
-                except Exception as e:
-                    print(f"Call handler error: {e}")
             
-            if not str(response):
-                response.say("Hello from Twilio bridge")
+            # Check if this is a speech result callback
+            speech_result = request.values.get('SpeechResult')
+            if speech_result:
+                # Process the speech through handlers
+                for handler in self.call_handlers:
+                    try:
+                        handler_response = handler(request.values)
+                        if handler_response:
+                            response.say(handler_response, voice='alice')
+                            break
+                    except Exception as e:
+                        print(f"Call handler error: {e}")
+                
+                if not str(response):
+                    response.say(f"You said: {speech_result}", voice='alice')
+                
+                # Ask again for more input
+                response.pause(length=1)
+                gather = response.gather(
+                    input='speech',
+                    timeout=3,
+                    speech_timeout='auto',
+                    action='/voice'
+                )
+                gather.say("What else can I help you with?", voice='alice')
+            else:
+                # Initial greeting and gather speech
+                response.say("Hello! I'm your tournament tracker AI. Ask me anything about tournaments or players.", voice='alice')
+                gather = response.gather(
+                    input='speech',
+                    timeout=5,
+                    speech_timeout='auto',
+                    action='/voice'
+                )
+                gather.say("What would you like to know?", voice='alice')
             
             return str(response)
         

@@ -1,6 +1,44 @@
 # TODO
 
-## 🚨 CURRENT ISSUE: Discord Voice Connection Error 4006 🚨
+## 🚨 CURRENT FOCUS: TWILIO VOICE CALLS - MAKE THEM CONVERSATIONAL 🚨
+
+### What User Wants
+- Call the phone number (878-879-4283)
+- Have a CONVERSATION with Claude via voice
+- System listens to speech, sends to Claude, speaks response
+- Keeps conversation going (not just one message and hangup)
+
+### Current State
+- ✅ Twilio connected (Account: try-hards, Phone: +18788794283)  
+- ✅ Can make outbound calls with messages (`simple_call.py` WORKS)
+- ✅ Bridges running: port 8082 (simple), 8084 (claude bridge attempt)
+- ❌ Interactive webhooks fail with "application error"
+- ❌ Speech recognition not working yet
+
+### Key Files
+- `simple_call.py` - WORKS for basic TwiML calls
+- `twilio_to_claude.py` - Claude bridge on 8084 (webhook issues)
+- `twilio_simple_bridge.py` - Basic bridge on 8082  
+- `interactive_call.py` - Failed attempt at conversation
+
+### Next Steps for New Claude
+1. Fix webhook "application error" issue
+2. Get speech recognition working
+3. Connect to Claude intelligence (polymorphic queries)
+4. Make it conversational (loop until goodbye)
+
+### Test Commands
+```bash
+# This works - makes call with message
+python3 simple_call.py 3233771681 "Hello test"
+
+# Check what's running
+ps aux | grep -E "8082|8084"
+```
+
+---
+
+## Previous Issue: Discord Voice Connection Error 4006
 
 ### Problem
 Discord bot gets error 4006 ("Session is no longer valid") when trying to join voice channel #General. The bot HAS successfully connected to voice before, but now consistently fails with this error. After 5 retries it sometimes succeeds but then the event loop gets completely blocked.
