@@ -62,15 +62,11 @@ class VoiceEnhancedTwilio:
         response = VoiceResponse()
         
         if not speech:
-            # Initial greeting - make it welcoming!
-            response.say(
-                "Welcome to Try Hard tournament tracker! "
-                "I can tell you about recent tournaments, top players, or answer any FGC questions. "
-                "What would you like to know?",
-                voice='alice',
-                language='en-US'
-            )
-            self._gather_speech(response, "Just say your question, or say 'help' for options.")
+            # Initial greeting - ANNOUNCE TOP 8 IMMEDIATELY!
+            top8_greeting = self._get_top8_greeting()
+            response.say(top8_greeting, voice='alice', language='en-US')
+            response.pause(length=1)
+            self._gather_speech(response, "Would you like more details about any player, recent tournaments, or other stats?")
         else:
             # Process speech input
             state['turn_count'] += 1
@@ -112,14 +108,16 @@ class VoiceEnhancedTwilio:
         return response
     
     def _gather_speech(self, response: VoiceResponse, prompt: str = None):
-        """Add speech gathering to response"""
+        """Add speech gathering to response - SPEECH ONLY, no DTMF"""
         gather = response.gather(
-            input='speech',
+            input='speech',  # Speech recognition ONLY
             timeout=5,
             speech_timeout='auto',
             action='/voice',
             language='en-US',
-            hints='tournament,player,Tekken,Street Fighter,winner,top eight,standings,recent,stats'
+            hints='tournament,player,Tekken,Street Fighter,winner,top eight,standings,recent,stats',
+            enhanced=True,  # Use enhanced speech model
+            speechModel='phone_call'  # Optimized for phone calls
         )
         if prompt:
             gather.say(prompt, voice='alice')
@@ -171,6 +169,68 @@ class VoiceEnhancedTwilio:
         if state.get('last_response'):
             return "I said: " + state['last_response']
         return "I haven't said anything yet. What would you like to know?"
+    
+    def _get_top8_greeting(self) -> str:
+        """Get top 8 singles rankings for initial greeting"""
+        try:
+            from database import get_session
+            from tournament_models import TournamentPlacement
+            
+            with get_session() as session:
+                # Get all placements
+                placements = session.query(TournamentPlacement).filter(
+                    TournamentPlacement.placement != None
+                ).all()
+                
+                # Calculate points
+                player_points = {}
+                for p in placements:
+                    if p.player_id not in player_points:
+                        player_points[p.player_id] = {
+                            'name': p.player.name,
+                            'points': 0
+                        }
+                    
+                    # Point system
+                    if p.placement == 1:
+                        player_points[p.player_id]['points'] += 10
+                    elif p.placement == 2:
+                        player_points[p.player_id]['points'] += 7
+                    elif p.placement == 3:
+                        player_points[p.player_id]['points'] += 5
+                    elif p.placement == 4:
+                        player_points[p.player_id]['points'] += 3
+                    elif p.placement <= 8:
+                        player_points[p.player_id]['points'] += 1
+                
+                # Sort by points
+                rankings = [(data['name'], data['points']) 
+                           for data in player_points.values()]
+                rankings.sort(key=lambda x: x[1], reverse=True)
+                
+                # Format for voice - CONCISE!
+                greeting = "Welcome to Try Hard! Here are the top 8 singles players: "
+                
+                for i, (name, points) in enumerate(rankings[:8], 1):
+                    # Simplify names for TTS
+                    name = name.split()[0] if name else "Unknown"  # First name only
+                    
+                    if i == 1:
+                        greeting += f"Number 1, {name} with {points} points. "
+                    elif i == 8:
+                        greeting += f"And number 8, {name} with {points} points."
+                    else:
+                        greeting += f"Number {i}, {name}, {points} points. "
+                
+                return greeting
+                
+        except Exception as e:
+            # Fallback if database error
+            announcer.announce("TOP8_ERROR", [f"Error getting top 8: {e}"])
+            return (
+                "Welcome to Try Hard tournament tracker! "
+                "I can tell you about top players and recent tournaments."
+            )
     
     def _get_voice_optimized_response(self, speech: str, state: Dict) -> str:
         """Get Claude response optimized for voice"""
