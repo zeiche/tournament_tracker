@@ -81,37 +81,55 @@ class PolymorphicClaudeVoice:
                 # Calculate points
                 player_points = {}
                 for p in placements:
-                    if p.player_id not in player_points:
-                        player_points[p.player_id] = {
-                            'name': p.player.name,
-                            'points': 0
-                        }
-                    
-                    if p.placement == 1:
-                        player_points[p.player_id]['points'] += 10
-                    elif p.placement == 2:
-                        player_points[p.player_id]['points'] += 7
-                    elif p.placement == 3:
-                        player_points[p.player_id]['points'] += 5
-                    elif p.placement == 4:
-                        player_points[p.player_id]['points'] += 3
-                    elif p.placement <= 8:
-                        player_points[p.player_id]['points'] += 1
+                    if p.player and p.player.name:  # Check player exists
+                        if p.player_id not in player_points:
+                            player_points[p.player_id] = {
+                                'name': p.player.name,
+                                'points': 0
+                            }
+                        
+                        if p.placement == 1:
+                            player_points[p.player_id]['points'] += 10
+                        elif p.placement == 2:
+                            player_points[p.player_id]['points'] += 7
+                        elif p.placement == 3:
+                            player_points[p.player_id]['points'] += 5
+                        elif p.placement == 4:
+                            player_points[p.player_id]['points'] += 3
+                        elif p.placement <= 8:
+                            player_points[p.player_id]['points'] += 1
                 
-                # Sort and return top 3 for voice
-                rankings = [(data['name'].split()[0], data['points']) 
+                if not player_points:
+                    return "No player data available."
+                
+                # Sort and return top 8 for voice
+                rankings = [(data['name'].split()[0] if data['name'] else "Unknown", data['points']) 
                            for data in player_points.values()]
                 rankings.sort(key=lambda x: x[1], reverse=True)
                 
-                response = "The top players are: "
-                for i, (name, points) in enumerate(rankings[:3], 1):
-                    response += f"{name} with {points} points. "
+                # Check what was asked
+                q = str(query).lower()
+                if '8' in q or 'eight' in q:
+                    # Return top 8
+                    response = "The top 8 players are: "
+                    for i, (name, points) in enumerate(rankings[:8], 1):
+                        if i == 8:
+                            response += f"and {name} with {points} points."
+                        else:
+                            response += f"{name} {points} points. "
+                else:
+                    # Return top 3 for brevity
+                    response = "The top players are: "
+                    for i, (name, points) in enumerate(rankings[:3], 1):
+                        response += f"{name} with {points} points. "
                 
                 return response
                 
         except Exception as e:
-            announcer.announce("CLAUDE_ERROR", [f"Database error: {e}"])
-            return "I'm having trouble accessing the database right now."
+            import traceback
+            error_detail = traceback.format_exc()
+            announcer.announce("CLAUDE_ERROR", [f"Database error: {error_detail}"])
+            return f"Database error: {str(e)}"
     
     def _get_tournament_info(self, query: Any) -> str:
         """Get tournament info polymorphically"""
