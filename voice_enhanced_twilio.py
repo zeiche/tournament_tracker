@@ -68,59 +68,93 @@ class VoiceEnhancedTwilio:
             response.pause(length=1)
             self._gather_speech(response, "Would you like more details about any player, recent tournaments, or other stats?")
         else:
-            # Process speech input
-            state['turn_count'] += 1
-            state['history'].append(speech)
-            
-            # Announce for bonjour
-            announcer.announce(
-                "VOICE_INPUT",
-                [
-                    f"📞 Caller: {from_number}",
-                    f"💬 Said: {speech}",
-                    f"🔄 Turn: {state['turn_count']}"
-                ]
-            )
-            
-            # Check for voice commands first
-            command_response = self._check_voice_commands(speech.lower(), state)
-            if command_response:
-                response.say(command_response, voice='alice')
+            # Check if we got silence (empty speech)
+            if not speech or speech.strip() == "":
+                # User was silent - gentle re-prompt
+                state['silence_count'] = state.get('silence_count', 0) + 1
+                
+                if state['silence_count'] >= 3:
+                    # Too much silence, end call politely
+                    response.say("I haven't heard anything. Call back when you're ready. Goodbye!", voice='alice')
+                    response.hangup()
+                elif state['silence_count'] == 2:
+                    response.say("Are you still there?", voice='alice')
+                    self._gather_speech(response)  # No prompt, just listen
+                else:
+                    response.say("I didn't catch that.", voice='alice')
+                    self._gather_speech(response, "What would you like to know?")
             else:
-                # Process through Claude with voice context
-                claude_response = self._get_voice_optimized_response(speech, state)
-                state['last_response'] = claude_response
-                response.say(claude_response, voice='alice')
-            
-            # Continue conversation
-            response.pause(length=1)
-            
-            # Context-aware follow-up
-            if state['turn_count'] == 1:
-                self._gather_speech(response, "Anything else about tournaments?")
-            elif state['turn_count'] == 2:
-                self._gather_speech(response, "What else can I help with?")
-            elif state['turn_count'] >= 5:
-                self._gather_speech(response, "Still here to help! What else?")
-            else:
-                self._gather_speech(response, "What else would you like to know?")
+                # Got speech - reset silence counter
+                state['silence_count'] = 0
+                state['turn_count'] += 1
+                state['history'].append(speech)
+                
+                # Announce for bonjour
+                announcer.announce(
+                    "VOICE_INPUT",
+                    [
+                        f"📞 Caller: {from_number}",
+                        f"💬 Said: {speech}",
+                        f"🔄 Turn: {state['turn_count']}"
+                    ]
+                )
+                
+                # Check for goodbye/hangup
+                if any(word in speech.lower() for word in ['goodbye', 'bye', 'hang up', 'end call']):
+                    response.say("Thank you for calling Try Hard! Goodbye!", voice='alice')
+                    response.hangup()
+                    return response
+                
+                # Check for voice commands first
+                command_response = self._check_voice_commands(speech.lower(), state)
+                if command_response:
+                    response.say(command_response, voice='alice')
+                else:
+                    # Process through Claude with voice context
+                    claude_response = self._get_voice_optimized_response(speech, state)
+                    state['last_response'] = claude_response
+                    response.say(claude_response, voice='alice')
+                
+                # Smart follow-up based on context
+                response.pause(length=0.5)
+                
+                # Don't always prompt - sometimes just listen
+                if state['turn_count'] % 3 == 0:
+                    # Every 3rd turn, just listen without prompting
+                    self._gather_speech(response)
+                else:
+                    # Context-aware prompts
+                    if state['turn_count'] == 1:
+                        self._gather_speech(response, "Anything else?")
+                    elif state['turn_count'] >= 5:
+                        self._gather_speech(response, "What else?")
+                    else:
+                        # Sometimes no prompt for natural flow
+                        self._gather_speech(response)
         
         return response
     
     def _gather_speech(self, response: VoiceResponse, prompt: str = None):
-        """Add speech gathering to response - SPEECH ONLY, no DTMF"""
+        """Add speech gathering to response with proper silence detection"""
+        # Say prompt BEFORE gathering (not during!)
+        if prompt:
+            response.say(prompt, voice='alice')
+            response.pause(length=0.5)  # Brief pause after prompt
+        
+        # Now gather speech WITHOUT interrupting
         gather = response.gather(
             input='speech',  # Speech recognition ONLY
-            timeout=5,
-            speech_timeout='auto',
+            timeout=3,  # Wait 3 seconds for speech to start
+            speech_timeout='auto',  # Auto-detect when speech ends
             action='/voice',
             language='en-US',
-            hints='tournament,player,Tekken,Street Fighter,winner,top eight,standings,recent,stats',
+            hints='tournament,player,Tekken,Street Fighter,winner,top eight,standings,recent,stats,help,repeat',
             enhanced=True,  # Use enhanced speech model
-            speechModel='phone_call'  # Optimized for phone calls
+            speechModel='phone_call',  # Optimized for phone calls
+            actionOnEmptyResult=True,  # Still process even if no speech
+            profanityFilter=False  # Don't filter FGC terminology
         )
-        if prompt:
-            gather.say(prompt, voice='alice')
+        # DON'T say anything inside gather - just listen!
     
     def _check_voice_commands(self, speech: str, state: Dict) -> Optional[str]:
         """Check for voice command shortcuts"""
