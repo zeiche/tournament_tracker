@@ -28,11 +28,32 @@ class PolymorphicTwilio:
     """
     
     def __init__(self):
+        # Announce we're initializing
+        announcer.announce(
+            "TWILIO_INITIALIZING",
+            ["Starting polymorphic Twilio service..."]
+        )
+        
         # Load credentials polymorphically
         self._load_credentials()
         
+        # Announce credentials loaded
+        announcer.announce(
+            "TWILIO_CREDENTIALS_LOADED",
+            [
+                f"Account: {self.account_sid[:8]}...",
+                f"Phone: {self.phone_number}"
+            ]
+        )
+        
         # Create Twilio client
         self.client = Client(self.account_sid, self.auth_token)
+        
+        # Announce client ready
+        announcer.announce(
+            "TWILIO_CLIENT_READY",
+            ["Twilio API client initialized"]
+        )
         
         # Flask app for webhooks
         self.app = Flask(__name__)
@@ -48,21 +69,37 @@ class PolymorphicTwilio:
         # Setup webhook routes
         self._setup_webhooks()
         
-        # Announce ourselves polymorphically
+        # Announce ourselves polymorphically - full bonjour style
         announcer.announce(
             "PolymorphicTwilio",
             [
-                "I handle telephony polymorphically",
-                "Just ask(), tell(), or do() - I figure out the rest",
-                "No need to remember send_sms() or make_call()",
-                "I accept anything: natural language, objects, whatever",
-                f"Phone: {self.phone_number}"
+                "🔌 I am PolymorphicTwilio - I handle telephony polymorphically",
+                "📱 Just ask(), tell(), or do() - I figure out the rest",
+                "🎯 No need to remember send_sms() or make_call()",
+                "🌐 I accept anything: natural language, objects, whatever",
+                f"☎️ Phone: {self.phone_number}",
+                "✨ I announce everything I do via bonjour",
+                "🚀 Ready to handle calls and SMS!"
             ],
             examples=[
                 'twilio.do("call 555-1234 with hello")',
                 'twilio.do("text", to="555-1234", body="hi")',
                 'twilio.ask("recent messages")',
                 'twilio.tell("status")'
+            ]
+        )
+        
+        # Announce capabilities
+        announcer.announce(
+            "TWILIO_CAPABILITIES",
+            [
+                "INBOUND: Receive calls via /voice webhook",
+                "INBOUND: Receive SMS via /sms webhook", 
+                "OUTBOUND: Make calls with TTS",
+                "OUTBOUND: Send SMS messages",
+                "SPEECH: Convert speech to text",
+                "TTS: Convert text to speech",
+                "POLYMORPHIC: Natural language interface"
             ]
         )
     
@@ -77,6 +114,12 @@ class PolymorphicTwilio:
             twilio.ask("account balance")      # Returns account info
             twilio.ask("capabilities")         # What can I do?
         """
+        # Announce what we're being asked
+        announcer.announce(
+            "TWILIO_ASK",
+            [f"Question: {question}"]
+        )
+        
         q = str(question).lower()
         
         # Phone number queries
@@ -140,6 +183,12 @@ class PolymorphicTwilio:
             twilio.tell("json")            # Return as JSON
             twilio.tell("brief")           # Quick summary
         """
+        # Announce format request
+        announcer.announce(
+            "TWILIO_TELL",
+            [f"Format requested: {format}"]
+        )
+        
         fmt = format.lower()
         
         if fmt in ["discord", "chat"]:
@@ -179,6 +228,12 @@ class PolymorphicTwilio:
             twilio.do("start webhooks")
             twilio.do("stop")
         """
+        # Announce action request
+        announcer.announce(
+            "TWILIO_DO",
+            [f"Action: {action}", f"Params: {kwargs}"]
+        )
+        
         act = str(action).lower()
         
         # SMS actions
@@ -244,6 +299,14 @@ class PolymorphicTwilio:
             # Check if this is speech result
             speech = request.values.get('SpeechResult')
             if speech:
+                # Announce speech received
+                announcer.announce(
+                    "TWILIO_SPEECH_RECEIVED",
+                    [
+                        f"💬 Speech input: {speech}",
+                        f"From: {call_data.get('From')}"
+                    ]
+                )
                 # Process speech polymorphically
                 self.call_queue.put({'type': 'speech', 'data': speech, 'call': call_data})
                 response.say(f"You said: {speech}", voice='alice')
@@ -312,6 +375,12 @@ class PolymorphicTwilio:
         if not to:
             return "Need a recipient! Use: do('text 555-1234 saying hello')"
         
+        # Announce we're sending
+        announcer.announce(
+            "TWILIO_SMS_SENDING",
+            [f"Preparing to send SMS to {to}"]
+        )
+        
         # Send the SMS
         message = self.client.messages.create(
             to=to,
@@ -319,9 +388,16 @@ class PolymorphicTwilio:
             body=body
         )
         
+        # Announce success
         announcer.announce(
             "TWILIO_SMS_SENT",
-            [f"To: {to}", f"Body: {body}", f"Sid: {message.sid}"]
+            [
+                f"✅ SMS sent successfully!",
+                f"To: {to}",
+                f"Body: {body}",
+                f"Sid: {message.sid}",
+                f"Status: {message.status}"
+            ]
         )
         
         return f"SMS sent to {to}: {body}"
@@ -349,6 +425,12 @@ class PolymorphicTwilio:
         if not to:
             return "Need a recipient! Use: do('call 555-1234 with hello')"
         
+        # Announce we're calling
+        announcer.announce(
+            "TWILIO_CALL_INITIATING",
+            [f"Preparing to call {to}"]
+        )
+        
         # Make the call
         call = self.client.calls.create(
             to=to,
@@ -358,9 +440,16 @@ class PolymorphicTwilio:
         
         self.active_calls[call.sid] = {'to': to, 'status': 'initiated'}
         
+        # Announce call initiated
         announcer.announce(
             "TWILIO_CALL_MADE",
-            [f"To: {to}", f"Message: {message}", f"Sid: {call.sid}"]
+            [
+                f"📞 Call initiated!",
+                f"To: {to}",
+                f"Message: {message}",
+                f"Sid: {call.sid}",
+                f"Status: {call.status}"
+            ]
         )
         
         return f"Calling {to} with message: {message}"
@@ -368,13 +457,35 @@ class PolymorphicTwilio:
     def _do_start_webhooks(self, port=8080, **kwargs):
         """Start webhook server"""
         if hasattr(self, '_webhook_thread'):
+            announcer.announce(
+                "TWILIO_WEBHOOK_ALREADY_RUNNING",
+                [f"Webhook server already active on port {self._webhook_port}"]
+            )
             return "Webhooks already running!"
+        
+        # Announce starting
+        announcer.announce(
+            "TWILIO_WEBHOOK_STARTING",
+            [f"Starting webhook server on port {port}..."]
+        )
         
         def run_server():
             self.app.run(host='0.0.0.0', port=port, debug=False)
         
         self._webhook_thread = threading.Thread(target=run_server, daemon=True)
+        self._webhook_port = port
         self._webhook_thread.start()
+        
+        # Announce ready
+        announcer.announce(
+            "TWILIO_WEBHOOK_READY",
+            [
+                f"🌐 Webhook server running!",
+                f"Voice URL: http://YOUR_SERVER:{port}/voice",
+                f"SMS URL: http://YOUR_SERVER:{port}/sms",
+                "Configure these in Twilio console"
+            ]
+        )
         
         return f"Webhook server started on port {port}"
     
@@ -391,7 +502,16 @@ def get_twilio():
     """Get or create Twilio instance"""
     global _twilio
     if _twilio is None:
+        announcer.announce(
+            "TWILIO_SINGLETON_CREATE",
+            ["Creating global PolymorphicTwilio instance"]
+        )
         _twilio = PolymorphicTwilio()
+    else:
+        announcer.announce(
+            "TWILIO_SINGLETON_EXISTS",
+            ["Returning existing PolymorphicTwilio instance"]
+        )
     return _twilio
 
 # Register as discoverable capability
