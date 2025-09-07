@@ -26,16 +26,16 @@ def voice():
         
         if digits:
             if digits == '1':
-                response.say("Recent tournament had 200 players.", voice='alice')
+                response.say("Recent tournament had 200 players.", voice='matthew')
             elif digits == '2':
-                response.say("Top player is West.", voice='alice')
+                response.say("Top player is West.", voice='matthew')
             else:
                 response.say("Invalid option.", voice='alice')
             response.redirect('/voice')
         else:
-            response.say("Tournament tracker. Press 1 or 2.", voice='alice')
+            response.say("Tournament tracker. Press 1 or 2.", voice='brian')
             response.gather(numDigits=1, action='/voice')
-            response.say("Goodbye.", voice='alice')
+            response.say("Goodbye.", voice='brian')
         
         xml = str(response)
         print(f"✅ Returning TwiML: {xml[:100]}...", file=sys.stderr)
