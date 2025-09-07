@@ -269,24 +269,11 @@ class VoiceEnhancedTwilio:
     def _get_voice_optimized_response(self, speech: str, state: Dict) -> str:
         """Get Claude response optimized for voice"""
         try:
-            from claude_chat import ask_one_shot
+            # Use polymorphic Claude that accepts ANYTHING
+            from polymorphic_claude_voice import claude_voice_ask
             
-            # Add voice context to the query
-            voice_context = f"""
-            [VOICE CALL CONTEXT]
-            This is a phone conversation. Keep responses:
-            - Brief (under 300 chars ideal)
-            - Natural for speech
-            - No markdown or special formatting
-            - Use "Try Hard" not "878-TRY-HARD"
-            - Pronounce player names clearly
-            
-            Caller history: {state['history'][-3:] if len(state['history']) > 1 else 'First question'}
-            
-            Question: {speech}
-            """
-            
-            response = ask_one_shot(voice_context)
+            # Just pass the speech directly - polymorphic Claude figures it out!
+            response = claude_voice_ask(speech)
             
             if response:
                 # Clean up for TTS
