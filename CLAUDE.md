@@ -150,7 +150,7 @@ async def on_message(message):
 **CLAUDE: Every component MUST announce itself!**
 
 When creating ANY new code:
-1. **Import the announcer** - `from capability_announcer import announcer`
+1. **Import the announcer** - `from polymorphic_core import announcer`
 2. **Announce on init** - Tell the system you exist
 3. **Announce capabilities** - Say what you can do
 4. **Announce state changes** - Broadcast updates
@@ -158,7 +158,7 @@ When creating ANY new code:
 
 **Example for EVERY new class/function:**
 ```python
-from capability_announcer import announcer
+from polymorphic_core import announcer
 
 class NewFeature:
     def __init__(self):
@@ -349,7 +349,8 @@ See `IMPORTANT_SHOPIFY_RULES.md` for details. The `shopify_separated_publisher.p
 
 Tournament Tracker is an advanced Python application for tracking and managing Fighting Game Community (FGC) tournaments in Southern California. It features a sophisticated OOP architecture with intelligent data models, real-time synchronization from start.gg, and AI-powered analytics.
 
-**IMPORTANT**: See `SYSTEM_ARCHITECTURE.md` for the complete system design and data flow.
+**IMPORTANT**: See `MODULE_ARCHITECTURE.md` for complete module organization and dependencies.
+**ALSO SEE**: `SYSTEM_ARCHITECTURE.md` for the system design and data flow.
 
 ## Architecture Philosophy
 
@@ -376,6 +377,7 @@ The system follows a **polymorphic paradigm** where "everything accepts anything
 - **Single sources of truth**: One module per domain (visualizer, queries, etc.)
 - **Thin bridges**: Service boundaries have zero business logic
 - **Natural language first**: Interpret intent, not rigid syntax
+- **Polymorphic core**: Generic patterns in `polymorphic_core/`, tournament-specific stays in main
 
 ### Object-Oriented Design
 - **Models are intelligent**: Objects understand their context and relationships

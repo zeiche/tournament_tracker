@@ -1,231 +1,176 @@
 #!/usr/bin/env python3
 """
-go.py - The PROPER go.py that follows Bonjour principles
+⚠️ CRITICAL WARNING FOR CLAUDE ⚠️
+═══════════════════════════════════════════════════════════════════════════
 
-This is just a ROUTER that:
-1. Parses command line arguments
-2. Routes to the appropriate module
-3. Each module initializes itself and announces capabilities
-4. NO central initialization, NO dependencies, NO database setup
+THIS FILE ONLY STARTS SERVICES. NOTHING ELSE. EVER.
+
+DO NOT ADD:
+- ❌ NO initialization logic
+- ❌ NO database setup
+- ❌ NO configuration management
+- ❌ NO business logic
+- ❌ NO data processing
+- ❌ NO calculations
+- ❌ NO transformations
+- ❌ NO validations
+- ❌ NO imports beyond subprocess/sys/os
+- ❌ NO "helper" functions
+- ❌ NO "convenience" methods
+- ❌ NO "quick fixes"
+- ❌ NO FUNCTIONALITY WHATSOEVER
+
+THIS FILE ONLY:
+✅ Parses command arguments
+✅ Calls subprocess.run() to START services
+✅ That's it. NOTHING ELSE.
+
+Services announce themselves via Bonjour.
+Services initialize themselves.
+Services manage their own state.
+go.py just STARTS them.
+
+CLAUDE: You will be REPRIMANDED if you add ANY functionality here!
+This is a STARTER, not a ROUTER, not a MANAGER, not an INITIALIZER.
+
+═══════════════════════════════════════════════════════════════════════════
 """
 
 import sys
 import os
+import subprocess
 import argparse
-from pathlib import Path
 
-# Load environment variables from .env file FIRST
-env_file = Path(__file__).parent / '.env'
-if env_file.exists():
+# Set authorization for go_py_guard (this is ALL we set)
+os.environ['GO_PY_AUTHORIZED'] = '1'
+
+# Load .env file for services (minimal - just read and set env vars)
+env_file = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(env_file):
     with open(env_file) as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith('#') and '=' in line:
                 key, value = line.split('=', 1)
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                if key and not key.startswith('export'):
-                    os.environ[key] = value
-
-from capability_announcer import announcer
-
-class LightweightRouter:
-    """Ultra-light router that just dispatches commands"""
-    
-    def __init__(self):
-        # Announce ourselves
-        announcer.announce(
-            "LightweightRouter",
-            ["I route commands to appropriate modules", "I don't initialize anything"],
-            examples=["./go.py --discord-bot --discord-mode voice"]
-        )
-        
-    def route(self, args):
-        """Route to appropriate module based on arguments"""
-        
-        # Discord bot (THE polymorphic bridge)
-        if args.get('discord_bot'):
-            mode = args.get('discord_mode', 'conversational')
-            announcer.announce("Router", ["Routing to Discord bot"])
-            from discord_service import start_discord_bot
-            start_discord_bot(mode)
-        
-        # Web editor
-        elif args.get('edit_contacts'):
-            announcer.announce("Router", ["Routing to web editor"])
-            from editor_service import EditorService
-            editor = EditorService()  # It initializes itself
-            editor.start(port=args.get('editor_port', 8081))
-        
-        # Tournament sync
-        elif args.get('sync'):
-            announcer.announce("Router", ["Routing to sync service"])
-            from sync_service import SyncService
-            sync = SyncService()  # It initializes itself
-            sync.sync_tournaments()
-        
-        # Console report
-        elif args.get('console'):
-            announcer.announce("Router", ["Routing to report generator"])
-            from tournament_report import generate_console_report
-            generate_console_report()  # It handles its own DB
-        
-        # Heatmap
-        elif args.get('heatmap'):
-            announcer.announce("Router", ["Routing to heatmap generator"])
-            from tournament_heatmap import generate_all_heatmaps
-            generate_all_heatmaps()  # It handles its own setup
-        
-        # AI chat
-        elif args.get('ai_chat'):
-            announcer.announce("Router", ["Routing to AI chat"])
-            from claude_service import ClaudeService
-            claude = ClaudeService()  # It initializes itself
-            claude.start_terminal_chat()
-        
-        # DM image
-        elif args.get('dm_image'):
-            user, image, message = args['dm_image']
-            announcer.announce("Router", ["Routing to Discord DM sender"])
-            from polymorphic_discord_sender import send_to_discord
-            send_to_discord(user, image, title=message)
-        
-        # Service management
-        elif args.get('restart_services'):
-            announcer.announce("Router", ["Routing to service manager"])
-            import subprocess
-            # Kill existing processes
-            subprocess.run(['pkill', '-f', 'discord'], stderr=subprocess.DEVNULL)
-            subprocess.run(['pkill', '-f', 'bot'], stderr=subprocess.DEVNULL)
-            subprocess.run(['pkill', '-f', 'web_editor'], stderr=subprocess.DEVNULL)
-            print("✅ Services restarted")
-        
-        # Service status
-        elif args.get('service_status'):
-            announcer.announce("Router", ["Checking service status"])
-            import subprocess
-            print("=== Service Status ===")
-            
-            # Check for Discord bot
-            result = subprocess.run(['pgrep', '-f', 'discord'], capture_output=True, text=True)
-            if result.returncode == 0:
-                print("✅ Discord bot: Running")
-            else:
-                print("❌ Discord bot: Not running")
-            
-            # Check for web editor
-            result = subprocess.run(['pgrep', '-f', 'web_editor'], capture_output=True, text=True)
-            if result.returncode == 0:
-                print("✅ Web editor: Running")
-            else:
-                print("❌ Web editor: Not running")
-            
-            # Check voice service capability
-            try:
-                from capability_discovery import discover_capability
-                voice_service = discover_capability('voice')
-                if voice_service:
-                    print("✅ Voice service: Available")
-                    status = voice_service.get_status()
-                    print(f"   Connected guilds: {status.get('connected_guilds', 0)}")
-                else:
-                    print("⚠️  Voice service: Not registered")
-            except:
-                print("⚠️  Voice service: Module error")
-        
-        # Stats
-        elif args.get('stats'):
-            announcer.announce("Router", ["Routing to stats viewer"])
-            from database_service import DatabaseService
-            db = DatabaseService()  # It initializes itself
-            db.show_stats()
-        
-        # Shutdown command
-        elif args.get('shutdown'):
-            announcer.announce("Router", ["Initiating graceful shutdown"])
-            from shutdown_coordinator import request_shutdown
-            request_shutdown()
-        
-        else:
-            print("No valid command specified. Use --help for options.")
-
-
-def parse_args():
-    """Parse command line arguments"""
-    parser = argparse.ArgumentParser(
-        description='Tournament Tracker Router - Routes commands to services',
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    
-    # Discord options
-    parser.add_argument('--discord-bot', action='store_true',
-                       help='Start Discord bot')
-    parser.add_argument('--discord-mode', choices=['voice', 'text', 'claude'],
-                       default='text', help='Discord bot mode')
-    
-    # Services
-    parser.add_argument('--edit-contacts', action='store_true',
-                       help='Start web editor')
-    parser.add_argument('--editor-port', type=int, default=8081,
-                       help='Web editor port')
-    
-    # Sync
-    parser.add_argument('--sync', action='store_true',
-                       help='Sync tournaments')
-    parser.add_argument('--skip-sync', action='store_true',
-                       help='Skip sync (for other operations)')
-    
-    # Reports
-    parser.add_argument('--console', action='store_true',
-                       help='Show console report')
-    parser.add_argument('--heatmap', action='store_true',
-                       help='Generate heatmaps')
-    
-    # AI
-    parser.add_argument('--ai-chat', action='store_true',
-                       help='Start AI chat')
-    
-    # Discord utilities
-    parser.add_argument('--dm-image', nargs=3,
-                       metavar=('USER', 'IMAGE', 'MESSAGE'),
-                       help='Send image via Discord DM')
-    
-    # Service management
-    parser.add_argument('--restart-services', action='store_true',
-                       help='Restart all services')
-    parser.add_argument('--service-status', action='store_true',
-                       help='Check status of all services')
-    
-    # Stats
-    parser.add_argument('--stats', action='store_true',
-                       help='Show database statistics')
-    
-    # Shutdown
-    parser.add_argument('--shutdown', action='store_true',
-                       help='Gracefully shutdown all services')
-    
-    return vars(parser.parse_args())
-
+                os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 def main():
-    """Main entry point"""
-    args = parse_args()
+    """Parse args and START services. That's ALL."""
+    parser = argparse.ArgumentParser(
+        description='Service STARTER - Only starts services, does NOTHING else'
+    )
     
-    # Skip sync unless explicitly requested
-    if not args.get('sync') and not args.get('skip_sync'):
-        announcer.announce("Main", ["Skipping sync (use --sync to sync)"])
+    # Service start flags
+    parser.add_argument('--discord-bot', action='store_true',
+                       help='START Discord bot service')
+    parser.add_argument('--edit-contacts', action='store_true',
+                       help='START web editor service')
+    parser.add_argument('--ai-chat', action='store_true',
+                       help='START AI chat service')
     
-    # Create router and route
-    router = LightweightRouter()
-    router.route(args)
-
+    # Sync/report flags (just start the process)
+    parser.add_argument('--sync', action='store_true',
+                       help='START sync process')
+    parser.add_argument('--console', action='store_true',
+                       help='START console report')
+    parser.add_argument('--heatmap', action='store_true',
+                       help='START heatmap generation')
+    parser.add_argument('--stats', action='store_true',
+                       help='START stats display')
+    parser.add_argument('--voice-test', action='store_true',
+                       help='START polymorphic voice test')
+    
+    # Telephony
+    parser.add_argument('--twilio-bridge', action='store_true',
+                       help='START Twilio bridge (handles calls/SMS)')
+    parser.add_argument('--call', type=str, metavar='PHONE',
+                       help='Make an outbound call to PHONE')
+    parser.add_argument('--twilio-service', action='store_true',
+                       help='START Twilio telephony service')
+    parser.add_argument('--twilio-config', action='store_true',
+                       help='Generate Twilio/Asterisk configs')
+    parser.add_argument('--asterisk-status', action='store_true',
+                       help='Check Asterisk PBX status')
+    
+    # Process management
+    parser.add_argument('--restart-services', action='store_true',
+                       help='Kill existing services')
+    parser.add_argument('--service-status', action='store_true',
+                       help='Check service status')
+    
+    args = parser.parse_args()
+    
+    # Start requested services - NO LOGIC, just subprocess calls
+    if args.discord_bot:
+        # Start discord bot
+        subprocess.run([sys.executable, 'bonjour_discord.py'])
+    
+    elif args.edit_contacts:
+        # Start web editor
+        subprocess.run([sys.executable, 'editor_service.py'])
+    
+    elif args.ai_chat:
+        # Start AI chat
+        subprocess.run([sys.executable, 'claude_service.py'])
+    
+    elif args.sync:
+        # Start sync
+        subprocess.run([sys.executable, 'sync_service.py'])
+    
+    elif args.console:
+        # Start report
+        subprocess.run([sys.executable, 'tournament_report.py'])
+    
+    elif args.heatmap:
+        # Start heatmap
+        subprocess.run([sys.executable, 'tournament_heatmap.py'])
+    
+    elif args.stats:
+        # Start stats
+        subprocess.run([sys.executable, 'database_service.py', '--stats'])
+    
+    elif args.voice_test:
+        # Start polymorphic voice test
+        subprocess.run([sys.executable, 'polymorphic_voice_test.py'])
+    
+    elif args.twilio_bridge:
+        # Start Twilio bridge with Claude handler
+        subprocess.run([sys.executable, 'twilio_claude_handler.py'])
+    
+    elif args.call:
+        # Make an outbound call
+        subprocess.run([sys.executable, 'call_me.py', args.call])
+    
+    elif args.twilio_service:
+        # Start Twilio service
+        subprocess.run([sys.executable, 'bonjour_twilio.py'])
+    
+    elif args.twilio_config:
+        # Generate Twilio configs
+        subprocess.run([sys.executable, 'twilio_config.py'])
+    
+    elif args.asterisk_status:
+        # Check Asterisk status
+        subprocess.run(['sudo', 'systemctl', 'status', 'asterisk'])
+    
+    elif args.restart_services:
+        # Kill services
+        subprocess.run(['pkill', '-f', 'discord'], stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'polymorphic_discord'], stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'web_editor'], stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'editor_service'], stderr=subprocess.DEVNULL)
+        print("Services killed")
+    
+    elif args.service_status:
+        # Check status
+        print("=== Service Status ===")
+        result = subprocess.run(['pgrep', '-f', 'discord'], capture_output=True)
+        print(f"Discord: {'Running' if result.returncode == 0 else 'Not running'}")
+        result = subprocess.run(['pgrep', '-f', 'web_editor'], capture_output=True)
+        print(f"Editor: {'Running' if result.returncode == 0 else 'Not running'}")
+    
+    else:
+        print("Specify a service to start. Use --help for options.")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\n👋 Interrupted by user")
-        sys.exit(0)
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        sys.exit(1)
+    main()

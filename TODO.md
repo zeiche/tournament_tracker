@@ -1,32 +1,39 @@
 # TODO
 
-## ✅ COMPLETED: Discord Voice Recording Integration
+## 🚨 CURRENT ISSUE: Discord Voice Connection Error 4006 🚨
 
-### What Was Done
-Connected the Discord voice recording flow! The bot now automatically records audio when joining voice channels.
+### Problem
+Discord bot gets error 4006 ("Session is no longer valid") when trying to join voice channel #General. The bot HAS successfully connected to voice before, but now consistently fails with this error. After 5 retries it sometimes succeeds but then the event loop gets completely blocked.
 
-### Implementation Complete
-1. **discord_voice_bot.py** - Added recording functionality ✅
-   - Auto-starts recording when joining voice channel
-   - Stops recording when leaving
-   - Added `!record [start|stop|status]` command for manual control
-2. **PolymorphicAudioSink** integration ✅
-   - Bot attaches sink when joining voice
-   - Calls `voice_client.start_recording(sink)`
-   - Handles cleanup on disconnect
-3. **Bonjour announcements** working ✅
-   - Announces "VOICE_RECORDING" when starting
-   - Announces "RECORDING_FINISHED" when done
-   - Audio flows through polymorphic pipeline
+### Key Findings
+1. Bot connects to Discord text successfully as `try-hard#8718`
+2. Bot HAS proper voice permissions (Can connect: True, Can speak: True)  
+3. Error 4006 happens immediately when trying to establish voice WebSocket
+4. The event loop blocking was caused by `voice_receiver.setup_voice_client()` calling `start_recording()` immediately
+5. Even with recording disabled, still getting 4006 errors
 
-### The Working Flow
-1. User speaks in Discord → 2. Audio sink captures → 3. Announces "AUDIO_RECEIVED" 
-4. Storage service stores → 5. Transcription service processes → 6. Claude can respond
+### Current Hypothesis
+**Discord may still have a stale voice session from a previous connection that wasn't properly closed.** Error 4006 specifically means Discord thinks we're trying to create a duplicate session or reuse an invalid session token.
 
-### New Commands
-- `!join` - Join voice channel (auto-starts recording)
-- `!leave` - Leave voice channel (stops recording)
-- `!record [start|stop|status]` - Manual recording control
+### What We've Done
+1. ✅ Identified that `start_recording()` was blocking the event loop
+2. ✅ Disabled voice recording to prevent blocking
+3. ✅ Added cleanup code to force disconnect before joining
+4. ✅ Reverted to earlier working version (commit 88b8880)
+5. ⚠️ Still getting 4006 errors despite fixes
+
+### Next Steps for Next Claude
+1. **The bot may need to be manually kicked from voice in Discord** to clear stale session
+2. Try waiting longer (10+ seconds) after connecting before joining voice
+3. Check if UDP ports are blocked (voice uses UDP, not just WebSocket)
+4. Consider that Discord may have flagged this VPS IP (though it worked before)
+
+### How to Test
+```bash
+./go.py --discord-bot  # Should auto-join #General voice on startup
+```
+
+---
 
 ## Current Status
 - ✅ Tournament data fetching from start.gg is working

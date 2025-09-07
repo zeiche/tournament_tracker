@@ -1,0 +1,18 @@
+"""
+polymorphic_core - General purpose polymorphic infrastructure
+This has nothing to do with tournaments - it's pure polymorphic patterns.
+"""
+
+from .events import SynchronousEvents, announcer, CapabilityAnnouncer, announces_capability
+from .discovery import register_capability, discover_capability, list_capabilities, get_capability_info
+
+__all__ = [
+    'SynchronousEvents',
+    'announcer', 
+    'register_capability',
+    'discover_capability',
+    'CapabilityAnnouncer',
+    'announces_capability',
+    'list_capabilities',
+    'get_capability_info'
+]

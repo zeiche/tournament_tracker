@@ -1,69 +1,7 @@
-#!/usr/bin/env python3
-"""
-capability_announcer.py - Bonjour-style capability announcement
-Models and services announce themselves when imported/loaded.
-"""
+# Compatibility shim - redirect to polymorphic_core
+from polymorphic_core import announcer, CapabilityAnnouncer, announces_capability
 
-class CapabilityAnnouncer:
-    """
-    Like Bonjour/mDNS - services announce their presence and capabilities.
-    """
-    def __init__(self):
-        self.announcements = []
-    
-    def announce(self, service_name: str, capabilities: list, examples: list = None):
-        """
-        Service announces itself - "Hello, I'm here and I can do these things!"
-        
-        Args:
-            service_name: "Tournament Model", "Query Engine", etc.
-            capabilities: List of things this service can do
-            examples: Optional example usage
-        """
-        announcement = {
-            'service': service_name,
-            'capabilities': capabilities,
-            'examples': examples or []
-        }
-        self.announcements.append(announcement)
-        return self
-    
-    def get_announcements_for_claude(self) -> str:
-        """
-        Format all announcements for Claude's context.
-        """
-        if not self.announcements:
-            return "No services have announced themselves yet."
-        
-        context = "=== Services Available to You ===\n"
-        for announcement in self.announcements:
-            context += f"\n📢 {announcement['service']} announces:\n"
-            context += "I can:\n"
-            for cap in announcement['capabilities']:
-                context += f"  • {cap}\n"
-            
-            if announcement['examples']:
-                context += "Examples:\n"
-                for ex in announcement['examples']:
-                    context += f"  - {ex}\n"
-        
-        return context
-
-
-# Global announcer
-announcer = CapabilityAnnouncer()
-
-
-# Auto-announcement decorators
-def announces_capability(service_name: str, *capabilities):
-    """
-    Decorator for classes/functions to announce their capabilities.
-    """
-    def decorator(obj):
-        # Announce when decorated
-        announcer.announce(service_name, list(capabilities))
-        return obj
-    return decorator
+__all__ = ['announcer', 'CapabilityAnnouncer', 'announces_capability']
 
 
 # When models are imported, they announce themselves

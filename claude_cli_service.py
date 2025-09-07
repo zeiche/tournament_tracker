@@ -437,7 +437,20 @@ Always set 'output' variable. Format for Discord with ** for bold."""
 # SINGLETON INSTANCE - USE THIS
 # ============================================================================
 
-claude_cli = ClaudeCLIService()
+# Don't create instance at import time - it starts threads that block Discord
+# claude_cli = ClaudeCLIService()
+# Instead, create it lazily when needed:
+_claude_cli = None
+
+def get_claude_cli():
+    """Get or create the singleton Claude CLI instance"""
+    global _claude_cli
+    if _claude_cli is None:
+        _claude_cli = ClaudeCLIService()
+    return _claude_cli
+
+# For backward compatibility
+claude_cli = get_claude_cli
 
 
 # ============================================================================

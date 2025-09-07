@@ -10,7 +10,7 @@ import sys
 import time
 from typing import Set, Callable
 from capability_announcer import announcer
-from capability_discovery import capability_registry
+from polymorphic_core.discovery import capability_registry
 
 class ShutdownCoordinator:
     """Coordinates graceful shutdown across all modules"""

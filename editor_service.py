@@ -1908,7 +1908,8 @@ def launch_editor(port: int = 8081, mode: str = 'full'):
         port=port,
         mode=EditorMode(mode)
     )
-    service = EditorService(config)
+    service = EditorService()
+    service.config = config
     service.run_blocking()
 
 
