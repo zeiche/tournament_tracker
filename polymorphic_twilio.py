@@ -284,74 +284,16 @@ class PolymorphicTwilio:
         """Setup Flask webhook routes"""
         @self.app.route('/voice', methods=['POST'])
         def handle_voice():
-            """Handle incoming calls polymorphically"""
+            """Handle incoming calls with enhanced voice interactions"""
             call_data = dict(request.values)
             self.active_calls[call_data.get('CallSid')] = call_data
             
-            # Announce the call
-            announcer.announce(
-                "TWILIO_CALL_RECEIVED",
-                [f"From: {call_data.get('From')}", f"CallSid: {call_data.get('CallSid')}"]
-            )
+            # Use enhanced voice handler
+            from voice_enhanced_twilio import get_enhanced
+            enhanced = get_enhanced()
             
-            response = VoiceResponse()
-            
-            # Check if this is speech result
-            speech = request.values.get('SpeechResult')
-            if speech:
-                # Announce speech received
-                announcer.announce(
-                    "TWILIO_SPEECH_RECEIVED",
-                    [
-                        f"💬 Speech input: {speech}",
-                        f"From: {call_data.get('From')}"
-                    ]
-                )
-                
-                # Process speech through Claude chat!
-                try:
-                    from claude_chat import ask_one_shot
-                    
-                    # Get response from Claude
-                    claude_response = ask_one_shot(speech)
-                    
-                    if claude_response:
-                        # Announce Claude responded
-                        announcer.announce(
-                            "TWILIO_CLAUDE_RESPONSE",
-                            [
-                                f"🤖 Claude response generated",
-                                f"Length: {len(claude_response)} chars"
-                            ]
-                        )
-                        
-                        # Truncate if too long for TTS (Twilio has limits)
-                        if len(claude_response) > 500:
-                            claude_response = claude_response[:497] + "..."
-                        
-                        response.say(claude_response, voice='alice')
-                    else:
-                        response.say("I couldn't process that. Could you try again?", voice='alice')
-                    
-                except Exception as e:
-                    announcer.announce(
-                        "TWILIO_CLAUDE_ERROR",
-                        [f"Error connecting to Claude: {e}"]
-                    )
-                    response.say("Sorry, I'm having trouble connecting to my brain. Please try again.", voice='alice')
-                
-                response.pause(length=1)
-            else:
-                response.say("Hello! This is the tournament tracker. Ask me anything about tournaments or players!", voice='alice')
-            
-            # Always gather more speech
-            gather = response.gather(
-                input='speech',
-                timeout=5,
-                speech_timeout='auto',
-                action='/voice'
-            )
-            gather.say("What would you like to know?", voice='alice')
+            # Process with enhanced interactions
+            response = enhanced.process_call(call_data)
             
             return str(response)
         
