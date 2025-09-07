@@ -42,9 +42,18 @@ def handle_tournament_speech(speech: str, from_number: str) -> str:
                 players = PolymorphicQuery.find_players(speech, session)
                 if players:
                     # Format for voice
-                    response = "Found players: "
-                    for p in players[:3]:  # Limit to 3 for voice
-                        response += f"{p.name}. "
+                    if len(players) <= 3:
+                        response = "The top players are: "
+                    else:
+                        response = f"The top {len(players)} players are: "
+                    
+                    for i, p in enumerate(players[:8], 1):  # Up to 8 for voice
+                        # Use first name only for brevity
+                        first_name = p.name.split()[0] if p.name else "Unknown"
+                        if i == len(players[:8]):
+                            response += f"and {first_name}."
+                        else:
+                            response += f"{first_name}, "
                 else:
                     response = "No players found."
             elif "tournament" in speech.lower():
