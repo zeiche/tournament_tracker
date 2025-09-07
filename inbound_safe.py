@@ -28,7 +28,25 @@ def voice():
             if digits == '1':
                 response.say("Recent tournament had 200 players.", voice='matthew')
             elif digits == '2':
-                response.say("Top player is West.", voice='matthew')
+                # Announce top 8 players in reverse order (8th to 1st)
+                response.say("Here are the top 8 players, starting from 8th place:", voice='matthew')
+                response.pause(length=1)
+                
+                # Top 8 players data (would normally come from database)
+                top_8 = [
+                    ("8th", "Kuba"),
+                    ("7th", "Jedi"),
+                    ("6th", "Hank"),
+                    ("5th", "Beast"),
+                    ("4th", "Snake"),
+                    ("3rd", "Shadow"),
+                    ("2nd", "JLPC with 38 wins"),
+                    ("1st", "West with 45 wins")
+                ]
+                
+                for place, player in top_8:
+                    response.say(f"{place} place: {player}", voice='matthew')
+                    response.pause(length=0.5)
             else:
                 response.say("Invalid option.", voice='alice')
             response.redirect('/voice')
