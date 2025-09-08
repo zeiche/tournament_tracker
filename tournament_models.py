@@ -269,28 +269,42 @@ class BaseModel:
     
     def save(self):
         """Save this instance using centralized session"""
+        # Announce the save operation
+        if hasattr(self, 'announce_operation'):
+            self.announce_operation(f"Saving {self.__class__.__name__}")
+        
         session = self.session()
         session.add(self)
         session.commit()
         
         # Clear cache after save to ensure consistency
-        from database_service import database_service  # clear_session_cache
-        clear_session_cache()
+        # clear_session_cache() - not available yet
         
-        log_debug(f"Saved {self.__class__.__name__}: {getattr(self, 'id', 'unknown')}", "model")
+        # Announce completion
+        if hasattr(self, 'announce_state_change'):
+            self.announce_state_change("saved", {"id": getattr(self, 'id', 'unknown')})
+        
+        log_debug(f"Saved {self.__class__.__name__}: {getattr(self, 'id', 'unknown')}")
         return self
     
     def delete(self):
         """Delete this instance using centralized session"""
+        # Announce the delete operation
+        if hasattr(self, 'announce_operation'):
+            self.announce_operation(f"Deleting {self.__class__.__name__}")
+        
         session = self.session()
         session.delete(self)
         session.commit()
         
         # Clear cache after delete
-        from database_service import database_service  # clear_session_cache
-        clear_session_cache()
+        # clear_session_cache() - not available yet
         
-        log_debug(f"Deleted {self.__class__.__name__}: {getattr(self, 'id', 'unknown')}", "model")
+        # Announce completion
+        if hasattr(self, 'announce_state_change'):
+            self.announce_state_change("deleted", {"id": getattr(self, 'id', 'unknown')})
+        
+        log_debug(f"Deleted {self.__class__.__name__}: {getattr(self, 'id', 'unknown')}")
     
     def refresh(self):
         """Reload from database"""
@@ -300,6 +314,10 @@ class BaseModel:
     
     def update(self, **kwargs):
         """Update attributes and save"""
+        # Announce what's being updated
+        if hasattr(self, 'announce_operation'):
+            self.announce_operation(f"Updating {self.__class__.__name__}", kwargs)
+        
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)

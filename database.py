@@ -11,6 +11,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session as SessionType
 from sqlalchemy.ext.declarative import declarative_base
 
+# Bonjour announcements will be enabled later to avoid circular imports
+
 # ============================================================================
 # SINGLE SOURCE OF TRUTH - Database Configuration
 # ============================================================================
