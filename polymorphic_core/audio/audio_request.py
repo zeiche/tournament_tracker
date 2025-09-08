@@ -5,8 +5,8 @@ Any service that HAS audio can respond to these announcements
 Pure Bonjour - no direct dependencies!
 """
 
-from capability_announcer import announcer
-from capability_discovery import register_capability
+from polymorphic_core import announcer
+from polymorphic_core import register_capability
 import time
 from typing import Optional, Callable
 

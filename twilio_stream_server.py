@@ -13,13 +13,28 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 import os
 import sys
+import ssl
+import pathlib
 
 # Add parent dir to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import polymorphic components
-from polymorphic_core import announcer
-from polymorphic_queries import query as pq
+try:
+    from polymorphic_core import announcer
+except ImportError:
+    # Create dummy announcer if not available
+    class DummyAnnouncer:
+        def announce(self, *args, **kwargs):
+            pass
+    announcer = DummyAnnouncer()
+
+try:
+    from polymorphic_queries import query as pq
+except ImportError:
+    # Fallback query function
+    def pq(query):
+        return f"Tournament data query: {query}"
 
 class TwilioStreamHandler:
     """Handles Twilio Media Stream WebSocket connections."""
@@ -183,19 +198,35 @@ class TwilioStreamHandler:
 
 
 async def main():
-    """Start the WebSocket server."""
+    """Start the WebSocket server with SSL support."""
     handler = TwilioStreamHandler()
     
     port = 8087
+    
+    # SSL context setup
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    cert_path = pathlib.Path(__file__).parent / "server.crt"
+    key_path = pathlib.Path(__file__).parent / "server.key"
+    
+    if cert_path.exists() and key_path.exists():
+        ssl_context.load_cert_chain(cert_path, key_path)
+        print(f"🔐 SSL enabled with certificate: {cert_path}")
+        ws_url = f"wss://64.111.98.139:{port}/"
+    else:
+        print("⚠️ SSL certificates not found, running without SSL")
+        ssl_context = None
+        ws_url = f"ws://64.111.98.139:{port}/"
+    
     print(f"🚀 Starting Twilio Stream WebSocket server on port {port}")
-    print(f"📡 WebSocket URL: wss://your-domain.com:{port}/")
+    print(f"📡 WebSocket URL: {ws_url}")
     print("⏳ Waiting for Twilio streams...")
     
-    # Start WebSocket server
+    # Start WebSocket server with SSL
     async with websockets.serve(
         handler.handle_websocket,
         "0.0.0.0",
         port,
+        ssl=ssl_context,
         # Twilio-specific settings
         compression=None,  # Twilio doesn't support compression
         max_size=10 * 1024 * 1024,  # 10MB max message size

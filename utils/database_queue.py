@@ -328,7 +328,7 @@ def test_queue_basic_operations():
         
         # Test 2: Queue some operations
         logger.info("TEST 2: Queue operations")
-        from tournament_models import Tournament, Organization
+        from models.tournament_models import Tournament, Organization
         
         # Queue multiple creates
         for i in range(3):
@@ -397,7 +397,7 @@ def test_batch_operations():
         logger.info("TEST 1: Basic batch context")
         
         with batch_operations(page_size=10) as queue:
-            from tournament_models import Organization, Tournament
+            from models.tournament_models import Organization, Tournament
             
             # Add several operations
             for i in range(7):
@@ -481,7 +481,7 @@ def test_batch_operations():
 
 def cleanup_test_organizations():
     """Clean up test organizations"""
-    from tournament_models import Organization
+    from models.tournament_models import Organization
     all_orgs = Organization.all()
     
     test_patterns = ['test_queue_', 'batch_test_', 'custom_', 'error_test']
@@ -494,7 +494,7 @@ def cleanup_test_organizations():
 
 def cleanup_test_tournaments():
     """Clean up test tournaments"""
-    from tournament_models import Tournament
+    from models.tournament_models import Tournament
     all_tournaments = Tournament.all()
     
     test_patterns = ['queue_test_', 'batch_test_']
@@ -519,7 +519,7 @@ def test_queue_stats():
         # Create queue and run operations
         queue = OperationQueue(page_size=3, auto_commit=True)
         
-        from tournament_models import Organization
+        from models.tournament_models import Organization
         
         # Add operations to trigger automatic page flushes
         for i in range(8):  # This should trigger multiple page flushes

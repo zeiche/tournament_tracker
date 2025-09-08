@@ -15,9 +15,28 @@ import json
 import base64
 import threading
 from pathlib import Path
-from capability_announcer import announcer
-from bonjour_audio_mixer import BonjourAudioMixer
-from audio_service import AudioService
+try:
+    from capability_announcer import announcer
+except ImportError:
+    import sys
+    sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker/utils')
+    try:
+        from capability_announcer import announcer
+    except ImportError:
+        class DummyAnnouncer:
+            def announce(self, *args, **kwargs):
+                pass
+        announcer = DummyAnnouncer()
+
+try:
+    from bonjour_audio_mixer import BonjourAudioMixer
+except ImportError:
+    BonjourAudioMixer = None
+    
+try:
+    from audio_service import AudioService
+except ImportError:
+    AudioService = None
 
 class SimpleTwilioBridge:
     """Minimal Twilio bridge with audio service integration"""
@@ -54,10 +73,10 @@ class SimpleTwilioBridge:
         self.speech_queue = queue.Queue()
         
         # Get BONJOUR audio mixer - IT handles everything!
-        self.audio_mixer = BonjourAudioMixer()
+        self.audio_mixer = BonjourAudioMixer() if BonjourAudioMixer else None
         
         # Get audio service for mixing
-        self.audio_service = AudioService()
+        self.audio_service = AudioService() if AudioService else None
         
         # Initialize Twilio client for making calls
         self.twilio_client = Client(self.account_sid, self.auth_token) if self.account_sid and self.auth_token else None
@@ -120,8 +139,9 @@ class SimpleTwilioBridge:
                         "Using bonjour audio services"
                     ]
                 )
-                # Tell audio mixer to start music immediately
-                self.audio_mixer.start_continuous_music()
+                # Tell audio mixer to start music immediately (if available)
+                if self.audio_mixer:
+                    self.audio_mixer.start_continuous_music()
             
             # Announce what we received
             announcer.announce(
@@ -145,26 +165,21 @@ class SimpleTwilioBridge:
                     except Exception as e:
                         print(f"Handler error: {e}")
             
-            # First time on call - use ONE play() for continuous stream
+            # First time on call - redirect to TwiML Stream endpoint
             if not speech:
-                # Use a SINGLE play() that fetches continuous chunked audio
-                # This stream includes music AND speech mixed together
-                response.play(url=f'http://64.111.98.139:8082/continuous_mixed_stream')
+                # Redirect to the new Stream-based TwiML
+                response.redirect('http://localhost:8086/voice-stream.xml')
                 
-                # Queue welcome message for the continuous stream
-                welcome_text = "Welcome to Try Hard Tournament Tracker. Say something to test the audio mixing."
-                self.speech_queue.put(welcome_text)
-                
-                # Announce streaming approach
+                # Announce we're using Stream
                 announcer.announce(
-                    "TWILIO_CHUNKED_STREAM",
+                    "TWILIO_STREAM_MODE",
                     [
-                        "Using ONE play() for continuous chunked stream",
-                        "Stream includes music AND speech mixed",
-                        "Bonjour mixer provides endless chunks",
-                        "No interruptions - single continuous stream"
+                        "Using TwiML <Stream> for real-time WebSocket audio",
+                        "Bidirectional streaming enabled",
+                        "No play() calls - pure WebSocket streaming"
                     ]
                 )
+                return str(response)
             
             # Process responses - queue for WebSocket stream
             if response_text:
@@ -309,9 +324,8 @@ class SimpleTwilioBridge:
             
             # Stream mixed audio directly from the URL endpoint
             # The /mixed/<text> endpoint now streams the audio
-            import urllib.parse
-            encoded_message = urllib.parse.quote(message)
-            response.play(url=f'http://64.111.98.139:8082/mixed/{encoded_message}')
+            # NO PLAY - just say the message directly
+            response.say(message, voice='alice')
             
             # Pause and ask if they want to hear more
             response.pause(length=2)
@@ -538,10 +552,13 @@ def get_bridge():
 if __name__ == "__main__":
     bridge = get_bridge()
     
-    # Register the tournament handler that uses gamer_tags
-    from tournament_voice_handler import handle_tournament_speech
-    bridge.register_handler(handle_tournament_speech)
-    print("✅ Tournament handler registered")
+    # Register the tournament handler if available
+    try:
+        from tournament_voice_handler import handle_tournament_speech
+        bridge.register_handler(handle_tournament_speech)
+        print("✅ Tournament handler registered")
+    except ImportError:
+        print("⚠️ Tournament voice handler not available, using basic handler")
     
     print("📱 Call 878-TRY-HARD to test!")
     bridge.run(port=8082)

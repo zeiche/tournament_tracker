@@ -9,8 +9,8 @@ import subprocess
 import tempfile
 import os
 from typing import Dict, Any
-from capability_announcer import announcer
-from capability_discovery import register_capability
+from polymorphic_core import announcer
+from polymorphic_core import register_capability
 
 class PolymorphicTTSService:
     """Pure Bonjour TTS service - listens and announces"""

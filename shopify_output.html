@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Rankings</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; margin-bottom: 10px; }
+        .subtitle { color: #7f8c8d; margin-bottom: 20px; }
+        .update-info { color: #95a5a6; font-size: 12px; margin-bottom: 30px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; }
+        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 14px; opacity: 0.9; }
+        
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+        .tab-button { padding: 12px 24px; background: none; border: none; cursor: pointer; font-size: 16px; color: #7f8c8d; transition: all 0.3s; }
+        .tab-button:hover { color: #2c3e50; }
+        .tab-button.active { color: #667eea; border-bottom: 3px solid #667eea; margin-bottom: -2px; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        table { width: 90%; margin: 0 auto; border-collapse: collapse; }
+        th { background: #f8f9fa; padding: 8px 10px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #e0e0e0; }
+        th.center { text-align: center; }
+        th.right { text-align: right; }
+        td { padding: 6px 10px; border-bottom: 1px solid #f0f0f0; text-align: left; }
+        tr:hover { background: #f8f9fa; }
+        
+        .rank-cell { font-weight: bold; color: #667eea; text-align: center; }
+        .name-cell { font-weight: 500; text-align: left; }
+        .number-cell { text-align: center; }
+        .right-align { text-align: right; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 Southern California FGC Tournament Rankings</h1>
+        <p class="subtitle">Tracking the competitive fighting game scene in SoCal</p>
+        <p class="update-info">Last updated: September 08, 2025 at 01:01 PM Pacific</p>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">98</div>
+                <div class="stat-label">Active Organizations</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="stat-value">168</div>
+                <div class="stat-label">Recent Tournaments</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="stat-value">125</div>
+                <div class="stat-label">Top Players</div>
+            </div>
+        </div>
+        
+        <div class="tab-nav">
+            <button class="tab-button active" onclick="showTab('organizations')">Organizations</button>
+            <button class="tab-button" onclick="showTab('players')">Player Rankings</button>
+            <button class="tab-button" onclick="showTab('tournaments')">Recent Tournaments</button>
+        </div>
+        
+        <div id="organizations" class="tab-content active">
+            <h2>Top Organizations by Total Attendance</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="60" class="center">Rank</th>
+                        <th>Organization</th>
+                        <th width="120" class="center">Tournaments</th>
+                        <th width="150" class="center">Total Attendance</th>
+                        <th width="120" class="center">Avg Attendance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="rank-cell">1</td>
+                        <td class="name-cell">https://discord.gg/vwFG4Jxr3G</td>
+                        <td class="number-cell">33</td>
+                        <td class="number-cell">1,223</td>
+                        <td class="number-cell">37.1</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">2</td>
+                        <td class="name-cell">pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">39</td>
+                        <td class="number-cell">1,144</td>
+                        <td class="number-cell">29.3</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">3</td>
+                        <td class="name-cell">onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">22</td>
+                        <td class="number-cell">891</td>
+                        <td class="number-cell">40.5</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">4</td>
+                        <td class="name-cell">info@coopers.gg</td>
+                        <td class="number-cell">33</td>
+                        <td class="number-cell">709</td>
+                        <td class="number-cell">21.5</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">5</td>
+                        <td class="name-cell">https://discord.gg/5XT7PKDD2C</td>
+                        <td class="number-cell">30</td>
+                        <td class="number-cell">588</td>
+                        <td class="number-cell">19.6</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">6</td>
+                        <td class="name-cell">https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">29</td>
+                        <td class="number-cell">542</td>
+                        <td class="number-cell">18.7</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">7</td>
+                        <td class="name-cell">tryhardsbackyard@gmail.com</td>
+                        <td class="number-cell">13</td>
+                        <td class="number-cell">538</td>
+                        <td class="number-cell">41.4</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">8</td>
+                        <td class="name-cell">gamecrossingllc@gmail.com</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">338</td>
+                        <td class="number-cell">56.3</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">9</td>
+                        <td class="name-cell">truegamer951@gmail.com</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">287</td>
+                        <td class="number-cell">47.8</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">10</td>
+                        <td class="name-cell">Onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">251</td>
+                        <td class="number-cell">31.4</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">11</td>
+                        <td class="name-cell">Unknown</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">250</td>
+                        <td class="number-cell">50.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">12</td>
+                        <td class="name-cell">https://discord.gg/3t3XAbQ</td>
+                        <td class="number-cell">17</td>
+                        <td class="number-cell">249</td>
+                        <td class="number-cell">14.6</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">13</td>
+                        <td class="name-cell">frostburn9901@gmail.com</td>
+                        <td class="number-cell">13</td>
+                        <td class="number-cell">219</td>
+                        <td class="number-cell">16.8</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">14</td>
+                        <td class="name-cell">https://discord.gg/atMncjjxsB</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">186</td>
+                        <td class="number-cell">31.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">15</td>
+                        <td class="name-cell">https://discord.gg/eZVdbDM</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">174</td>
+                        <td class="number-cell">29.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">16</td>
+                        <td class="name-cell">bobthedusclops@gmail.com</td>
+                        <td class="number-cell">14</td>
+                        <td class="number-cell">172</td>
+                        <td class="number-cell">12.3</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">17</td>
+                        <td class="name-cell">https://discord.gg/Y6QfvdhnzJ</td>
+                        <td class="number-cell">10</td>
+                        <td class="number-cell">167</td>
+                        <td class="number-cell">16.7</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">18</td>
+                        <td class="name-cell">pinkweezyrecords@gmail.com</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">161</td>
+                        <td class="number-cell">23.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">19</td>
+                        <td class="name-cell">https://discord.gg/6Rn4HBk9A5</td>
+                        <td class="number-cell">15</td>
+                        <td class="number-cell">150</td>
+                        <td class="number-cell">10.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">20</td>
+                        <td class="name-cell">syen@recreation.ucla.edu</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">145</td>
+                        <td class="number-cell">145.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">21</td>
+                        <td class="name-cell">Hero.of.lan@gmail.com</td>
+                        <td class="number-cell">9</td>
+                        <td class="number-cell">142</td>
+                        <td class="number-cell">15.8</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">22</td>
+                        <td class="name-cell">official.powgaming@gmail.com</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">123</td>
+                        <td class="number-cell">30.8</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">23</td>
+                        <td class="name-cell">https://discord.gg/bqD7M2ZK5z</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">116</td>
+                        <td class="number-cell">19.3</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">24</td>
+                        <td class="name-cell">Tryhardsbackyard@gmail.com</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">115</td>
+                        <td class="number-cell">38.3</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">25</td>
+                        <td class="name-cell">https://discord.gg/WzeHPexs4A</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">92</td>
+                        <td class="number-cell">92.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">26</td>
+                        <td class="name-cell">https://discord.gg/dQ8PkXm</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">89</td>
+                        <td class="number-cell">14.8</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">27</td>
+                        <td class="name-cell">antelopevalleyunderground@gmail.com</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">88</td>
+                        <td class="number-cell">11.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">28</td>
+                        <td class="name-cell">https://discord.gg/pbfsNKkUjp</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">87</td>
+                        <td class="number-cell">10.9</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">29</td>
+                        <td class="name-cell">https://discord.gg/ZWyC5pby8W</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">86</td>
+                        <td class="number-cell">17.2</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">30</td>
+                        <td class="name-cell">ggc.goodgameclub@gmail.com</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">85</td>
+                        <td class="number-cell">28.3</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">31</td>
+                        <td class="name-cell">https://discord.gg/gkGwa7thHK</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">84</td>
+                        <td class="number-cell">28.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">32</td>
+                        <td class="name-cell">hero.of.lan@gmail.com</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">83</td>
+                        <td class="number-cell">13.8</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">33</td>
+                        <td class="name-cell">https://discord.gg/qjJa5xu9cc</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">80</td>
+                        <td class="number-cell">11.4</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">34</td>
+                        <td class="name-cell">https://discord.gg/k2z7fpfY</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">77</td>
+                        <td class="number-cell">38.5</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">35</td>
+                        <td class="name-cell">3bitadrian@gmail.com</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">75</td>
+                        <td class="number-cell">15.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">36</td>
+                        <td class="name-cell">considergamingllc@gmail.com</td>
+                        <td class="number-cell">9</td>
+                        <td class="number-cell">74</td>
+                        <td class="number-cell">8.2</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">37</td>
+                        <td class="name-cell">Charmunk04@gmail.com</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">66</td>
+                        <td class="number-cell">8.2</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">38</td>
+                        <td class="name-cell">https://discord.gg/x2GFNhGm2Q</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">61</td>
+                        <td class="number-cell">12.2</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">39</td>
+                        <td class="name-cell">https://discord.gg/aH9TH2gYW6</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">60</td>
+                        <td class="number-cell">60.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">40</td>
+                        <td class="name-cell">OneMustfallgaming@gmail.com</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">57</td>
+                        <td class="number-cell">28.5</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">41</td>
+                        <td class="name-cell">dannyolimarrojas@gmail.com</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">55</td>
+                        <td class="number-cell">11.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">42</td>
+                        <td class="name-cell">smashatucla@gmail.com</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">53</td>
+                        <td class="number-cell">13.2</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">43</td>
+                        <td class="name-cell">https://discord.gg/UdhPFt8yxg</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">53</td>
+                        <td class="number-cell">53.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">44</td>
+                        <td class="name-cell">sgarduno888@gmail.com</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">46</td>
+                        <td class="number-cell">46.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">45</td>
+                        <td class="name-cell">https://discord.gg/BEJga43c</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">45</td>
+                        <td class="number-cell">45.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">46</td>
+                        <td class="name-cell">https://discord.gg/32DdZBpnSA</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">43</td>
+                        <td class="number-cell">10.8</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">47</td>
+                        <td class="name-cell">Onlyspikesla@gmail.com</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">43</td>
+                        <td class="number-cell">21.5</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">48</td>
+                        <td class="name-cell">snoopythesniper97@gmail.com</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">40</td>
+                        <td class="number-cell">40.0</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">49</td>
+                        <td class="name-cell">sagecenter827@gmail.com</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">39</td>
+                        <td class="number-cell">6.5</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">50</td>
+                        <td class="name-cell">https://discord.gg/MMF2p966</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">37</td>
+                        <td class="number-cell">37.0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="players" class="tab-content">
+            <h2>Top Players by Points</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="60" class="center">Rank</th>
+                        <th>Player</th>
+                        <th width="100" class="center">Points</th>
+                        <th width="100" class="center">Events</th>
+                        <th width="100" class="center">1st Places</th>
+                        <th width="100" class="center">Top 3s</th>
+                        <th width="80" class="center">Win %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="rank-cell">1</td>
+                        <td class="name-cell">Anthony Montes</td>
+                        <td class="number-cell">76</td>
+                        <td class="number-cell">12</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">10</td>
+                        <td class="number-cell">58.3%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">2</td>
+                        <td class="name-cell">Andres A.</td>
+                        <td class="number-cell">71</td>
+                        <td class="number-cell">11</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">9</td>
+                        <td class="number-cell">54.5%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">3</td>
+                        <td class="name-cell">Michael Carmona</td>
+                        <td class="number-cell">51</td>
+                        <td class="number-cell">10</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">40.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">4</td>
+                        <td class="name-cell">M. B.</td>
+                        <td class="number-cell">49</td>
+                        <td class="number-cell">9</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">44.4%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">5</td>
+                        <td class="name-cell">Tony Ocegueda</td>
+                        <td class="number-cell">45</td>
+                        <td class="number-cell">12</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">8.3%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">6</td>
+                        <td class="name-cell">Kiyarash Younessi</td>
+                        <td class="number-cell">40</td>
+                        <td class="number-cell">10</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">20.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">7</td>
+                        <td class="name-cell">Andrik Miguel Gonzalez</td>
+                        <td class="number-cell">36</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">28.6%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">8</td>
+                        <td class="name-cell">Andrew P.</td>
+                        <td class="number-cell">36</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">25.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">9</td>
+                        <td class="name-cell">Andrew Tamat</td>
+                        <td class="number-cell">30</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">42.9%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">10</td>
+                        <td class="name-cell">Darien F.</td>
+                        <td class="number-cell">29</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">11</td>
+                        <td class="name-cell">Quazar ‎</td>
+                        <td class="number-cell">28</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">12</td>
+                        <td class="name-cell">Isaac Romero</td>
+                        <td class="number-cell">27</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">16.7%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">13</td>
+                        <td class="name-cell">Leonardo Lopez</td>
+                        <td class="number-cell">24</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">100.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">14</td>
+                        <td class="name-cell">Robert R.</td>
+                        <td class="number-cell">24</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">25.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">15</td>
+                        <td class="name-cell">Reyhan Ticehurst</td>
+                        <td class="number-cell">23</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">16</td>
+                        <td class="name-cell">The Goat</td>
+                        <td class="number-cell">22</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">40.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">17</td>
+                        <td class="name-cell">Ken Huang</td>
+                        <td class="number-cell">22</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">25.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">18</td>
+                        <td class="name-cell">Sonam C.</td>
+                        <td class="number-cell">22</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">50.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">19</td>
+                        <td class="name-cell">Ryan Kaplan</td>
+                        <td class="number-cell">22</td>
+                        <td class="number-cell">10</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">20</td>
+                        <td class="name-cell">Axel Perez</td>
+                        <td class="number-cell">21</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">21</td>
+                        <td class="name-cell">Geovanni Perezdeleon</td>
+                        <td class="number-cell">19</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">20.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">22</td>
+                        <td class="name-cell">Juan D.</td>
+                        <td class="number-cell">17</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">14.3%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">23</td>
+                        <td class="name-cell">David Nazarian</td>
+                        <td class="number-cell">17</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">24</td>
+                        <td class="name-cell">Henry Jung</td>
+                        <td class="number-cell">17</td>
+                        <td class="number-cell">6</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">25</td>
+                        <td class="name-cell">Josh Degante</td>
+                        <td class="number-cell">16</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">25.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">26</td>
+                        <td class="name-cell">Logan DeBetta</td>
+                        <td class="number-cell">16</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">27</td>
+                        <td class="name-cell">Cesar Santos</td>
+                        <td class="number-cell">16</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">28</td>
+                        <td class="name-cell">Beck Rogers</td>
+                        <td class="number-cell">16</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">25.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">29</td>
+                        <td class="name-cell">Who's Steak!?</td>
+                        <td class="number-cell">16</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">100.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">30</td>
+                        <td class="name-cell">Luis Sanchez</td>
+                        <td class="number-cell">15</td>
+                        <td class="number-cell">5</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">20.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">31</td>
+                        <td class="name-cell">Mark Rodriguez</td>
+                        <td class="number-cell">14</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">32</td>
+                        <td class="name-cell">Emil L.</td>
+                        <td class="number-cell">13</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">33</td>
+                        <td class="name-cell">Evan Meyers</td>
+                        <td class="number-cell">13</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">34</td>
+                        <td class="name-cell">Christian Quinteros</td>
+                        <td class="number-cell">13</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">35</td>
+                        <td class="name-cell">Dennis Hoy</td>
+                        <td class="number-cell">12</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">36</td>
+                        <td class="name-cell">Daniel Moran</td>
+                        <td class="number-cell">12</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">33.3%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">37</td>
+                        <td class="name-cell">april showers 🌧️</td>
+                        <td class="number-cell">12</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">25.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">38</td>
+                        <td class="name-cell">Jesse Guzik</td>
+                        <td class="number-cell">9</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">39</td>
+                        <td class="name-cell">Kai Sanchez</td>
+                        <td class="number-cell">9</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">40</td>
+                        <td class="name-cell">Anthony Huff</td>
+                        <td class="number-cell">9</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">50.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">41</td>
+                        <td class="name-cell">Josh Loschiavo</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">4</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">42</td>
+                        <td class="name-cell">Ricardo A.</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">100.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">43</td>
+                        <td class="name-cell">Ryan Bowdre</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">44</td>
+                        <td class="name-cell">Carlos Barrientos</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">100.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">45</td>
+                        <td class="name-cell">Jacob Bazo</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">46</td>
+                        <td class="name-cell">Leonardo G.</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">100.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">47</td>
+                        <td class="name-cell">Mateen Mokhtarani</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">48</td>
+                        <td class="name-cell">Eric Weber</td>
+                        <td class="number-cell">8</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">100.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">49</td>
+                        <td class="name-cell">Alexander Lammers</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">3</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                    <tr>
+                        <td class="rank-cell">50</td>
+                        <td class="name-cell">Pedro Alonso</td>
+                        <td class="number-cell">7</td>
+                        <td class="number-cell">2</td>
+                        <td class="number-cell">0</td>
+                        <td class="number-cell">1</td>
+                        <td class="number-cell">0.0%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="tournaments" class="tab-content">
+            <h2>Recent Tournaments (Last 90 Days)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="120">Date</th>
+                        <th>Tournament</th>
+                        <th>Organization</th>
+                        <th width="120" class="center">Attendees</th>
+                        <th width="150">Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Sep 20, 2025</td>
+                        <td class="name-cell">BYOG - ICHIGOCON PRE LOCAL!</td>
+                        <td>https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">6</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 14, 2025</td>
+                        <td class="name-cell">Extraordinaire Arcade Q4 Tournament Series 2025</td>
+                        <td>truegamer951@gmail.com</td>
+                        <td class="number-cell">15</td>
+                        <td>San Bernardino, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 13, 2025</td>
+                        <td class="name-cell">LIMIT/BREAK #32: CHOSEN ANEW</td>
+                        <td>https://discord.gg/Y6QfvdhnzJ</td>
+                        <td class="number-cell">3</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 10, 2025</td>
+                        <td class="name-cell">Shark Tank #160: Back in the Tank</td>
+                        <td>https://discord.gg/vwFG4Jxr3G</td>
+                        <td class="number-cell">1</td>
+                        <td>San Marino, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 09, 2025</td>
+                        <td class="name-cell">Soul Melter Smash #63 - Powered by Gamer LatAm</td>
+                        <td>https://discord.gg/5XT7PKDD2C</td>
+                        <td class="number-cell">0</td>
+                        <td>Laguna Hills, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 08, 2025</td>
+                        <td class="name-cell">CLAREMONT CLASH #100 ($100 POT BONUS!)</td>
+                        <td>https://discord.gg/6Rn4HBk9A5</td>
+                        <td class="number-cell">13</td>
+                        <td>Claremont, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 08, 2025</td>
+                        <td class="name-cell">Wizard Nite Smash #2</td>
+                        <td>wizardnitesmash@gmail.com</td>
+                        <td class="number-cell">5</td>
+                        <td>West Covina, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 07, 2025</td>
+                        <td class="name-cell">Super Smash Saturday #30</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">4</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 06, 2025</td>
+                        <td class="name-cell">Eye of the Storm #13 FGC at Mayfair</td>
+                        <td>gamecrossingllc@gmail.com</td>
+                        <td class="number-cell">48</td>
+                        <td>Lakewood, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 06, 2025</td>
+                        <td class="name-cell">SMASHUP FRIDAY #2</td>
+                        <td>https://discord.gg/bqD7M2ZK5z</td>
+                        <td class="number-cell">15</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 06, 2025</td>
+                        <td class="name-cell">Game Lab Smash #189</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">21</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 06, 2025</td>
+                        <td class="name-cell">SSBU @ CPP F25 #2 (Featuring Doubles!)</td>
+                        <td>https://discord.gg/4vNjYF4ZMf</td>
+                        <td class="number-cell">15</td>
+                        <td>Pomona, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 05, 2025</td>
+                        <td class="name-cell">Runback Thursday #28</td>
+                        <td>https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">22</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 04, 2025</td>
+                        <td class="name-cell">Wild Smash Wednesday #153</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">28</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 04, 2025</td>
+                        <td class="name-cell">Coopers Irvine SSBU #131</td>
+                        <td>info@coopers.gg</td>
+                        <td class="number-cell">20</td>
+                        <td>Irvine, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 04, 2025</td>
+                        <td class="name-cell">Smash Wednesday #39 Casual Smash Ultimate w/ Drinking Rules</td>
+                        <td>supertrashedbros@gmail.com</td>
+                        <td class="number-cell">0</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 04, 2025</td>
+                        <td class="name-cell">Red Engine: Brew Battles #17</td>
+                        <td>dannyolimarrojas@gmail.com</td>
+                        <td class="number-cell">9</td>
+                        <td>Fillmore, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 02, 2025</td>
+                        <td class="name-cell">LAN Hero Monday #84 ft. Monte!</td>
+                        <td>https://discord.gg/bqD7M2ZK5z</td>
+                        <td class="number-cell">23</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 02, 2025</td>
+                        <td class="name-cell">Soul Melter Smash #62 - Powered by Gamer LatAm</td>
+                        <td>https://discord.gg/5XT7PKDD2C</td>
+                        <td class="number-cell">24</td>
+                        <td>Laguna Hills, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Sep 01, 2025</td>
+                        <td class="name-cell">Claremont Clash #99.5</td>
+                        <td>https://discord.gg/6Rn4HBk9A5</td>
+                        <td class="number-cell">7</td>
+                        <td>Claremont, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 31, 2025</td>
+                        <td class="name-cell">Do or Di #13 - $100 Pot Bonus</td>
+                        <td>https://discord.gg/qjJa5xu9cc</td>
+                        <td class="number-cell">14</td>
+                        <td>Hesperia, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 31, 2025</td>
+                        <td class="name-cell">Port Town Beatdown #9</td>
+                        <td>considergamingllc@gmail.com</td>
+                        <td class="number-cell">6</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 30, 2025</td>
+                        <td class="name-cell">TRY-HARDS & Cal TERNA @ GAME REALMS</td>
+                        <td>tryhardsbackyard@gmail.com</td>
+                        <td class="number-cell">54</td>
+                        <td>Burbank, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 30, 2025</td>
+                        <td class="name-cell">VIKING VERSUS</td>
+                        <td>https://discord.gg/F7UDmAEvjh</td>
+                        <td class="number-cell">19</td>
+                        <td>Glendale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 30, 2025</td>
+                        <td class="name-cell">Gameplay Palmdale</td>
+                        <td>antelopevalleyunderground@gmail.com</td>
+                        <td class="number-cell">7</td>
+                        <td>Palmdale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 30, 2025</td>
+                        <td class="name-cell">THE SHOP SMASH SHOWDOWN</td>
+                        <td>3bitadrian@gmail.com</td>
+                        <td class="number-cell">18</td>
+                        <td>Pomona, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 30, 2025</td>
+                        <td class="name-cell">SMASHUP FRIDAY #1</td>
+                        <td>https://discord.gg/bqD7M2ZK5z</td>
+                        <td class="number-cell">17</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 30, 2025</td>
+                        <td class="name-cell">Game Lab Smash #188 (CRT Melee & Mario Strikers)</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">36</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 30, 2025</td>
+                        <td class="name-cell">SSBU @ CPP F25 #1</td>
+                        <td>https://discord.gg/4vNjYF4ZMf</td>
+                        <td class="number-cell">21</td>
+                        <td>Pomona, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 29, 2025</td>
+                        <td class="name-cell">Runback Thursdays  @ BYOG !!</td>
+                        <td>https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">20</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 29, 2025</td>
+                        <td class="name-cell">Tip the Scales 132</td>
+                        <td>https://discord.gg/tsBx3G6s</td>
+                        <td class="number-cell">7</td>
+                        <td>Camarillo, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 28, 2025</td>
+                        <td class="name-cell">Wild Smash Wednesday #152</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">29</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 28, 2025</td>
+                        <td class="name-cell">Coopers Irvine SSBU #130</td>
+                        <td>info@coopers.gg</td>
+                        <td class="number-cell">16</td>
+                        <td>Irvine, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 26, 2025</td>
+                        <td class="name-cell">LAN Hero Monday #83</td>
+                        <td>https://discord.gg/aHPFxPbF</td>
+                        <td class="number-cell">10</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 24, 2025</td>
+                        <td class="name-cell">GGC X Trademark #2</td>
+                        <td>https://discord.gg/ZkCtP3g2xk</td>
+                        <td class="number-cell">20</td>
+                        <td>Long Beach, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 24, 2025</td>
+                        <td class="name-cell">Port Town Beatdown #8</td>
+                        <td>considergamingllc@gmail.com</td>
+                        <td class="number-cell">8</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 23, 2025</td>
+                        <td class="name-cell">Jabroni Jamboree 6 (Jabroni Returns)($300 Pot Bonus)</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">16</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 23, 2025</td>
+                        <td class="name-cell">LIMIT/BREAK #31: Fresh Start, New Day</td>
+                        <td>https://discord.gg/Y6QfvdhnzJ</td>
+                        <td class="number-cell">29</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 23, 2025</td>
+                        <td class="name-cell">Game Lab Smash #187</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">27</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 22, 2025</td>
+                        <td class="name-cell">Smash @ The Vault XI</td>
+                        <td>pinkweezyrecords@gmail.com</td>
+                        <td class="number-cell">17</td>
+                        <td>Redlands, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 22, 2025</td>
+                        <td class="name-cell">Runback Thursday #26</td>
+                        <td>https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">15</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 21, 2025</td>
+                        <td class="name-cell">Wild Smash Wednesday #151</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">57</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 21, 2025</td>
+                        <td class="name-cell">Coopers Irvine SSBU #129</td>
+                        <td>info@coopers.gg</td>
+                        <td class="number-cell">24</td>
+                        <td>Irvine, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 21, 2025</td>
+                        <td class="name-cell">Try-Hards @ Red Engine: Brew Battles #16</td>
+                        <td>dannyolimarrojas@gmail.com</td>
+                        <td class="number-cell">7</td>
+                        <td>Fillmore, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 20, 2025</td>
+                        <td class="name-cell">Shark Tank #159: Fist Bump the World</td>
+                        <td>https://discord.gg/vwFG4Jxr3G</td>
+                        <td class="number-cell">46</td>
+                        <td>San Marino, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 18, 2025</td>
+                        <td class="name-cell">LAN_Hero Monday at The Barracks #82 Under New Management</td>
+                        <td>https://discord.gg/bqD7M2ZK5z</td>
+                        <td class="number-cell">12</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 16, 2025</td>
+                        <td class="name-cell">Super Game Lab Smash #10 (Crew Battle?)</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">90</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 16, 2025</td>
+                        <td class="name-cell">Game Lab Smash #186 (Ft. Melee & Smash 4)</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">25</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 15, 2025</td>
+                        <td class="name-cell">Runback Thursday’s #25</td>
+                        <td>https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">14</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 15, 2025</td>
+                        <td class="name-cell">Tip The Scales 131</td>
+                        <td>bobthedusclops@gmail.com</td>
+                        <td class="number-cell">12</td>
+                        <td>Camarillo, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 14, 2025</td>
+                        <td class="name-cell">Wild Smash Wednesday #150 - $150 in pot bonuses!</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">43</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 14, 2025</td>
+                        <td class="name-cell">Coopers Irvine SSBU #128</td>
+                        <td>info@coopers.gg</td>
+                        <td class="number-cell">21</td>
+                        <td>Irvine, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 13, 2025</td>
+                        <td class="name-cell">Shark Tank #158: International Waters</td>
+                        <td>https://discord.gg/vwFG4Jxr3G</td>
+                        <td class="number-cell">35</td>
+                        <td>San Marino, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 12, 2025</td>
+                        <td class="name-cell">LAN_Hero Mondays @ The Barracks (Ft. HylianDave) #81</td>
+                        <td>https://discord.gg/bqD7M2ZK5z</td>
+                        <td class="number-cell">28</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 12, 2025</td>
+                        <td class="name-cell">Soul Melter Smash #61 - Powered by Gamer LatAm</td>
+                        <td>https://discord.gg/5XT7PKDD2C</td>
+                        <td class="number-cell">22</td>
+                        <td>Laguna Hills, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 11, 2025</td>
+                        <td class="name-cell">Claremont Clash #99</td>
+                        <td>Charmunk04@gmail.com</td>
+                        <td class="number-cell">5</td>
+                        <td>Claremont, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 10, 2025</td>
+                        <td class="name-cell">Hero Invitational 2</td>
+                        <td>Gglasthero@gmail.com</td>
+                        <td class="number-cell">17</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 09, 2025</td>
+                        <td class="name-cell">LIMIT/BREAK #30: ＳＵＰＥＲ／ＮＯＶＡ</td>
+                        <td>https://discord.gg/Y6QfvdhnzJ</td>
+                        <td class="number-cell">29</td>
+                        <td>Whittier, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 09, 2025</td>
+                        <td class="name-cell">Game Lab Smash #185 (Road to Super GLS)</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">28</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 08, 2025</td>
+                        <td class="name-cell">Runback Thursday #24 @ BYOG</td>
+                        <td>https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">13</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 07, 2025</td>
+                        <td class="name-cell">Wild Smash Wednesday #149</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">32</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 07, 2025</td>
+                        <td class="name-cell">Smash Wednesday #38 Casual Smash Ultimate w/ Drinking Rules</td>
+                        <td>supertrashedbros@gmail.com</td>
+                        <td class="number-cell">0</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 07, 2025</td>
+                        <td class="name-cell">Coopers Irvine SSBU #127</td>
+                        <td>info@coopers.gg</td>
+                        <td class="number-cell">24</td>
+                        <td>Irvine, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 06, 2025</td>
+                        <td class="name-cell">Shark Tank #157: Brief Encounter</td>
+                        <td>https://discord.gg/vwFG4Jxr3G</td>
+                        <td class="number-cell">35</td>
+                        <td>San Marino, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 05, 2025</td>
+                        <td class="name-cell">Behold, the Almighty Medicine Known As "Ibuprofen"!</td>
+                        <td>robskunt@gmail.com</td>
+                        <td class="number-cell">32</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 05, 2025</td>
+                        <td class="name-cell">LAN Hero X Frostburn #81 - [CANCELLED]</td>
+                        <td>hero.of.lan@gmail.com</td>
+                        <td class="number-cell">8</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 05, 2025</td>
+                        <td class="name-cell">Soul Melter Smash #60 - Powered by Gamer LatAm</td>
+                        <td>https://discord.gg/5XT7PKDD2C</td>
+                        <td class="number-cell">37</td>
+                        <td>Laguna Hills, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 04, 2025</td>
+                        <td class="name-cell">Wizard Nite Smash #1</td>
+                        <td>shrekangelo3366@gmail.com</td>
+                        <td class="number-cell">26</td>
+                        <td>West Covina, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 03, 2025</td>
+                        <td class="name-cell">Super Smash Saturday #29- DarkLion's Birthday!</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">36</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 03, 2025</td>
+                        <td class="name-cell">TRY-HARDS AT ALAMEDA NIGHT MARKET !! $500 !! POT BONUS</td>
+                        <td>tryhardsbackyard@gmail.com</td>
+                        <td class="number-cell">44</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 02, 2025</td>
+                        <td class="name-cell">LIMIT/BREAK #29 The Revival</td>
+                        <td>https://discord.gg/8USEHpckc7</td>
+                        <td class="number-cell">22</td>
+                        <td>Whittier, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 02, 2025</td>
+                        <td class="name-cell">Game Lab Smash #184 (Plus Mario Strikers Side Tourney)</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">31</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 01, 2025</td>
+                        <td class="name-cell">Tip the Scales 130</td>
+                        <td>https://discord.gg/4VnKVJhwxR</td>
+                        <td class="number-cell">11</td>
+                        <td>Camarillo, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Aug 01, 2025</td>
+                        <td class="name-cell">RBKT#23 EBS Pass Giveaway</td>
+                        <td>https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">13</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 31, 2025</td>
+                        <td class="name-cell">Wild Smash Wednesday #148</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">29</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 31, 2025</td>
+                        <td class="name-cell">Coopers Irvine SSBU #126</td>
+                        <td>info@coopers.gg</td>
+                        <td class="number-cell">20</td>
+                        <td>Irvine, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 30, 2025</td>
+                        <td class="name-cell">Shark Tank #156: No Room to Swim</td>
+                        <td>https://discord.gg/vwFG4Jxr3G</td>
+                        <td class="number-cell">40</td>
+                        <td>San Marino, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 29, 2025</td>
+                        <td class="name-cell">LAN Hero X Frostburn #80</td>
+                        <td>Hero.of.lan@gmail.com</td>
+                        <td class="number-cell">16</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 29, 2025</td>
+                        <td class="name-cell">Soul Melter Smash #59 - Powered by Gamer LatAm</td>
+                        <td>https://discord.gg/5XT7PKDD2C</td>
+                        <td class="number-cell">24</td>
+                        <td>Laguna Hills, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 27, 2025</td>
+                        <td class="name-cell">Do or Di #12</td>
+                        <td>https://discord.gg/434XrzC7Qv</td>
+                        <td class="number-cell">11</td>
+                        <td>Hesperia, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 27, 2025</td>
+                        <td class="name-cell">Extraodinaire Arcade Q3 Tournament Series 2025</td>
+                        <td>truegamer951@gmail.com</td>
+                        <td class="number-cell">35</td>
+                        <td>San Bernardino, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 27, 2025</td>
+                        <td class="name-cell">GGC X Trademark #1 - New Season</td>
+                        <td>ggc.goodgameclub@gmail.com</td>
+                        <td class="number-cell">35</td>
+                        <td>Long Beach, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 27, 2025</td>
+                        <td class="name-cell">Port Town Beatdown #7</td>
+                        <td>considergamingllc@gmail.com</td>
+                        <td class="number-cell">6</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 26, 2025</td>
+                        <td class="name-cell">Gameplay Monthly</td>
+                        <td>antelopevalleyunderground@gmail.com</td>
+                        <td class="number-cell">9</td>
+                        <td>Palmdale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 26, 2025</td>
+                        <td class="name-cell">Game Lab Smash #183 (Mario Strikers is Back!)</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">42</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 25, 2025</td>
+                        <td class="name-cell">Smash @ The Vault X</td>
+                        <td>pinkweezyrecords@gmail.com</td>
+                        <td class="number-cell">28</td>
+                        <td>Redlands, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 25, 2025</td>
+                        <td class="name-cell">Runback Thursday #22</td>
+                        <td>https://discord.gg/MCSp4N2Enc</td>
+                        <td class="number-cell">15</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 24, 2025</td>
+                        <td class="name-cell">Wild Smash Wednesday #147</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">53</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 24, 2025</td>
+                        <td class="name-cell">Coopers Irvine SSBU #125</td>
+                        <td>info@coopers.gg</td>
+                        <td class="number-cell">30</td>
+                        <td>Irvine, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 24, 2025</td>
+                        <td class="name-cell">TRY-HARDS @ RED ENGINE: BREW BATTLES #15 [$100 POT BONUS]</td>
+                        <td>https://discord.gg/4zYnXugPcZ</td>
+                        <td class="number-cell">5</td>
+                        <td>Fillmore, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 23, 2025</td>
+                        <td class="name-cell">SUMMER AGT #5!!! 🌅 @ Crush N Brew</td>
+                        <td>https://discord.gg/32DdZBpnSA</td>
+                        <td class="number-cell">6</td>
+                        <td>Temecula, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 23, 2025</td>
+                        <td class="name-cell">Shark Tank #155: Barely Bitten</td>
+                        <td>https://discord.gg/vwFG4Jxr3G</td>
+                        <td class="number-cell">34</td>
+                        <td>San Marino, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 22, 2025</td>
+                        <td class="name-cell">LAN Hero X Frostburn #79</td>
+                        <td>Hero.of.lan@gmail.com</td>
+                        <td class="number-cell">19</td>
+                        <td>Irwindale, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 22, 2025</td>
+                        <td class="name-cell">Soul Melter Smash #58 - Powered by Gamer LatAm</td>
+                        <td>https://discord.gg/5XT7PKDD2C</td>
+                        <td class="number-cell">24</td>
+                        <td>Laguna Hills, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 22, 2025</td>
+                        <td class="name-cell">Smash At The Beach - ChillPalm's 1 year anniversary!!!</td>
+                        <td>https://discord.gg/yZ6quYzQ</td>
+                        <td class="number-cell">5</td>
+                        <td>Redlands, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 21, 2025</td>
+                        <td class="name-cell">Claremont Clash #98</td>
+                        <td>Charmunk04@gmail.com</td>
+                        <td class="number-cell">6</td>
+                        <td>Claremont, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 20, 2025</td>
+                        <td class="name-cell">Super Smash Saturday #28</td>
+                        <td>pow.gaming.official@gmail.com</td>
+                        <td class="number-cell">27</td>
+                        <td>Pico Rivera, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 20, 2025</td>
+                        <td class="name-cell">Port Town Beatdown #6</td>
+                        <td>considergamingllc@gmail.com</td>
+                        <td class="number-cell">6</td>
+                        <td>Los Angeles, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 19, 2025</td>
+                        <td class="name-cell">TRY-HARDS AT PAYMORE SANTA CLARITA ( $350 POT BONUS!!! )</td>
+                        <td>tryhardsbackyard@gmail.com</td>
+                        <td class="number-cell">33</td>
+                        <td>Santa Clarita, CA</td>
+                    </tr>
+                    <tr>
+                        <td>Jul 19, 2025</td>
+                        <td class="name-cell">Game Lab Smash #182 (BYS Edition)</td>
+                        <td>onemustfallgaming@gmail.com</td>
+                        <td class="number-cell">47</td>
+                        <td>Riverside, CA</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            var tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(function(tab) {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            var buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(function(button) {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Mark button as active
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

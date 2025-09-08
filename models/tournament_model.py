@@ -9,10 +9,8 @@ from datetime import datetime
 from typing import Any, Optional, List
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
 from sqlalchemy.orm import relationship, Session
-import sys
-sys.path.append('..')
 from universal_polymorphic import PolymorphicModel
-from mixins import TimestampMixin, LocationMixin
+from models.mixins import TimestampMixin, LocationMixin
 
 
 class Tournament(PolymorphicModel, TimestampMixin, LocationMixin):

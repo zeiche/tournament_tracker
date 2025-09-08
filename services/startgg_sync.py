@@ -13,9 +13,9 @@ from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass
 
 from polymorphic_core import announcer
-from utils.database import session_scope, batch_operations
+from utils.database import session_scope
 from utils.database_service import database_service
-from logger_config import LogManager
+from log_manager import LogManager
 
 # Initialize logger
 logger = LogManager().get_logger('startgg_sync')

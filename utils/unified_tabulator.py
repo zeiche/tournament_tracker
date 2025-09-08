@@ -141,7 +141,7 @@ class UnifiedTabulator:
         - database_service.get_player_rankings()
         - polymorphic_queries._get_top_players()
         """
-        from tournament_models import Player, TournamentPlacement
+        from models.tournament_models import Player, TournamentPlacement
         from points_system import PointsSystem
         
         # Build efficient SQL query with aggregation
@@ -202,7 +202,7 @@ class UnifiedTabulator:
         
         Replaces database_service.get_attendance_rankings()
         """
-        from tournament_models import Organization, Tournament
+        from models.tournament_models import Organization, Tournament
         
         # Get all organizations with their tournaments
         orgs = session.query(Organization).all()
@@ -248,7 +248,7 @@ class UnifiedTabulator:
         """
         Tabulate organizations by number of events hosted.
         """
-        from tournament_models import Organization
+        from models.tournament_models import Organization
         
         orgs = session.query(Organization).all()
         

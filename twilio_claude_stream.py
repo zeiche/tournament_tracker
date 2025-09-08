@@ -21,10 +21,29 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import tournament components
-from polymorphic_core import announcer
-from polymorphic_queries import query as pq
-import google.cloud.texttospeech as tts
-import speech_recognition as sr
+try:
+    from polymorphic_core import announcer
+except ImportError:
+    class DummyAnnouncer:
+        def announce(self, *args, **kwargs):
+            pass
+    announcer = DummyAnnouncer()
+
+try:
+    from polymorphic_queries import query as pq
+except ImportError:
+    def pq(query):
+        return f"Tournament query: {query}"
+
+try:
+    import google.cloud.texttospeech as tts
+except ImportError:
+    tts = None
+
+try:
+    import speech_recognition as sr
+except ImportError:
+    sr = None
 
 class ClaudeStreamHandler:
     """Handles Twilio streams with Claude AI responses."""
@@ -33,15 +52,16 @@ class ClaudeStreamHandler:
         self.call_sid = None
         self.stream_sid = None
         self.audio_buffer = bytearray()
-        self.recognizer = sr.Recognizer()
+        self.recognizer = sr.Recognizer() if sr else None
         self.tts_client = None
         self.silence_counter = 0
         self.is_processing = False
         
         # Try to initialize TTS
         try:
-            self.tts_client = tts.TextToSpeechClient()
-            print("✅ Google TTS initialized")
+            if tts:
+                self.tts_client = tts.TextToSpeechClient()
+                print("✅ Google TTS initialized")
         except:
             print("⚠️ Google TTS not available, using espeak")
         
@@ -142,6 +162,8 @@ class ClaudeStreamHandler:
     
     async def speech_to_text(self, pcm_audio: bytes) -> Optional[str]:
         """Convert PCM audio to text."""
+        if not sr or not self.recognizer:
+            return None
         try:
             # Create WAV in memory
             wav_buffer = io.BytesIO()

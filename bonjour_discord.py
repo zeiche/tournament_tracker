@@ -8,8 +8,7 @@ import discord
 import asyncio
 import os
 from pathlib import Path
-from capability_announcer import announcer
-from capability_discovery import register_capability
+from polymorphic_core import announcer, register_capability
 
 # Import voice services - they self-register via Bonjour
 from polymorphic_core.audio import (
@@ -17,7 +16,7 @@ from polymorphic_core.audio import (
     PolymorphicTTSService,
     PolymorphicTranscription
 )
-import transcription_to_claude_bridge
+# import transcription_to_claude_bridge  # Not needed for basic Discord
 
 # Instantiate to trigger bonjour registration
 _ = PolymorphicAudioPlayer()
@@ -150,10 +149,27 @@ async def echo_handler(message):
         return f"Echo: {message.content[5:]}"
     return None
 
+# Tournament query handler
+async def tournament_handler(message):
+    """Handle tournament queries using polymorphic queries"""
+    try:
+        from polymorphic_queries import query
+        
+        # Process any message that's not a command
+        if not message.content.startswith('!'):
+            result = query(message.content)
+            if result:
+                return result
+    except Exception as e:
+        print(f"Query error: {e}")
+        return f"Sorry, I had trouble processing that: {e}"
+    return None
+
 # Main entry point
 async def main():
     discord = get_discord()
     discord.register_handler(echo_handler)
+    discord.register_handler(tournament_handler)
     
     # Announce we're starting
     announcer.announce(

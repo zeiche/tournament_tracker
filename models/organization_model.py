@@ -11,7 +11,7 @@ from sqlalchemy.orm import relationship, Session
 import sys
 sys.path.append('..')
 from universal_polymorphic import PolymorphicModel
-from mixins import TimestampMixin
+from models.mixins import TimestampMixin
 
 
 class Organization(PolymorphicModel, TimestampMixin):

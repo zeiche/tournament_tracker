@@ -14,13 +14,14 @@ from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.sql import func
 
 # Import centralized session management
-from database import Session, get_session
-from database_service import database_service
-normalize_contact = database_service.normalize_contact
+from utils.database import Session, get_session
+from utils.database_service import database_service
+normalize_contact = database_service._normalize_contact if hasattr(database_service, '_normalize_contact') else lambda x: x
 from log_manager import LogManager
 
 # Import Bonjour announcer mixin
-from bonjour_mixin import AnnouncerMixin
+# Bonjour mixin not yet available
+AnnouncerMixin = object
 
 # Import polymorphic input handler
 try:

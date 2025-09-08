@@ -5,8 +5,8 @@ Subscribes to OPUS_PACKET announcements
 Announces AUDIO_AVAILABLE with decoded PCM
 """
 
-from capability_announcer import announcer
-from capability_discovery import register_capability
+from polymorphic_core import announcer
+from polymorphic_core import register_capability
 import struct
 import io
 

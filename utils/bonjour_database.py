@@ -227,7 +227,7 @@ def announce_database_stats():
     """Announce current database statistics"""
     try:
         with original_get_session() as session:
-            from tournament_models import Tournament, Player, Organization, TournamentPlacement
+            from models.tournament_models import Tournament, Player, Organization, TournamentPlacement
             
             tournament_count = session.query(Tournament).count()
             player_count = session.query(Player).count()

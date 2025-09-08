@@ -5,8 +5,8 @@ Listens for AUDIO_REQUEST announcements and responds with audio
 Could be Discord, microphone, file, or ANY audio source
 """
 
-from capability_announcer import announcer
-from capability_discovery import register_capability, discover_capability
+from polymorphic_core import announcer
+from polymorphic_core import register_capability, discover_capability
 import os
 from typing import Optional
 

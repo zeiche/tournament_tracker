@@ -9,7 +9,8 @@ import os
 app = Flask(__name__)
 
 # Get WebSocket URL from environment or use default
-WS_URL = os.environ.get('TWILIO_WS_URL', 'wss://your-domain.com:8087/')
+# Note: Using ws:// (not wss://) since we don't have SSL configured
+WS_URL = os.environ.get('TWILIO_WS_URL', 'ws://64.111.98.139:8087/')
 
 @app.route('/voice-stream.xml', methods=['GET', 'POST'])
 def voice_stream():
@@ -19,11 +20,12 @@ def voice_stream():
     from_number = request.values.get('From', 'Unknown')
     call_sid = request.values.get('CallSid', '')
     
+    # Use SSL proxy on port 8443 for secure WebSocket
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">Connecting you to the tournament tracker real-time system...</Say>
+    <Say voice="alice">Connecting to tournament tracker real-time system...</Say>
     <Connect>
-        <Stream url="{WS_URL}">
+        <Stream url="wss://64.111.98.139:8443/">
             <Parameter name="caller" value="{from_number}"/>
             <Parameter name="mode" value="tournament_chat"/>
         </Stream>

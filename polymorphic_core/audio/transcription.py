@@ -5,8 +5,8 @@ Listens for AUDIO_AVAILABLE announcements and transcribes them
 Pure Bonjour - discovers audio through announcements
 """
 
-from capability_announcer import announcer
-from capability_discovery import register_capability, discover_capability
+from polymorphic_core import announcer
+from polymorphic_core import register_capability, discover_capability
 import subprocess
 import tempfile
 import os

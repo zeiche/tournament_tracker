@@ -83,7 +83,7 @@ class DatabaseService:
     
     def get_summary_stats(self) -> DatabaseStats:
         """Get database summary statistics"""
-        from tournament_models import Tournament, Organization, Player, TournamentPlacement
+        from models.tournament_models import Tournament, Organization, Player, TournamentPlacement
         
         with self.session_scope() as session:
             return DatabaseStats(
@@ -118,7 +118,7 @@ class DatabaseService:
     
     def get_organizations_with_stats(self) -> List[Dict[str, Any]]:
         """Get Organization objects with their tournament statistics - matches editor_service logic"""
-        from tournament_models import Organization, Tournament, normalize_contact
+        from models.tournament_models import Organization, Tournament, normalize_contact
         
         with self.session_scope() as session:
             # Get all tournaments and organizations
@@ -181,7 +181,7 @@ class DatabaseService:
     
     def get_recent_tournaments(self, days: int = 90) -> List[Dict[str, Any]]:
         """Get recent tournaments within specified days"""
-        from tournament_models import Tournament
+        from models.tournament_models import Tournament
         from datetime import datetime, timedelta
         
         with self.session_scope() as session:
@@ -242,13 +242,13 @@ class DatabaseService:
     
     def get_tournament_by_id(self, tournament_id: int) -> Optional[Any]:
         """Get a tournament by ID"""
-        from tournament_models import Tournament
+        from models.tournament_models import Tournament
         with self.session_scope() as session:
             return session.query(Tournament).get(tournament_id)
     
     def get_tournaments_with_location(self, limit: Optional[int] = None) -> List[Any]:
         """Get tournaments that have location data"""
-        from tournament_models import Tournament
+        from models.tournament_models import Tournament
         with self.session_scope() as session:
             query = session.query(Tournament).filter(
                 Tournament.lat.isnot(None),
@@ -260,7 +260,7 @@ class DatabaseService:
     
     def get_tournament_heatmap_data(self) -> List[tuple]:
         """Get tournament data formatted for heatmap visualization"""
-        from tournament_models import Tournament
+        from models.tournament_models import Tournament
         points = []
         with self.session_scope() as session:
             tournaments = session.query(Tournament).filter(
@@ -277,37 +277,37 @@ class DatabaseService:
     
     def get_all_tournaments(self) -> List[Any]:
         """Get all tournaments"""
-        from tournament_models import Tournament
+        from models.tournament_models import Tournament
         with self.session_scope() as session:
             return session.query(Tournament).all()
     
     def get_all_organizations(self) -> List[Any]:
         """Get all organizations"""
-        from tournament_models import Organization
+        from models.tournament_models import Organization
         with self.session_scope() as session:
             return session.query(Organization).all()
     
     def get_all_players(self) -> List[Any]:
         """Get all players"""
-        from tournament_models import Player
+        from models.tournament_models import Player
         with self.session_scope() as session:
             return session.query(Player).all()
     
     def get_organization_by_id(self, org_id: int) -> Optional[Any]:
         """Get organization by ID"""
-        from tournament_models import Organization
+        from models.tournament_models import Organization
         with self.session_scope() as session:
             return session.query(Organization).get(org_id)
     
     def get_player_by_id(self, player_id: int) -> Optional[Any]:
         """Get player by ID"""
-        from tournament_models import Player
+        from models.tournament_models import Player
         with self.session_scope() as session:
             return session.query(Player).get(player_id)
     
     def get_tournament_placements(self, tournament_id: int) -> List[Any]:
         """Get all placements for a tournament"""
-        from tournament_models import TournamentPlacement
+        from models.tournament_models import TournamentPlacement
         with self.session_scope() as session:
             return session.query(TournamentPlacement).filter_by(
                 tournament_id=tournament_id
@@ -315,7 +315,7 @@ class DatabaseService:
     
     def upsert_tournament(self, tournament_data: Dict[str, Any]) -> Any:
         """Create or update a tournament"""
-        from tournament_models import Tournament
+        from models.tournament_models import Tournament
         with self.session_scope() as session:
             tournament_id = tournament_data.get('id')
             if tournament_id:
@@ -335,7 +335,7 @@ class DatabaseService:
     
     def get_or_create_player(self, startgg_id: str, gamer_tag: str, name: Optional[str] = None) -> Any:
         """Get existing player or create new one"""
-        from tournament_models import Player
+        from models.tournament_models import Player
         with self.session_scope() as session:
             player = session.query(Player).filter_by(startgg_id=startgg_id).first()
             if not player:
@@ -347,7 +347,7 @@ class DatabaseService:
     def update_organization(self, org_id: int, display_name: Optional[str] = None, 
                            contacts_json: Optional[str] = None) -> bool:
         """Update organization details"""
-        from tournament_models import Organization
+        from models.tournament_models import Organization
         with self.session_scope() as session:
             org = session.query(Organization).get(org_id)
             if org:
@@ -361,7 +361,7 @@ class DatabaseService:
     
     def merge_organizations(self, source_id: int, target_id: int) -> bool:
         """Merge source organization into target"""
-        from tournament_models import Tournament, Organization
+        from models.tournament_models import Tournament, Organization
         with self.session_scope() as session:
             source = session.query(Organization).get(source_id)
             target = session.query(Organization).get(target_id)
@@ -381,7 +381,7 @@ class DatabaseService:
     
     def create_organization(self, display_name: str, contacts_json: str = '[]') -> Any:
         """Create a new organization"""
-        from tournament_models import Organization
+        from models.tournament_models import Organization
         with self.session_scope() as session:
             org = Organization(display_name=display_name, contacts_json=contacts_json)
             session.add(org)
@@ -390,13 +390,13 @@ class DatabaseService:
     
     def get_tournaments_by_organization(self, org_id: int) -> List[Any]:
         """Get all tournaments for an organization"""
-        from tournament_models import Tournament
+        from models.tournament_models import Tournament
         with self.session_scope() as session:
             return session.query(Tournament).filter_by(organization_id=org_id).all()
     
     def get_player_placements(self, player_id: int) -> List[Any]:
         """Get all tournament placements for a player"""
-        from tournament_models import TournamentPlacement
+        from models.tournament_models import TournamentPlacement
         with self.session_scope() as session:
             return session.query(TournamentPlacement).filter_by(
                 player_id=player_id
@@ -404,7 +404,7 @@ class DatabaseService:
     
     def bulk_get_or_create_players(self, players_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Bulk create or get players"""
-        from tournament_models import Player
+        from models.tournament_models import Player
         created = []
         existing = []
         
@@ -426,7 +426,7 @@ class DatabaseService:
     
     def get_tournaments_needing_standings(self, limit: int = 10) -> List[Any]:
         """Get tournaments that don't have standings fetched yet"""
-        from tournament_models import Tournament
+        from models.tournament_models import Tournament
         from sqlalchemy import and_, or_
         
         with self.session_scope() as session:

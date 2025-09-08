@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from polymorphic_core import announcer
 
 # Use existing SSOT database module
-from database import session_scope
+from utils.database import session_scope
 
 
 @dataclass

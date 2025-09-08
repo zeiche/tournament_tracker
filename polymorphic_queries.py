@@ -8,11 +8,11 @@ Everything accepts anything and figures out what to do.
 from typing import Any, List, Optional, Union
 from sqlalchemy import func, case, desc, and_
 from sqlalchemy.orm import Session
-from database import session_scope
-from database_service import database_service
-from tournament_models import Player, Tournament, Organization, TournamentPlacement
-from formatters import PlayerFormatter, TournamentFormatter
-from points_system import PointsSystem
+from utils.database import session_scope
+from utils.database_service import database_service
+from models.tournament_models import Player, Tournament, Organization, TournamentPlacement
+from utils.formatters import PlayerFormatter, TournamentFormatter
+from utils.points_system import PointsSystem
 from polymorphic_core import announcer
 
 
@@ -94,7 +94,7 @@ class PolymorphicQuery:
         
         Now uses UnifiedTabulator for consistent ranking logic.
         """
-        from unified_tabulator import UnifiedTabulator
+        from utils.unified_tabulator import UnifiedTabulator
         
         # Use the unified tabulator
         ranked_items = UnifiedTabulator.tabulate_player_points(session, limit, event)
@@ -253,7 +253,7 @@ def query(input_string: str) -> str:
         query("find player west")
         query("recent tournaments")
     """
-    from tournament_models import Player, Tournament, Organization, TournamentPlacement
+    from models.tournament_models import Player, Tournament, Organization, TournamentPlacement
     
     # Announce query capability
     announcer.announce(
@@ -384,7 +384,7 @@ def query(input_string: str) -> str:
         
         elif "attendance" in input_lower and ("over time" in input_lower or "timeline" in input_lower or "trend" in input_lower):
             # Handle attendance over time query
-            from tournament_models import Tournament
+            from models.tournament_models import Tournament
             from datetime import datetime
             import calendar
             

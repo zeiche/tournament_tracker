@@ -71,6 +71,8 @@ def main():
     # Sync/report flags (just start the process)
     parser.add_argument('--sync', action='store_true',
                        help='START sync process')
+    parser.add_argument('--sync-and-publish', action='store_true',
+                       help='START sync and publish to Shopify')
     parser.add_argument('--console', action='store_true',
                        help='START console report')
     parser.add_argument('--heatmap', action='store_true',
@@ -127,6 +129,10 @@ def main():
         # Start sync
         subprocess.run([sys.executable, 'sync_service.py'])
     
+    elif args.sync_and_publish:
+        # Start sync and publish
+        subprocess.run([sys.executable, 'sync_and_publish.py'])
+    
     elif args.console:
         # Start report
         subprocess.run([sys.executable, 'tournament_report.py'])
@@ -148,8 +154,18 @@ def main():
         subprocess.run([sys.executable, 'polymorphic_demo.py'])
     
     elif args.twilio_bridge:
-        # Start simple Twilio voice bridge with music mixing
-        subprocess.run([sys.executable, 'twilio_simple_voice_bridge.py'])
+        # Start Twilio with Stream WebSocket servers and SSL proxy
+        # Kill old processes first
+        subprocess.run(['pkill', '-f', 'twilio_simple_voice_bridge'], stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'twiml_stream_server'], stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'twilio_stream_server'], stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'polymorphic_encryption'], stderr=subprocess.DEVNULL)
+        
+        # Start new Stream servers with SSL proxy
+        subprocess.Popen([sys.executable, 'twilio_stream_server.py'])  # WebSocket on 8087
+        subprocess.Popen([sys.executable, 'twiml_stream_server.py'])   # TwiML on 8086
+        subprocess.Popen([sys.executable, 'polymorphic_encryption_service.py', '--proxy', '8443', '8087'])  # SSL proxy
+        subprocess.run([sys.executable, 'experimental/telephony/twilio_simple_voice_bridge.py'])  # Main bridge
     
     elif args.call:
         # Make an outbound call

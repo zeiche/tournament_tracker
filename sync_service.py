@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from enum import Enum
 
-from database_service import database_service
-from startgg_service import startgg_service, SyncResult
-from log_manager import LogManager
+from utils.database_service import database_service
+from services.startgg_service import startgg_service, SyncResult
+from utils.log_manager import LogManager
 
 
 class SyncMode(Enum):

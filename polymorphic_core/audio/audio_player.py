@@ -7,8 +7,8 @@ Listens for AUDIO_READY announcements and plays audio through Discord
 import os
 import asyncio
 from typing import Optional
-from capability_announcer import announcer
-from capability_discovery import register_capability, discover_capability
+from polymorphic_core import announcer
+from polymorphic_core import register_capability, discover_capability
 
 class PolymorphicAudioPlayer:
     """Pure Bonjour audio player - listens and plays"""

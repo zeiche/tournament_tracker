@@ -7,7 +7,7 @@ Creates both static images and interactive HTML maps
 import json
 import numpy as np
 from database_service import database_service
-from tournament_models import Tournament
+from models.tournament_models import Tournament
 from log_manager import LogManager
 
 # Initialize logger for this module

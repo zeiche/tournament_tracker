@@ -9,6 +9,8 @@ import calendar
 from datetime import datetime
 
 # Import centralized logging
+import sys
+sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker')
 from log_manager import LogManager
 
 # Initialize logger for this module
@@ -291,21 +293,21 @@ def test_startgg_query_client():
         logger.info("TEST 2: Fetch tournaments")
         
         tournaments, api_time, year_info = client.fetch_socal_tournaments()
+        
+        if tournaments:
+            logger.info(f"✅ Fetched {len(tournaments)} tournaments{year_info} in {api_time:.2f}s")
             
+            # Show sample tournament data
             if tournaments:
-                logger.info(f"✅ Fetched {len(tournaments)} tournaments{year_info} in {api_time:.2f}s")
-                
-                # Show sample tournament data
-                if tournaments:
-                    sample = tournaments[0]
-                    logger.info("Sample tournament data:")
-                    logger.info(f"   ID: {sample.get('id')}")
-                    logger.info(f"   Name: {sample.get('name')}")
-                    logger.info(f"   Attendees: {sample.get('numAttendees')}")
-                    logger.info(f"   Contact: {sample.get('primaryContact')}")
-            else:
-                logger.error("❌ No tournaments fetched")
-                return
+                sample = tournaments[0]
+                logger.info("Sample tournament data:")
+                logger.info(f"   ID: {sample.get('id')}")
+                logger.info(f"   Name: {sample.get('name')}")
+                logger.info(f"   Attendees: {sample.get('numAttendees')}")
+                logger.info(f"   Contact: {sample.get('primaryContact')}")
+        else:
+            logger.error("❌ No tournaments fetched")
+            return
         
         # Test 3: Fetch standings (if tournaments available)
         if tournaments:

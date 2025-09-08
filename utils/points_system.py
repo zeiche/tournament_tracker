@@ -150,7 +150,7 @@ class PointsSystem:
             )
         """
         from sqlalchemy import case
-        from tournament_models import TournamentPlacement
+        from models.tournament_models import TournamentPlacement
         
         # Build case expression for SQL queries
         # SQLAlchemy case wants tuples as *args, not a list
