@@ -85,3 +85,10 @@ tournament_map.geojson
 collect_geo_data.py
 *.geojson
 *_generated.json
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
