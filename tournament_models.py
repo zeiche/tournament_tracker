@@ -19,6 +19,9 @@ from database_service import database_service
 normalize_contact = database_service.normalize_contact
 from log_manager import LogManager
 
+# Import Bonjour announcer mixin
+from bonjour_mixin import AnnouncerMixin
+
 # Import polymorphic input handler
 try:
     from polymorphic_inputs import InputHandler, FlexibleQuery, to_list, to_ids
@@ -476,7 +479,7 @@ class BaseModel:
 # TOURNAMENT MODEL
 # ============================================================================
 
-class Tournament(Base, BaseModel, LocationMixin, TimestampMixin):
+class Tournament(Base, BaseModel, LocationMixin, TimestampMixin, AnnouncerMixin):
     """Tournament from start.gg API with comprehensive data and methods"""
     __tablename__ = 'tournaments'
     
@@ -1042,7 +1045,7 @@ class Tournament(Base, BaseModel, LocationMixin, TimestampMixin):
 # ORGANIZATION MODEL
 # ============================================================================
 
-class Organization(Base, BaseModel, TimestampMixin):
+class Organization(Base, BaseModel, TimestampMixin, AnnouncerMixin):
     """Organization that runs tournaments with comprehensive analytics"""
     __tablename__ = 'organizations'
     
@@ -1593,7 +1596,7 @@ class Organization(Base, BaseModel, TimestampMixin):
 # PLAYER MODEL
 # ============================================================================
 
-class Player(Base, BaseModel, TimestampMixin):
+class Player(Base, BaseModel, TimestampMixin, AnnouncerMixin):
     """Player in tournaments with comprehensive analytics and history"""
     __tablename__ = 'players'
     

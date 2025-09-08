@@ -94,6 +94,12 @@ def main():
     parser.add_argument('--asterisk-status', action='store_true',
                        help='Check Asterisk PBX status')
     
+    # Bonjour discovery
+    parser.add_argument('--bonjour-monitor', action='store_true',
+                       help='START Bonjour announcement monitor')
+    parser.add_argument('--discover', action='store_true',
+                       help='START dynamic command discovery')
+    
     # Process management
     parser.add_argument('--restart-services', action='store_true',
                        help='Kill existing services')
@@ -158,6 +164,14 @@ def main():
     elif args.asterisk_status:
         # Check Asterisk status
         subprocess.run(['sudo', 'systemctl', 'status', 'asterisk'])
+    
+    elif args.bonjour_monitor:
+        # Start Bonjour monitor
+        subprocess.run([sys.executable, 'bonjour_monitor.py', 'live'])
+    
+    elif args.discover:
+        # Start discovery service
+        subprocess.run([sys.executable, 'bonjour_discovery_service.py'])
     
     elif args.restart_services:
         # Kill services
