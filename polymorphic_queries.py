@@ -8,10 +8,12 @@ Everything accepts anything and figures out what to do.
 from typing import Any, List, Optional, Union
 from sqlalchemy import func, case, desc, and_
 from sqlalchemy.orm import Session
+from database import session_scope
 from database_service import database_service
 from tournament_models import Player, Tournament, Organization, TournamentPlacement
 from formatters import PlayerFormatter, TournamentFormatter
 from points_system import PointsSystem
+from polymorphic_core import announcer
 
 
 class PolymorphicQuery:
@@ -252,6 +254,16 @@ def query(input_string: str) -> str:
         query("recent tournaments")
     """
     from tournament_models import Player, Tournament, Organization, TournamentPlacement
+    
+    # Announce query capability
+    announcer.announce(
+        "Polymorphic Query Engine",
+        [
+            f"Processing query: {input_string}",
+            "I understand natural language",
+            "I can find players, tournaments, and organizations"
+        ]
+    )
     
     with session_scope() as session:
         input_lower = input_string.lower()
