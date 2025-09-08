@@ -79,6 +79,8 @@ def main():
                        help='START stats display')
     parser.add_argument('--voice-test', action='store_true',
                        help='START polymorphic voice test')
+    parser.add_argument('--demo-polymorphic', action='store_true',
+                       help='START ask/tell/do pattern demonstration')
     
     # Telephony
     parser.add_argument('--twilio-bridge', action='store_true',
@@ -140,6 +142,10 @@ def main():
     elif args.voice_test:
         # Start polymorphic voice test
         subprocess.run([sys.executable, 'polymorphic_voice_test.py'])
+    
+    elif args.demo_polymorphic:
+        # Start ask/tell/do demonstration
+        subprocess.run([sys.executable, 'polymorphic_demo.py'])
     
     elif args.twilio_bridge:
         # Start simple Twilio voice bridge with music mixing
