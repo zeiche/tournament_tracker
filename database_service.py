@@ -8,9 +8,28 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 from sqlalchemy import func, case, desc, distinct
+from polymorphic_core import announcer
 
 # Use existing SSOT database module
 from database import session_scope
+
+# Announce module capabilities on import
+announcer.announce(
+    "Database Service",
+    [
+        "Manage database sessions and transactions",
+        "Calculate database statistics",
+        "Query tournaments, players, and organizations",
+        "Handle batch database operations",
+        "Provide session context management",
+        "Track database operation metrics"
+    ],
+    [
+        "database_service.get_statistics()",
+        "with database_service.session_scope() as session:",
+        "database_service.get_top_players(limit=50)"
+    ]
+)
 
 
 @dataclass

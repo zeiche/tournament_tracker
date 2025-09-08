@@ -8,9 +8,28 @@ from abc import ABC, abstractmethod
 
 # Import centralized logging
 from log_manager import LogManager
+from polymorphic_core import announcer
 
 # Initialize logger for this module
 logger = LogManager().get_logger('tournament_operations')
+
+# Announce module capabilities on import
+announcer.announce(
+    "Tournament Operations",
+    [
+        "Track tournament processing statistics",
+        "Monitor operation success/failure rates",
+        "Calculate processing times and metrics",
+        "Manage batch tournament operations",
+        "Provide operation status reporting",
+        "Handle tournament data validation"
+    ],
+    [
+        "TournamentOperationTracker('sync')",
+        "tracker.start_operation()",
+        "tracker.get_statistics()"
+    ]
+)
 
 class TournamentOperationTracker:
     """Track statistics for tournament processing operations"""

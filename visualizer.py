@@ -16,9 +16,30 @@ from pathlib import Path
 # Import polymorphic handler
 from polymorphic_inputs import InputHandler, to_list, to_dict
 from log_manager import LogManager
+from polymorphic_core import announcer
 
 # Get logger
 logger = LogManager().get_logger('visualizer')
+
+# Announce module capabilities on import
+announcer.announce(
+    "Unified Visualizer",
+    [
+        "Generate heat maps for tournament locations",
+        "Create HTML reports and tables",
+        "Build interactive Folium maps",
+        "Generate player ranking visualizations",
+        "Create tournament attendance graphs",
+        "Produce organization statistics charts",
+        "Accept ANY input format polymorphically",
+        "Output to HTML, PNG, or interactive formats"
+    ],
+    [
+        "visualizer.visualize(data)",
+        "visualizer.heatmap(tournaments)",
+        "visualizer.html_report(stats)"
+    ]
+)
 
 
 class UnifiedVisualizer:

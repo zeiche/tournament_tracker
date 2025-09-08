@@ -6,6 +6,25 @@ This module defines how points are awarded based on placement in tournaments.
 ALL point calculations should use this module.
 """
 from typing import Dict, Optional
+from polymorphic_core import announcer
+
+# Announce module capabilities on import
+announcer.announce(
+    "Points System",
+    [
+        "Calculate tournament points based on placement",
+        "Define standard FGC point distribution (8-6-4-3-2-2-1-1)",
+        "Calculate total points for players",
+        "Provide point breakdowns by placement",
+        "Single source of truth for all point calculations",
+        "Support major tournament multipliers"
+    ],
+    [
+        "PointsSystem.get_points_for_placement(1)",
+        "PointsSystem.calculate_player_total_points(placements)",
+        "PointsSystem.PLACEMENT_POINTS"
+    ]
+)
 
 
 class PointsSystem:

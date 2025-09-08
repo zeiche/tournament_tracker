@@ -11,9 +11,28 @@ from collections import defaultdict
 
 # Import our centralized modules
 from log_manager import LogManager
+from polymorphic_core import announcer
 
 # Initialize logger for this module
 logger = LogManager().get_logger('startgg_sync')
+
+# Announce module capabilities on import
+announcer.announce(
+    "Start.gg Sync Service",
+    [
+        "Sync tournaments from start.gg API",
+        "Fetch tournament standings and placements",
+        "Update player rankings from events",
+        "Query SoCal region tournaments",
+        "Handle GraphQL API pagination",
+        "Batch database operations for efficiency"
+    ],
+    [
+        "./go.py --sync",
+        "./go.py --fetch-standings",
+        "sync_tournaments_from_startgg()"
+    ]
+)
 from database import init_database, session_scope
 from database_service import database_service
 from database_queue import get_queue, commit_queue, queue_stats, batch_operations

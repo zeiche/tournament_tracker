@@ -10,7 +10,26 @@ import json
 import re
 from tournament_models import Tournament, Organization, BaseModel, normalize_contact
 from database_service import database_service
+from polymorphic_core import announcer
 import html
+
+# Announce module capabilities on import
+announcer.announce(
+    "Web Editor Service",
+    [
+        "Web interface for editing organizations on port 8081",
+        "Edit organization names and merge duplicates",
+        "Manage organization contact information",
+        "Assign tournaments to organizations",
+        "Browse and search organizations",
+        "Accessible via lynx or any web browser"
+    ],
+    [
+        "./go.py --edit-contacts",
+        "http://localhost:8081",
+        "lynx http://localhost:8081"
+    ]
+)
 
 class OrganizationEditor:
     """Business logic extracted from editor.py"""
