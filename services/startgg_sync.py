@@ -192,6 +192,7 @@ class StartGGSyncClient:
             start_time = time.time()
             
             try:
+                announcer.announce("StartGG API", [f"Fetching page {page} of tournaments"])
                 response = requests.post(self.api_url, json=payload, headers=self.headers)
                 
                 # Rate limiting - single sleep per API call
@@ -214,8 +215,10 @@ class StartGGSyncClient:
                     total_pages = page_info.get('totalPages', 1)
                     total_count = page_info.get('total', 0)
                     logger.info(f"Found {total_count} tournaments across {total_pages} pages")
+                    announcer.announce("StartGG API", [f"Found {total_count} total tournaments"])
                 
                 all_tournaments.extend(tournaments)
+                announcer.announce("StartGG API", [f"Got {len(tournaments)} tournaments from page {page}"])
                 
                 # Update stats
                 api_time = time.time() - start_time
@@ -322,6 +325,7 @@ class TournamentSyncProcessor:
     def process_tournaments(self, tournaments_data):
         """Process tournament data using paged queue system"""
         logger.info(f"Processing {len(tournaments_data)} tournaments", "sync")
+        announcer.announce("Database Sync", [f"Starting to process {len(tournaments_data)} tournaments"])
         
         with batch_operations(page_size=self.page_size) as queue:
             for tournament_data in tournaments_data:
@@ -333,6 +337,7 @@ class TournamentSyncProcessor:
                     self.sync_stats['processing_errors'] += 1
                     logger.error(f"Failed to process tournament {tournament_data.get('id', 'unknown')}: {e}", "sync")
         
+        announcer.announce("Database Sync", [f"Saved {self.sync_stats['tournaments_processed']} tournaments to database"])
         logger.info(f"Tournament processing completed - {self.sync_stats['tournaments_processed']} processed", "sync")
     
     def _process_single_tournament(self, queue, tournament_data):
@@ -390,10 +395,14 @@ class TournamentSyncProcessor:
                 # Replace all fields with current start.gg data
                 for key, value in tournament_record.items():
                     setattr(existing, key, value)
+                self.sync_stats['tournaments_updated'] += 1
+                announcer.announce("Database Save", [f"Updated tournament: {tournament_record['name']}"])
                 # Session will auto-commit when context exits
             else:
                 # Create new tournament via queue
                 queue.create(Tournament, **tournament_record)
+                self.sync_stats['tournaments_created'] += 1
+                announcer.announce("Database Save", [f"Created new tournament: {tournament_record['name']}"])
         
         # Process organization and attendance
         self._process_tournament_organization(queue, tournament_data)
@@ -418,6 +427,7 @@ class TournamentSyncProcessor:
             return
         
         logger.debug(f"Processing {len(standings_data)} standings for {tournament_id}", "sync")
+        announcer.announce("Database Sync", [f"Processing {len(standings_data)} standings for tournament {tournament_id}"])
         
         with batch_operations(page_size=50) as queue:
             for standing in standings_data:
@@ -427,6 +437,9 @@ class TournamentSyncProcessor:
                     
                 except Exception as e:
                     logger.error(f"Failed to process standing: {e}", "sync")
+        
+        if self.sync_stats['standings_processed'] > 0:
+            announcer.announce("Database Save", [f"Saved {self.sync_stats['standings_processed']} player standings"])
     
     def _process_single_standing(self, queue, standing, tournament_id):
         """Process a single standing entry"""
