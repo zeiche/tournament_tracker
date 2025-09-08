@@ -1,10 +1,20 @@
 """
 tournament_operations.py - Tournament Operation Tracking and Processing
-Tournament-focused operational utilities with centralized logging
+
+NOW USING POLYMORPHIC ask/tell/do PATTERN:
+- ask(query) - Get operation stats: "stats", "errors", "progress"
+- tell(format, data) - Format operation data: "json", "text", "discord"
+- do(action) - Perform operations: "track sync", "validate config", "log progress"
 """
 import os
+import sys
 from datetime import datetime
 from abc import ABC, abstractmethod
+from typing import Any, Optional, Dict, List
+import json
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import centralized logging
 from log_manager import LogManager
@@ -13,24 +23,387 @@ from polymorphic_core import announcer
 # Initialize logger for this module
 logger = LogManager().get_logger('tournament_operations')
 
-# Announce module capabilities on import
-announcer.announce(
-    "Tournament Operations",
-    [
-        "Track tournament processing statistics",
-        "Monitor operation success/failure rates",
-        "Calculate processing times and metrics",
-        "Manage batch tournament operations",
-        "Provide operation status reporting",
-        "Handle tournament data validation"
-    ],
-    [
-        "TournamentOperationTracker('sync')",
-        "tracker.start_operation()",
-        "tracker.get_statistics()"
-    ]
-)
 
+class TournamentOperations:
+    """Tournament operations service with ONLY 3 public methods: ask, tell, do
+    
+    Everything else is private implementation details.
+    """
+    
+    _instance = None
+    
+    def __new__(cls):
+        """Singleton pattern"""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
+        if not self._initialized:
+            self._trackers = {}  # Active operation trackers
+            self._processors = {}  # Active processors
+            self._initialized = True
+            
+            # Announce ourselves
+            announcer.announce(
+                "Tournament Operations (Polymorphic)",
+                [
+                    "ask('stats') - Get operation statistics",
+                    "ask('errors') - Get error details",
+                    "ask('progress') - Get current progress",
+                    "tell('discord', stats) - Format for Discord",
+                    "do('track sync') - Start tracking sync operation",
+                    "do('validate config') - Check configuration",
+                    "NOW WITH ask/tell/do PATTERN!"
+                ],
+                [
+                    "ops.ask('stats')",
+                    "ops.tell('json', data)",
+                    "ops.do('track sync tournaments=50')"
+                ]
+            )
+    
+    def ask(self, query: str, **kwargs) -> Any:
+        """Ask for operation data and statistics.
+        
+        Examples:
+            ask('stats') - Get all operation statistics
+            ask('errors') - Get recent errors
+            ask('progress') - Get current operation progress
+            ask('tracker sync') - Get specific tracker stats
+            ask('config status') - Check configuration status
+        """
+        query_lower = query.lower().strip()
+        
+        # Statistics queries
+        if 'stat' in query_lower:
+            return self._get_stats(**kwargs)
+        
+        # Error queries
+        elif 'error' in query_lower:
+            return self._get_errors(**kwargs)
+        
+        # Progress queries
+        elif 'progress' in query_lower:
+            return self._get_progress(**kwargs)
+        
+        # Tracker queries
+        elif 'tracker' in query_lower:
+            # Parse tracker name
+            parts = query_lower.split()
+            if len(parts) > 1:
+                tracker_name = parts[1]
+                return self._get_tracker_stats(tracker_name)
+            return self._get_all_trackers()
+        
+        # Config queries
+        elif 'config' in query_lower:
+            return self._get_config_status()
+        
+        # Default - return summary
+        return {
+            'active_trackers': len(self._trackers),
+            'active_processors': len(self._processors),
+            'total_operations': sum(t.stats['attempts'] for t in self._trackers.values())
+        }
+    
+    def tell(self, format: str, data: Any = None) -> str:
+        """Format operation data for output.
+        
+        Examples:
+            tell('json', stats) - Format as JSON
+            tell('discord', errors) - Format for Discord
+            tell('text', progress) - Format as plain text
+            tell('summary', data) - Brief summary
+        """
+        format_lower = format.lower().strip()
+        
+        # If no data provided, get default stats
+        if data is None:
+            data = self.ask('stats')
+        
+        if format_lower == 'json':
+            return json.dumps(data, default=str, indent=2)
+        
+        elif format_lower == 'discord':
+            return self._format_discord(data)
+        
+        elif format_lower in ['text', 'plain']:
+            return self._format_text(data)
+        
+        elif format_lower == 'summary':
+            return self._format_summary(data)
+        
+        # Default - string representation
+        return str(data)
+    
+    def do(self, action: str, **kwargs) -> Any:
+        """Perform tournament operations.
+        
+        Examples:
+            do('track sync') - Start tracking sync operation
+            do('record success tournaments=5') - Record success
+            do('record error message="API failed"') - Record error
+            do('end tracker sync') - End tracking
+            do('validate config') - Validate configuration
+            do('log progress current=5 total=10') - Log progress
+        """
+        action_lower = action.lower().strip()
+        
+        # Track operations
+        if 'track' in action_lower:
+            return self._do_track(action, **kwargs)
+        
+        # Record operations
+        elif 'record' in action_lower:
+            return self._do_record(action, **kwargs)
+        
+        # End operations
+        elif 'end' in action_lower:
+            return self._do_end(action, **kwargs)
+        
+        # Validate operations
+        elif 'validate' in action_lower:
+            return self._do_validate(action, **kwargs)
+        
+        # Log operations
+        elif 'log' in action_lower:
+            return self._do_log(action, **kwargs)
+        
+        # Process operations
+        elif 'process' in action_lower:
+            return self._do_process(action, **kwargs)
+        
+        # Unknown action
+        return f"Unknown action: {action}"
+    
+    # ============= PRIVATE METHODS =============
+    
+    def _get_stats(self, tracker_name: Optional[str] = None, **kwargs) -> Dict:
+        """Get operation statistics"""
+        if tracker_name and tracker_name in self._trackers:
+            return self._trackers[tracker_name].get_stats()
+        
+        # Aggregate all stats
+        all_stats = {}
+        for name, tracker in self._trackers.items():
+            all_stats[name] = tracker.get_stats()
+        
+        return all_stats
+    
+    def _get_errors(self, limit: int = 10, **kwargs) -> List[str]:
+        """Get recent errors"""
+        errors = []
+        for tracker in self._trackers.values():
+            errors.extend(tracker.stats['errors'])
+        
+        return errors[-limit:] if limit else errors
+    
+    def _get_progress(self, **kwargs) -> Dict:
+        """Get current operation progress"""
+        progress = {}
+        for name, tracker in self._trackers.items():
+            stats = tracker.stats
+            if stats['start_time'] and not stats['end_time']:
+                # Operation in progress
+                progress[name] = {
+                    'tournaments': stats['tournaments_processed'],
+                    'organizations': stats['organizations_processed'],
+                    'players': stats['players_processed'],
+                    'successes': stats['successes'],
+                    'failures': stats['failures']
+                }
+        
+        return progress
+    
+    def _get_tracker_stats(self, tracker_name: str) -> Dict:
+        """Get specific tracker statistics"""
+        if tracker_name in self._trackers:
+            return self._trackers[tracker_name].get_stats()
+        return {'error': f'Tracker {tracker_name} not found'}
+    
+    def _get_all_trackers(self) -> Dict:
+        """Get all tracker names and states"""
+        return {
+            name: {
+                'active': tracker.stats['end_time'] is None,
+                'attempts': tracker.stats['attempts'],
+                'successes': tracker.stats['successes'],
+                'failures': tracker.stats['failures']
+            }
+            for name, tracker in self._trackers.items()
+        }
+    
+    def _get_config_status(self) -> Dict:
+        """Check configuration status"""
+        return {
+            'auth_key': bool(os.getenv('AUTH_KEY')),
+            'access_token': bool(os.getenv('ACCESS_TOKEN')),
+            'shopify_access_token': bool(os.getenv('SHOPIFY_ACCESS_TOKEN')),
+            'discord_token': bool(os.getenv('DISCORD_BOT_TOKEN'))
+        }
+    
+    def _format_discord(self, data: Any) -> str:
+        """Format data for Discord"""
+        if isinstance(data, dict):
+            lines = []
+            for key, value in data.items():
+                if isinstance(value, dict):
+                    lines.append(f"**{key}:**")
+                    for k, v in value.items():
+                        lines.append(f"  {k}: {v}")
+                else:
+                    lines.append(f"**{key}**: {value}")
+            return "\n".join(lines)
+        
+        elif isinstance(data, list):
+            return "\n".join([f"• {item}" for item in data[:10]])
+        
+        return f"```{data}```"
+    
+    def _format_text(self, data: Any) -> str:
+        """Format data as plain text"""
+        if isinstance(data, dict):
+            lines = []
+            for key, value in data.items():
+                lines.append(f"{key}: {value}")
+            return "\n".join(lines)
+        
+        elif isinstance(data, list):
+            return "\n".join(str(item) for item in data)
+        
+        return str(data)
+    
+    def _format_summary(self, data: Any) -> str:
+        """Format brief summary"""
+        if isinstance(data, dict):
+            total = data.get('total_operations', 0)
+            active = len([1 for k, v in data.items() if isinstance(v, dict) and not v.get('end_time')])
+            return f"{total} operations, {active} active"
+        
+        return str(data)[:100]
+    
+    def _do_track(self, action: str, **kwargs) -> str:
+        """Start tracking an operation"""
+        # Parse operation name
+        parts = action.split()
+        if len(parts) < 2:
+            return "Error: Specify operation name (e.g., 'track sync')"
+        
+        operation_name = parts[1]
+        
+        # Create tracker
+        tracker = TournamentOperationTracker(operation_name)
+        tracker.start_operation()
+        self._trackers[operation_name] = tracker
+        
+        return f"Started tracking {operation_name}"
+    
+    def _do_record(self, action: str, **kwargs) -> str:
+        """Record operation results"""
+        action_lower = action.lower()
+        
+        # Parse tracker name if specified
+        tracker_name = kwargs.get('tracker', 'default')
+        if tracker_name not in self._trackers:
+            # Create default tracker if needed
+            self._trackers[tracker_name] = TournamentOperationTracker(tracker_name)
+        
+        tracker = self._trackers[tracker_name]
+        
+        # Record success
+        if 'success' in action_lower:
+            tournaments = kwargs.get('tournaments', 0)
+            organizations = kwargs.get('organizations', 0)
+            players = kwargs.get('players', 0)
+            
+            if tournaments:
+                tracker.record_tournament_success(tournaments)
+            if organizations:
+                tracker.record_organization_success(organizations)
+            if players:
+                tracker.record_player_success(players)
+            
+            return f"Recorded success: T={tournaments}, O={organizations}, P={players}"
+        
+        # Record error
+        elif 'error' in action_lower or 'failure' in action_lower:
+            message = kwargs.get('message', 'Unknown error')
+            context = kwargs.get('context')
+            tracker.record_failure(message, context)
+            return f"Recorded error: {message}"
+        
+        return "Unknown record action"
+    
+    def _do_end(self, action: str, **kwargs) -> str:
+        """End tracking operation"""
+        # Parse tracker name
+        parts = action.split()
+        if len(parts) > 2:
+            tracker_name = parts[2]
+        else:
+            tracker_name = kwargs.get('tracker', 'default')
+        
+        if tracker_name in self._trackers:
+            self._trackers[tracker_name].end_operation()
+            return f"Ended tracking {tracker_name}"
+        
+        return f"Tracker {tracker_name} not found"
+    
+    def _do_validate(self, action: str, **kwargs) -> str:
+        """Validate configuration"""
+        if 'startgg' in action.lower() or 'start.gg' in action.lower():
+            try:
+                validate_startgg_config()
+                return "start.gg configuration valid"
+            except RuntimeError as e:
+                return f"start.gg config error: {e}"
+        
+        elif 'shopify' in action.lower():
+            try:
+                validate_shopify_config()
+                return "Shopify configuration valid"
+            except RuntimeError as e:
+                return f"Shopify config error: {e}"
+        
+        # General config check
+        status = self._get_config_status()
+        valid = all(status.values())
+        return f"Configuration {'valid' if valid else 'incomplete'}: {status}"
+    
+    def _do_log(self, action: str, **kwargs) -> str:
+        """Log progress or messages"""
+        if 'progress' in action.lower():
+            current = kwargs.get('current', 0)
+            total = kwargs.get('total', 0)
+            item_type = kwargs.get('type', 'items')
+            log_tournament_progress(current, total, item_type)
+            return f"Logged progress: {current}/{total} {item_type}"
+        
+        # General log
+        message = kwargs.get('message', action)
+        logger.info(message)
+        return f"Logged: {message}"
+    
+    def _do_process(self, action: str, **kwargs) -> Any:
+        """Run a processor"""
+        if 'sync' in action.lower():
+            processor = TournamentSyncProcessor("sync")
+            result = processor.run(**kwargs)
+            self._processors['sync'] = processor
+            return result
+        
+        elif 'cleanup' in action.lower():
+            processor = OrganizationCleanupProcessor("cleanup")
+            result = processor.run(**kwargs)
+            self._processors['cleanup'] = processor
+            return result
+        
+        return "Unknown processor"
+
+
+# Keep existing classes for backward compatibility but make them private
 class TournamentOperationTracker:
     """Track statistics for tournament processing operations"""
     
@@ -122,6 +495,7 @@ class TournamentOperationTracker:
         if stats['failures'] > 0:
             logger.warning(f"   Errors: {stats['failures']}")
 
+
 class TournamentProcessor(ABC):
     """Base class for tournament data processing operations"""
     
@@ -160,6 +534,7 @@ class TournamentProcessor(ABC):
             percent = (current / total) * 100
             logger.info(f"   Progress: {current}/{total} {item_type} ({percent:.1f}%)")
 
+
 class TournamentSyncProcessor(TournamentProcessor):
     """Processor for tournament synchronization operations"""
     
@@ -168,6 +543,7 @@ class TournamentSyncProcessor(TournamentProcessor):
         # This would be implemented by sync modules
         logger.info("Tournament sync processor executed")
         return {"status": "success"}
+
 
 class OrganizationCleanupProcessor(TournamentProcessor):
     """Processor for organization name cleanup operations"""
@@ -178,34 +554,35 @@ class OrganizationCleanupProcessor(TournamentProcessor):
         logger.info("Organization cleanup processor executed")
         return {"status": "success"}
 
+
+# Legacy functions kept for backward compatibility
 def handle_tournament_error(operation_name, error, context=None, continue_on_error=True):
     """Tournament-specific error handling"""
-    error_msg = f"{operation_name} error: {error}"
-    
-    full_context = "operations"
-    if context:
-        full_context = f"operations-{context}"
-    
-    logger.error(f"{full_context}: {error_msg}")
+    ops = tournament_operations
+    result = ops.do(f'record error message="{error}"', tracker=operation_name, context=context)
     
     if continue_on_error:
         logger.warning("Continuing with remaining operations...")
         return False
     else:
         logger.error("Stopping due to error")
-        raise RuntimeError(error_msg)
+        raise RuntimeError(f"{operation_name} error: {error}")
+
 
 def log_tournament_operation_start(operation_name, details=""):
     """Log start of tournament operation"""
-    logger.info(f"Starting {operation_name}")
+    ops = tournament_operations
+    ops.do(f'track {operation_name}')
     if details:
         logger.debug(f"   {details}")
+
 
 def log_tournament_progress(current, total, item_type="tournaments"):
     """Log tournament processing progress"""
     if total > 0:
         percent = (current / total) * 100
         logger.info(f"   Progress: {current}/{total} {item_type} ({percent:.1f}%)")
+
 
 def validate_tournament_config(required_vars):
     """Validate required configuration for tournament operations"""
@@ -222,217 +599,66 @@ def validate_tournament_config(required_vars):
     logger.info(f"Tournament configuration validated: {', '.join(required_vars)}")
     return True
 
+
 def validate_startgg_config():
     """Validate start.gg API configuration"""
     return validate_tournament_config(['AUTH_KEY'])
+
 
 def validate_shopify_config():
     """Validate Shopify publishing configuration"""
     return validate_tournament_config(['ACCESS_TOKEN'])
 
-# Tournament-specific operation patterns
-def track_sync_operation(tournaments_count, organizations_count=0, api_calls=0):
-    """Track tournament sync operation metrics"""
-    logger.info(f"Sync metrics: {tournaments_count} tournaments, {organizations_count} orgs, {api_calls} API calls")
 
-def track_cleanup_operation(organizations_changed, organizations_skipped=0):
-    """Track organization cleanup operation metrics"""
-    logger.info(f"Cleanup metrics: {organizations_changed} changed, {organizations_skipped} skipped")
+# Singleton instance - import this
+tournament_operations = TournamentOperations()
 
-def track_report_operation(report_type, organizations_count, output_size=None):
-    """Track report generation metrics"""
-    size_info = f", {output_size} chars" if output_size else ""
-    logger.info(f"Report metrics: {report_type} for {organizations_count} orgs{size_info}")
 
 # Test functions for tournament operations
-def test_tournament_tracker():
-    """Test tournament operation tracker"""
-    logger.info("=" * 60)
-    logger.info("TESTING TOURNAMENT OPERATION TRACKER")
-    logger.info("=" * 60)
+def test_tournament_operations():
+    """Test tournament operations with ask/tell/do pattern"""
+    print("=" * 60)
+    print("TESTING TOURNAMENT OPERATIONS (ask/tell/do)")
+    print("=" * 60)
+    
+    ops = tournament_operations
     
     try:
-        # Test 1: Basic tracking
-        logger.info("TEST 1: Basic operation tracking")
-        tracker = TournamentOperationTracker("test_sync_operation")
+        # Test 1: ask() method
+        print("\nTEST 1: ask() method")
+        print("ask('stats'):", ops.ask('stats'))
+        print("ask('config status'):", ops.ask('config status'))
+        print("✅ ask() works")
         
-        tracker.start_operation()
-        tracker.record_tournament_success(5)
-        tracker.record_organization_success(3)
-        tracker.record_player_success(25)
-        tracker.end_operation()
+        # Test 2: do() method - tracking
+        print("\nTEST 2: do() method - tracking")
+        print(ops.do('track test_operation'))
+        print(ops.do('record success tournaments=5 organizations=3', tracker='test_operation'))
+        print(ops.do('end tracker test_operation'))
+        print("✅ do() tracking works")
         
-        stats = tracker.get_stats()
-        if stats['tournaments_processed'] == 5 and stats['success_rate'] > 0:
-            logger.info("✅ Basic tracking works")
-        else:
-            logger.error("❌ Basic tracking failed")
+        # Test 3: tell() method
+        print("\nTEST 3: tell() method")
+        stats = ops.ask('stats')
+        print("tell('json'):", ops.tell('json', {'test': 'data'})[:50] + "...")
+        print("tell('summary'):", ops.tell('summary', stats))
+        print("✅ tell() works")
         
-        # Test 2: Error tracking
-        logger.info("TEST 2: Error tracking")
-        error_tracker = TournamentOperationTracker("test_error_operation")
+        # Test 4: Error handling
+        print("\nTEST 4: Error handling")
+        print(ops.do('record error message="Test error"', tracker='error_test'))
+        errors = ops.ask('errors')
+        print("Recent errors:", errors[-1] if errors else "None")
+        print("✅ Error handling works")
         
-        error_tracker.start_operation()
-        error_tracker.record_failure("Test error message", "test_context")
-        error_tracker.record_tournament_success(2)  # Some successes too
-        error_tracker.end_operation()
-        
-        error_stats = error_tracker.get_stats()
-        if error_stats['failures'] == 1 and len(error_stats['errors']) == 1:
-            logger.info("✅ Error tracking works")
-        else:
-            logger.error("❌ Error tracking failed")
-        
-        logger.info("✅ Tournament tracker tests completed")
+        print("\n✅ All tournament operations tests passed!")
         
     except Exception as e:
-        logger.error(f"Tournament tracker test failed: {e}")
+        print(f"❌ Test failed: {e}")
         import traceback
         traceback.print_exc()
 
-def test_tournament_processor():
-    """Test tournament processor base class"""
-    logger.info("=" * 60)
-    logger.info("TESTING TOURNAMENT PROCESSOR")
-    logger.info("=" * 60)
-    
-    try:
-        # Test 1: Successful processor
-        logger.info("TEST 1: Successful processor")
-        sync_processor = TournamentSyncProcessor("test_sync")
-        result = sync_processor.run()
-        
-        if result and result['status'] == 'success':
-            logger.info("✅ Sync processor works")
-        else:
-            logger.error("❌ Sync processor failed")
-        
-        # Test 2: Cleanup processor
-        logger.info("TEST 2: Cleanup processor")
-        cleanup_processor = OrganizationCleanupProcessor("test_cleanup")
-        result = cleanup_processor.run()
-        
-        if result and result['status'] == 'success':
-            logger.info("✅ Cleanup processor works")
-        else:
-            logger.error("❌ Cleanup processor failed")
-        
-        logger.info("✅ Tournament processor tests completed")
-        
-    except Exception as e:
-        logger.error(f"Tournament processor test failed: {e}")
-        import traceback
-        traceback.print_exc()
-
-def test_tournament_config():
-    """Test tournament configuration validation"""
-    logger.info("=" * 60)
-    logger.info("TESTING TOURNAMENT CONFIG VALIDATION")
-    logger.info("=" * 60)
-    
-    try:
-        # Test 1: Missing config (should fail gracefully)
-        logger.info("TEST 1: Missing configuration")
-        
-        # Clear AUTH_KEY temporarily
-        original_auth = os.getenv('AUTH_KEY')
-        if 'AUTH_KEY' in os.environ:
-            del os.environ['AUTH_KEY']
-        
-        try:
-            validate_startgg_config()
-            logger.error("❌ Should have failed with missing AUTH_KEY")
-        except RuntimeError:
-            logger.info("✅ Correctly detected missing AUTH_KEY")
-        
-        # Restore AUTH_KEY if it existed
-        if original_auth:
-            os.environ['AUTH_KEY'] = original_auth
-        
-        # Test 2: Valid config (if AUTH_KEY exists)
-        if os.getenv('AUTH_KEY'):
-            logger.info("TEST 2: Valid configuration")
-            try:
-                validate_startgg_config()
-                logger.info("✅ start.gg config validation works")
-            except RuntimeError:
-                logger.warning("AUTH_KEY exists but validation failed")
-        
-        logger.info("✅ Config validation tests completed")
-        
-    except Exception as e:
-        logger.error(f"Config validation test failed: {e}")
-        import traceback
-        traceback.print_exc()
-
-def test_operation_helpers():
-    """Test operation helper functions"""
-    logger.info("=" * 60)
-    logger.info("TESTING OPERATION HELPERS")
-    logger.info("=" * 60)
-    
-    try:
-        # Test 1: Progress tracking
-        logger.info("TEST 1: Progress tracking")
-        log_tournament_operation_start("Test Operation", "Testing progress tracking")
-        
-        for i in range(1, 6):
-            log_tournament_progress(i, 5, "test_items")
-        
-        logger.info("✅ Progress tracking works")
-        
-        # Test 2: Error handling
-        logger.info("TEST 2: Error handling")
-        
-        # Test continue on error
-        continue_result = handle_tournament_error(
-            "test_operation", 
-            "test error message", 
-            context="test_context",
-            continue_on_error=True
-        )
-        
-        if continue_result == False:  # Should return False for continue
-            logger.info("✅ Continue on error works")
-        else:
-            logger.error("❌ Continue on error failed")
-        
-        # Test 3: Operation metrics
-        logger.info("TEST 3: Operation metrics")
-        track_sync_operation(tournaments_count=50, organizations_count=25, api_calls=10)
-        track_cleanup_operation(organizations_changed=15, organizations_skipped=5)
-        track_report_operation("HTML", organizations_count=30, output_size=15000)
-        logger.info("✅ Operation metrics logging works")
-        
-        logger.info("✅ Operation helpers tests completed")
-        
-    except Exception as e:
-        logger.error(f"Operation helpers test failed: {e}")
-        import traceback
-        traceback.print_exc()
-
-def run_tournament_operations_tests():
-    """Run all tournament operations tests"""
-    try:
-        logger.info("Starting tournament operations tests")
-        
-        # Run test suites
-        test_tournament_tracker()
-        print()  # Spacing
-        test_tournament_processor()
-        print()  # Spacing
-        test_tournament_config()
-        print()  # Spacing
-        test_operation_helpers()
-        
-        logger.info("All tournament operations tests completed")
-        
-    except Exception as e:
-        logger.error(f"Tournament operations test suite failed: {e}")
-        import traceback
-        traceback.print_exc()
 
 if __name__ == "__main__":
-    print("Testing tournament operations...")
-    run_tournament_operations_tests()
-
+    print("Testing tournament operations with ask/tell/do pattern...")
+    test_tournament_operations()

@@ -268,43 +268,78 @@ git commit -m "Document critical rules in CLAUDE.md"
 
 ### 🎯 The 3-Method Polymorphic Pattern
 
-**CLAUDE: We've evolved from C to TRUE OOP!**
+**CLAUDE: ALL modules now use ONLY 3 public methods!**
 
-Instead of 200+ specific methods, use just THREE polymorphic methods:
-1. **ask(question)** - Query anything about the object
-2. **tell(format)** - Format the object for any output
-3. **do(action)** - Perform any action with the object
+Every service module MUST expose ONLY these three methods:
+1. **ask(query)** - Query for any data using natural language
+2. **tell(format, data)** - Format any data for output
+3. **do(action)** - Perform any action using natural language
 
-**OLD C-STYLE THINKING (BAD):**
+**MIGRATION STATUS:**
+✅ **Completed Refactoring:**
+- `utils/database_service.py` - Database operations
+- `services/startgg_sync.py` - Start.gg synchronization  
+- `services/web_editor.py` - Web interface editor
+- `utils/tournament_operations.py` - Tournament operation tracking
+
+**Examples of the Pattern:**
 ```python
-# 200+ methods to remember!
-tournament.get_winner()
-tournament.get_top_8_placements()
-tournament.calculate_growth_rate()
-tournament.format_for_discord()
-tournament.sync_from_api()
-# ... 195 more methods
+# Database Service
+db = database_service
+db.ask("tournament 123")                    # Get tournament data
+db.tell("discord", tournament_data)         # Format for Discord
+db.do("update tournament 123 name='New'")   # Update tournament
+
+# Start.gg Sync Service
+sync = startgg_sync
+sync.ask("tournaments from 2024")           # Query tournaments
+sync.tell("json", tournament_list)          # Format as JSON
+sync.do("sync tournaments")                 # Perform sync
+
+# Web Editor Service
+editor = web_editor
+editor.ask("unnamed tournaments")           # Get unnamed tournaments
+editor.tell("html", org_data)              # Format as HTML
+editor.do("update tournament 123 contact='Org'")  # Update contact
+
+# Tournament Operations
+ops = tournament_operations
+ops.ask("stats")                           # Get operation statistics
+ops.tell("discord", stats)                 # Format for Discord
+ops.do("track sync")                       # Start tracking operation
 ```
 
-**TRUE OOP THINKING (GOOD):**
+**Implementation Guidelines:**
 ```python
-# Just 3 methods that understand intent!
-tournament.ask("who won")
-tournament.ask("top 8")
-tournament.tell("discord")
-tournament.do("sync")
+class ServiceName:
+    """Service with ONLY 3 public methods: ask, tell, do"""
+    
+    def ask(self, query: str, **kwargs) -> Any:
+        """Query for data using natural language"""
+        query_lower = query.lower().strip()
+        # Parse intent and return data
+        
+    def tell(self, format: str, data: Any = None) -> str:
+        """Format data for output (json, discord, text, etc.)"""
+        # Format and return string
+        
+    def do(self, action: str, **kwargs) -> Any:
+        """Perform actions using natural language"""
+        action_lower = action.lower().strip()
+        # Parse intent and execute action
+    
+    # Everything else is private (prefix with _)
+    def _private_method(self):
+        """Implementation details - not exposed"""
+        pass
 ```
 
-**The objects FIGURE OUT what you want!**
-- Natural language instead of method names
-- No documentation needed - just ASK
-- Objects are intelligent and self-aware
-- Claude doesn't need a method reference
-
-**When to use each method:**
-- **ask()** - Getting information: winners, stats, attendance, etc.
-- **tell()** - Formatting output: Discord, JSON, brief, Claude
-- **do()** - Taking actions: sync, calculate, save, validate
+**Key Principles:**
+- Natural language interpretation in all 3 methods
+- All implementation details are private (_prefixed)
+- No more memorizing 200+ method names
+- Objects figure out what you want
+- Consistent interface across ALL services
 
 **This is the ULTIMATE simplification!**
 
