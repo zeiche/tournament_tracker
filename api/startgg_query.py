@@ -6,7 +6,7 @@ import os
 import time
 import requests
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Import centralized logging
 import sys
@@ -113,10 +113,28 @@ class StartGGQueryClient:
         self.coordinates = "34.13436, -117.95763"  # SoCal coordinates
         self.radius = "67mi"
         
-        # Current year date range (Unix timestamps)
-        current_year = datetime.now().year
-        self.current_year_start = calendar.timegm((current_year, 1, 1, 0, 0, 0))
-        self.current_year_end = calendar.timegm((current_year, 12, 31, 23, 59, 59))
+        # Date ranges for sync (Unix timestamps)
+        now = datetime.now()
+        current_year = now.year
+        
+        # Last 30 days
+        thirty_days_ago = now - timedelta(days=30)
+        self.thirty_days_start = calendar.timegm(thirty_days_ago.timetuple())
+        
+        # Current month start
+        current_month_start = datetime(now.year, now.month, 1)
+        self.current_month_start = calendar.timegm(current_month_start.timetuple())
+        
+        # Use the earlier of the two as start date (to cover both ranges)
+        self.sync_start = min(self.thirty_days_start, self.current_month_start)
+        
+        # End date is end of current month
+        if now.month == 12:
+            next_month = datetime(now.year + 1, 1, 1)
+        else:
+            next_month = datetime(now.year, now.month + 1, 1)
+        self.sync_end = calendar.timegm(next_month.timetuple())
+        
         self.current_year = current_year
         
         # Request headers
@@ -125,13 +143,17 @@ class StartGGQueryClient:
             "Authorization": f"Bearer {self.api_token}"
         }
         
-        logger.info(f"start.gg query client initialized for {current_year}")
+        # Log initialization with date range info
+        start_date = datetime.fromtimestamp(self.sync_start).strftime("%Y-%m-%d")
+        end_date = datetime.fromtimestamp(self.sync_end).strftime("%Y-%m-%d")
+        logger.info(f"start.gg query client initialized - will sync {start_date} to {end_date}")
         logger.debug(f"API endpoint: {self.api_url}")
         logger.debug(f"Search area: {self.coordinates} within {self.radius}")
     
-    def fetch_socal_tournaments(self, year_filter=True):
+    def fetch_socal_tournaments(self, date_filter=True):
         """
         Fetch tournaments from start.gg API with comprehensive data
+        Pulls last 30 days AND current month of tournaments
         Single API call with rate limiting and logging
         """
         logger.info("Fetching SoCal tournaments from start.gg")
@@ -141,13 +163,18 @@ class StartGGQueryClient:
             "radius": self.radius
         }
         
-        # Add current year date filtering if enabled
-        if year_filter:
-            variables["after"] = self.current_year_start
-            variables["before"] = self.current_year_end
-            logger.debug(f"Filtering tournaments for {self.current_year}")
+        # Add date filtering for last 30 days + current month
+        if date_filter:
+            variables["after"] = self.sync_start
+            variables["before"] = self.sync_end
+            
+            # Log the date range being fetched
+            start_date = datetime.fromtimestamp(self.sync_start).strftime("%Y-%m-%d")
+            end_date = datetime.fromtimestamp(self.sync_end).strftime("%Y-%m-%d")
+            logger.debug(f"Filtering tournaments from {start_date} to {end_date}")
+            logger.info(f"Syncing last 30 days + current month ({start_date} to {end_date})")
         else:
-            logger.debug("No year filtering applied")
+            logger.debug("No date filtering applied")
         
         payload = {
             "query": SOCAL_TOURNAMENTS_QUERY,
@@ -176,9 +203,9 @@ class StartGGQueryClient:
             tournaments = data.get('data', {}).get('tournaments', {}).get('nodes', [])
             
             api_time = time.time() - start_time
-            year_info = f" ({self.current_year} only)" if year_filter else ""
+            date_info = " (last 30 days + current month)" if date_filter else ""
             
-            logger.debug(f"API call tournaments{year_info}: {api_time:.2f}s - success")
+            logger.debug(f"API call tournaments{date_info}: {api_time:.2f}s - success")
             logger.info(f"Successfully fetched {len(tournaments)} tournaments")
             
             # Log sample tournament for debugging
@@ -186,7 +213,7 @@ class StartGGQueryClient:
                 sample = tournaments[0]
                 logger.debug(f"Sample tournament: {sample.get('name')} ({sample.get('numAttendees')} attendees)")
             
-            return tournaments, api_time, year_info
+            return tournaments, api_time, date_info
             
         except requests.RequestException as e:
             api_time = time.time() - start_time
@@ -292,10 +319,10 @@ def test_startgg_query_client():
         # Test 2: Fetch tournaments
         logger.info("TEST 2: Fetch tournaments")
         
-        tournaments, api_time, year_info = client.fetch_socal_tournaments()
+        tournaments, api_time, date_info = client.fetch_socal_tournaments()
         
         if tournaments:
-            logger.info(f"✅ Fetched {len(tournaments)} tournaments{year_info} in {api_time:.2f}s")
+            logger.info(f"✅ Fetched {len(tournaments)} tournaments{date_info} in {api_time:.2f}s")
             
             # Show sample tournament data
             if tournaments:
