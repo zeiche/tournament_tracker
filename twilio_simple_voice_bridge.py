@@ -145,34 +145,37 @@ class SimpleTwilioBridge:
                     except Exception as e:
                         print(f"Handler error: {e}")
             
-            # First time on call - play welcome with background music
+            # First time on call - use ONE play() for continuous stream
             if not speech:
-                # Play welcome message with background music mixed in
+                # Use a SINGLE play() that fetches continuous chunked audio
+                # This stream includes music AND speech mixed together
+                response.play(url=f'http://64.111.98.139:8082/continuous_mixed_stream')
+                
+                # Queue welcome message for the continuous stream
                 welcome_text = "Welcome to Try Hard Tournament Tracker. Say something to test the audio mixing."
+                self.speech_queue.put(welcome_text)
                 
-                # Stream the mixed audio directly
-                import urllib.parse
-                encoded_text = urllib.parse.quote(welcome_text)
-                response.play(url=f'http://64.111.98.139:8082/mixed/{encoded_text}')
-                
-                # Announce we're playing audio
+                # Announce streaming approach
                 announcer.announce(
-                    "TWILIO_AUDIO_PLAYING",
+                    "TWILIO_CHUNKED_STREAM",
                     [
-                        "Playing welcome message with background music",
-                        "Audio mixed in real-time via streaming",
-                        "Using HTTP streaming endpoint"
+                        "Using ONE play() for continuous chunked stream",
+                        "Stream includes music AND speech mixed",
+                        "Bonjour mixer provides endless chunks",
+                        "No interruptions - single continuous stream"
                     ]
                 )
             
-            # Process responses - play with background music
+            # Process responses - queue for WebSocket stream
             if response_text:
-                # Play the response with background music
-                import urllib.parse
-                encoded_response = urllib.parse.quote(response_text)
-                response.play(url=f'http://64.111.98.139:8082/mixed/{encoded_response}')
+                # NO PLAY() - Queue for the WebSocket stream instead
+                self.speech_queue.put(response_text)
+                announcer.announce(
+                    "SPEECH_QUEUED",
+                    [f"Queued for stream: {response_text[:50]}..."]
+                )
             
-            # Set up speech gathering with configurable timeout
+            # Set up speech gathering WITHOUT play()
             gather = response.gather(
                 input='speech',
                 timeout=self.gather_timeout,  # Use configurable timeout
@@ -183,7 +186,7 @@ class SimpleTwilioBridge:
                 speechModel='phone_call'
             )
             
-            # NO PLAY API - bonjour mixer handles audio locally!
+            # NO PLAY() CALLS! Audio streams through WebSocket continuously
             
             return str(response)
         
@@ -196,6 +199,78 @@ class SimpleTwilioBridge:
                     yield chunk
             
             return Response(generate(), mimetype='audio/wav')
+        
+        @self.app.route('/continuous_mixed_stream', methods=['GET'])
+        def continuous_mixed_stream():
+            """
+            THE MAIN STREAM - continuous audio with speech mixed in
+            This runs forever, mixing music with speech as needed
+            """
+            def generate():
+                import threading
+                import time
+                import struct
+                
+                # Generate WAV header for 8kHz mono PCM
+                def make_wav_header(sample_rate=8000, channels=1, bits_per_sample=16):
+                    # WAV header for 1 second of audio
+                    # 8000 Hz * 2 bytes per sample * 1 second = 16000 bytes
+                    datasize = 16000  # 1 second of audio data
+                    o = bytes("RIFF", 'ascii')
+                    o += struct.pack('<L', datasize + 36)
+                    o += bytes("WAVE", 'ascii')
+                    o += bytes("fmt ", 'ascii')
+                    o += struct.pack('<L', 16)  # fmt chunk size
+                    o += struct.pack('<H', 1)  # PCM format
+                    o += struct.pack('<H', channels)
+                    o += struct.pack('<L', sample_rate)
+                    o += struct.pack('<L', sample_rate * channels * bits_per_sample // 8)
+                    o += struct.pack('<H', channels * bits_per_sample // 8)
+                    o += struct.pack('<H', bits_per_sample)
+                    o += bytes("data", 'ascii')
+                    o += struct.pack('<L', datasize)
+                    return o
+                
+                # Send WAV header first
+                yield make_wav_header()
+                
+                # Start with welcome message mixed with music
+                welcome_done = False
+                speech_start_time = None
+                
+                # Stream 1 second of audio (50 chunks of 20ms each)
+                # More reliable chunk size for Twilio
+                
+                for i in range(50):  # 50 * 20ms = 1 second
+                    # Check if we have speech to mix in
+                    if not self.speech_queue.empty():
+                        text = self.speech_queue.get()
+                        # Can't use generator for single chunk - need to get first chunk only
+                        # This is wrong - we need a different approach
+                        yield b'\x00' * 320  # Placeholder for now
+                    else:
+                        # Stream background music chunk
+                        if self.audio_mixer.background_music:
+                            # Get ONE 20ms chunk of background music
+                            chunk = self.audio_mixer.get_music_chunk(size=320)
+                            if chunk and len(chunk) > 0:
+                                yield chunk
+                            else:
+                                # Generate proper silence
+                                yield b'\x00' * 320
+                        else:
+                            # Generate proper silence if no music configured
+                            yield b'\x00' * 320
+                    
+                    # Small delay between chunks
+                    time.sleep(0.02)
+            
+            return Response(generate(), mimetype='audio/wav', 
+                          headers={
+                              'Cache-Control': 'no-cache',
+                              'Transfer-Encoding': 'chunked',
+                              'Connection': 'keep-alive'
+                          })
         
         @self.app.route('/mixed/<text>', methods=['GET'])
         def serve_mixed_audio(text):

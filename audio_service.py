@@ -156,14 +156,19 @@ class AudioService:
         if not background_music:
             # No background music, just stream speech
             if speech_text and not speech_audio:
-                speech_audio = self.generate_tts(speech_text, output_format)
+                # TTS returns a generator now
+                return self.generate_tts(speech_text, output_format)
             if speech_audio:
                 return self._stream_file(speech_audio)
             return iter([])  # Empty generator
         
         # Generate TTS if needed
         if speech_text and not speech_audio:
-            speech_audio = self.generate_tts(speech_text, "wav")
+            # TTS returns a generator now, not a file path
+            tts_stream = self.generate_tts(speech_text, "wav")
+            # Mix the TTS stream with background music
+            return self._stream_mixed_tts(tts_stream, background_music, 
+                                         music_offset, ducking, duck_level)
         
         if not speech_audio:
             # Just stream background music
@@ -184,6 +189,89 @@ class AudioService:
                     yield chunk
         except Exception as e:
             announcer.announce("AudioService.ERROR", [f"Stream failed: {e}"])
+    
+    def _stream_mixed_tts(self, tts_generator, background_music,
+                         music_offset=0.0, ducking=True, duck_level=0.15):
+        """
+        Stream mixed TTS generator with background music in real-time
+        NO TEMPORARY FILES - everything streams!
+        """
+        import subprocess
+        
+        try:
+            # Create pipes for TTS input
+            import os
+            r_fd, w_fd = os.pipe()
+            
+            # Mix with ducking
+            if ducking:
+                filter_complex = (
+                    f"[1:a]volume={duck_level}[bg];"  
+                    "[0:a]volume=1.0[fg];"
+                    "[fg][bg]amix=inputs=2:duration=first:dropout_transition=0"
+                )
+            else:
+                filter_complex = (
+                    "[1:a]volume=0.35[bg];"
+                    "[0:a]volume=1.0[fg];"
+                    "[fg][bg]amix=inputs=2:duration=first:dropout_transition=0"
+                )
+            
+            # FFmpeg reads TTS from pipe
+            cmd = [
+                "ffmpeg",
+                "-f", "wav",
+                "-i", f"pipe:{r_fd}",  # Read TTS from pipe
+                "-ss", str(music_offset),
+                "-i", background_music,
+                "-filter_complex", filter_complex,
+                "-f", "wav",
+                "-ac", "1",
+                "-ar", "8000",
+                "pipe:1"
+            ]
+            
+            # Start ffmpeg process
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, 
+                                     pass_fds=(r_fd,))
+            os.close(r_fd)  # Close read end in parent
+            
+            # Feed TTS to ffmpeg in background
+            import threading
+            def feed_tts():
+                with os.fdopen(w_fd, 'wb') as pipe:
+                    for chunk in tts_generator:
+                        pipe.write(chunk)
+                    pipe.flush()
+            
+            feeder = threading.Thread(target=feed_tts, daemon=True)
+            feeder.start()
+            
+            announcer.announce("AudioService.STREAMING", [
+                "Real-time TTS+music mixing via pipes",
+                "NO files anywhere in the chain!",
+                "TTS → pipe → ffmpeg → mixed stream"
+            ])
+            
+            # Stream mixed output
+            while True:
+                chunk = process.stdout.read(4096)
+                if not chunk:
+                    break
+                    
+                # Detect and log audio
+                self.audio_detector.detection_queue.put(chunk)
+                
+                yield chunk
+            
+            process.wait()
+            feeder.join(timeout=1)
+            
+        except Exception as e:
+            announcer.announce("AudioService.ERROR", [f"TTS mixing failed: {e}"])
+            # Fallback to just TTS
+            for chunk in tts_generator:
+                yield chunk
     
     def _stream_mixed_audio(self, speech_audio, background_music, 
                            music_offset=0.0, ducking=True, duck_level=0.15):
@@ -253,9 +341,9 @@ class AudioService:
             for chunk in self._stream_file(speech_audio):
                 yield chunk
     
-    def generate_tts(self, text: str, output_format: str = "wav", voice: str = "alice") -> str:
+    def generate_tts(self, text: str, output_format: str = "wav", voice: str = "alice"):
         """
-        Generate text-to-speech audio
+        Generate text-to-speech audio AS A STREAM - NO FILES!
         
         Args:
             text: Text to convert to speech
@@ -263,46 +351,96 @@ class AudioService:
             voice: Voice to use (alice, man, woman)
             
         Returns:
-            Path to generated audio file
+            Generator that yields audio chunks (STREAMING, NO FILES!)
         """
-        output_path = os.path.join(self.temp_dir, f"tts_{os.getpid()}.{output_format}")
-        
-        # Try gTTS first (Google TTS)
+        # Try espeak with pipe output (most common on Linux)
         try:
-            from gtts import gTTS
+            import subprocess
             
-            tts = gTTS(text=text, lang='en', slow=False)
-            tts.save(output_path)
-            announcer.announce("AudioService", [f"TTS generated with gTTS: {output_path}"])
-            return output_path
+            # Use espeak to generate wav output to stdout
+            cmd = [
+                "espeak",
+                "-s", "150",  # Speed (words per minute)
+                "-a", "100",  # Amplitude (volume)
+                "--stdout",   # Output to stdout instead of file
+                text
+            ]
             
-        except ImportError:
-            print("gTTS not installed, install with: pip3 install gtts")
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            
+            announcer.announce("AudioService.TTS", [
+                "TTS streaming directly via espeak",
+                "NO FILES CREATED - pure streaming!",
+                f"Text: {text[:50]}..."
+            ])
+            
+            # Stream chunks as they're generated
+            while True:
+                chunk = process.stdout.read(4096)
+                if not chunk:
+                    break
+                yield chunk
+            
+            process.wait()
+            return
+            
+        except FileNotFoundError:
+            pass  # espeak not installed
         except Exception as e:
-            print(f"gTTS failed: {e}")
+            print(f"espeak streaming failed: {e}")
         
-        # Try pyttsx3
+        # Try flite (Festival Lite) with pipe
         try:
-            import pyttsx3
+            import subprocess
             
-            engine = pyttsx3.init()
-            engine.save_to_file(text, output_path)
-            engine.runAndWait()
-            announcer.announce("AudioService", [f"TTS generated with pyttsx3: {output_path}"])
-            return output_path
+            cmd = [
+                "flite",
+                "-t", text,  # Text to speak
+                "-o", "-"     # Output to stdout
+            ]
             
-        except ImportError:
-            print("pyttsx3 not installed, install with: pip3 install pyttsx3")
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            
+            announcer.announce("AudioService.TTS", [
+                "TTS streaming via flite",
+                "Direct streaming, no files"
+            ])
+            
+            while True:
+                chunk = process.stdout.read(4096)
+                if not chunk:
+                    break
+                yield chunk
+            
+            process.wait()
+            return
+            
+        except FileNotFoundError:
+            pass  # flite not installed
         except Exception as e:
-            print(f"pyttsx3 failed: {e}")
+            print(f"flite streaming failed: {e}")
         
-        # Fallback: Create a text file (for debugging)
-        text_path = output_path.replace(f".{output_format}", ".txt")
-        with open(text_path, 'w') as f:
-            f.write(text)
+        # Ultimate fallback: Generate silence (no TTS available)
+        announcer.announce("AudioService.TTS", [
+            "WARNING: No TTS engine available",
+            "Install espeak or flite for TTS",
+            "Returning silence stream"
+        ])
         
-        announcer.announce("AudioService", [f"TTS failed, created text file: {text_path}"])
-        return text_path
+        # Generate 1 second of silence at 8kHz mono WAV format
+        # WAV header for 8kHz mono
+        wav_header = b'RIFF' + b'\x24\x08\x00\x00' + b'WAVE'
+        wav_header += b'fmt ' + b'\x10\x00\x00\x00'  # fmt chunk size
+        wav_header += b'\x01\x00'  # PCM format
+        wav_header += b'\x01\x00'  # 1 channel (mono)
+        wav_header += b'\x40\x1f\x00\x00'  # 8000 Hz sample rate
+        wav_header += b'\x80\x3e\x00\x00'  # byte rate
+        wav_header += b'\x02\x00'  # block align
+        wav_header += b'\x10\x00'  # bits per sample
+        wav_header += b'data' + b'\x00\x08\x00\x00'  # data chunk
+        
+        silence_data = b'\x00' * 2048  # Short silence
+        yield wav_header + silence_data
     
     def play_audio(self, file_path: str, channel: Any = None) -> bool:
         """Play audio file (Discord or local)"""

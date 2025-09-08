@@ -193,6 +193,26 @@ class BonjourAudioMixer:
                     break
                 yield chunk
     
+    def get_music_chunk(self, size=4096):
+        """Get a single chunk of background music"""
+        if not hasattr(self, '_music_process'):
+            # Start music process if not running
+            import subprocess
+            cmd = [
+                "ffmpeg",
+                "-stream_loop", "-1",  # Loop forever
+                "-i", self.background_music,
+                "-filter_complex", "[0:a]volume=0.35",  # Lower volume for background
+                "-f", "wav",
+                "-ac", "1",
+                "-ar", "8000",
+                "pipe:1"
+            ]
+            self._music_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        
+        # Return a chunk
+        return self._music_process.stdout.read(size)
+    
     def get_status(self) -> dict:
         """Get mixer status"""
         return {
