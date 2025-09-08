@@ -136,8 +136,8 @@ def main():
         subprocess.run([sys.executable, 'polymorphic_voice_test.py'])
     
     elif args.twilio_bridge:
-        # Start simple Twilio bridge
-        subprocess.run([sys.executable, 'twilio_simple_bridge.py'])
+        # Start simple Twilio voice bridge with music mixing
+        subprocess.run([sys.executable, 'twilio_simple_voice_bridge.py'])
     
     elif args.call:
         # Make an outbound call

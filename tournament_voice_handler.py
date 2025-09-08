@@ -48,8 +48,10 @@ def handle_tournament_speech(speech: str, from_number: str) -> str:
                         response = f"The top {len(players)} players are: "
                     
                     for i, p in enumerate(players[:8], 1):  # Up to 8 for voice
-                        # Use first name only for brevity
-                        first_name = p.name.split()[0] if p.name else "Unknown"
+                        # Prefer gamer_tag/handle over real name
+                        display_name = p.gamer_tag if p.gamer_tag else p.name
+                        # Use first name/word only for brevity in voice
+                        first_name = display_name.split()[0] if display_name else "Unknown"
                         if i == len(players[:8]):
                             response += f"and {first_name}."
                         else:

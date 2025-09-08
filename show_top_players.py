@@ -17,8 +17,10 @@ def show_top_players_by_points():
         player_points = {}
         for p in placements:
             if p.player_id not in player_points:
+                # Prefer gamer_tag (handle) over real name
+                display_name = p.player.gamer_tag if p.player.gamer_tag else p.player.name
                 player_points[p.player_id] = {
-                    'name': p.player.name, 
+                    'name': display_name, 
                     'points': 0, 
                     'events': 0, 
                     'wins': 0,

@@ -81,23 +81,26 @@ class PolymorphicClaudeVoice:
                 # Calculate points
                 player_points = {}
                 for p in placements:
-                    if p.player and p.player.name:  # Check player exists
-                        if p.player_id not in player_points:
-                            player_points[p.player_id] = {
-                                'name': p.player.name,
-                                'points': 0
-                            }
-                        
-                        if p.placement == 1:
-                            player_points[p.player_id]['points'] += 10
-                        elif p.placement == 2:
-                            player_points[p.player_id]['points'] += 7
-                        elif p.placement == 3:
-                            player_points[p.player_id]['points'] += 5
-                        elif p.placement == 4:
-                            player_points[p.player_id]['points'] += 3
-                        elif p.placement <= 8:
-                            player_points[p.player_id]['points'] += 1
+                    if p.player:  # Check player exists
+                        # Prefer gamer_tag (handle) over real name
+                        display_name = p.player.gamer_tag if p.player.gamer_tag else p.player.name
+                        if display_name:  # Only if we have a name
+                            if p.player_id not in player_points:
+                                player_points[p.player_id] = {
+                                    'name': display_name,
+                                    'points': 0
+                                }
+                            
+                            if p.placement == 1:
+                                player_points[p.player_id]['points'] += 10
+                            elif p.placement == 2:
+                                player_points[p.player_id]['points'] += 7
+                            elif p.placement == 3:
+                                player_points[p.player_id]['points'] += 5
+                            elif p.placement == 4:
+                                player_points[p.player_id]['points'] += 3
+                            elif p.placement <= 8:
+                                player_points[p.player_id]['points'] += 1
                 
                 if not player_points:
                     return "No player data available."
