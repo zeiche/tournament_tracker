@@ -117,6 +117,8 @@ def main():
                        help='Kill existing services')
     parser.add_argument('--service-status', action='store_true',
                        help='Check service status')
+    parser.add_argument('--test-env', action='store_true',
+                       help='Test environment variables')
     
     args = parser.parse_args()
     
@@ -230,6 +232,10 @@ def main():
         print(f"Discord: {'Running' if result.returncode == 0 else 'Not running'}")
         result = subprocess.run(['pgrep', '-f', 'web_editor'], capture_output=True)
         print(f"Editor: {'Running' if result.returncode == 0 else 'Not running'}")
+    
+    elif args.test_env:
+        # Test environment
+        subprocess.run([sys.executable, 'test_env.py'])
     
     else:
         print("Specify a service to start. Use --help for options.")
