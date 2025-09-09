@@ -44,15 +44,21 @@ import argparse
 # Set authorization for go_py_guard (this is ALL we set)
 os.environ['GO_PY_AUTHORIZED'] = '1'
 
-# Load .env file for services (minimal - just read and set env vars)
-env_file = os.path.join(os.path.dirname(__file__), '.env')
-if os.path.exists(env_file):
-    with open(env_file) as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                os.environ[key.strip()] = value.strip().strip('"').strip("'")
+# Load .env files for services (check parent directory first, then local)
+# This ensures we get the API keys from the parent claude directory
+parent_env = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+local_env = os.path.join(os.path.dirname(__file__), '.env')
+
+for env_file in [parent_env, local_env]:
+    if os.path.exists(env_file):
+        with open(env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    # Only set if not already set (parent takes precedence)
+                    if key.strip() not in os.environ or not os.environ[key.strip()]:
+                        os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 def main():
     """Parse args and START services. That's ALL."""
