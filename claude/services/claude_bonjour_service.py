@@ -49,7 +49,7 @@ class ClaudeBonjourService:
     
     def __init__(self):
         self.api_key = os.getenv('ANTHROPIC_API_KEY')
-        self.model = "claude-3-haiku-20240307"
+        self.model = os.getenv('CLAUDE_MODEL', 'claude-3-haiku-20240307')
         self._api_client = None
         
         # Dynamic capability tracking

@@ -59,7 +59,7 @@ class ConversationType(Enum):
 class ClaudeConfig:
     """Configuration for Claude service"""
     api_key: Optional[str] = None
-    model: str = "claude-3-haiku-20240307"
+    model: str = os.getenv('CLAUDE_MODEL', 'claude-3-haiku-20240307')
     max_tokens: int = 4000
     temperature: float = 0.7
     web_port: int = 8082
