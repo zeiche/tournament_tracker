@@ -46,6 +46,37 @@ announcer.announce(
     ]
 )
 
+# Service handler for bonjour signals
+class WebEditorServiceHandler:
+    def __init__(self):
+        self.port = 8081
+        self.status = "running"
+        
+    def handle_signal(self, signal_type: str, data: dict = None):
+        """Handle bonjour signals"""
+        if signal_type == 'status':
+            return {
+                'status': self.status,
+                'port': self.port,
+                'url': f'http://localhost:{self.port}',
+                'uptime': 'unknown'  # Could track this if needed
+            }
+        elif signal_type == 'ping':
+            return 'pong'
+        elif signal_type == 'info':
+            return {
+                'service': 'Web Editor',
+                'version': '2.0',
+                'polymorphic': True,
+                'methods': ['ask', 'tell', 'do']
+            }
+        else:
+            return f'Unknown signal: {signal_type}'
+
+# Register with bonjour
+service_handler = WebEditorServiceHandler()
+announcer.register_service('Web Editor Service', service_handler)
+
 class OrganizationEditor:
     """Web editor service with ONLY 3 public methods: ask, tell, do
     

@@ -12,6 +12,7 @@ class SynchronousEvents:
     def __init__(self):
         self.announcements = []
         self.listeners = []  # Functions that listen for announcements
+        self.service_registry = {}  # Map service names to their handlers
     
     def add_listener(self, listener_func):
         """Add a listener function that gets called on every announcement"""
@@ -59,6 +60,54 @@ class SynchronousEvents:
                     print(f"Listener error: {e}")
         
         return self
+    
+    def register_service(self, service_name: str, handler):
+        """
+        Register a service handler that can respond to signals.
+        
+        Args:
+            service_name: Name of the service
+            handler: Object or function that handles signals (must have handle_signal method or be callable)
+        """
+        self.service_registry[service_name] = handler
+    
+    def send_signal(self, signal_type: str, target_service: str = None, data: dict = None):
+        """
+        Send a signal to services (like Bonjour discovery).
+        
+        Args:
+            signal_type: Type of signal ('status', 'ping', 'info', etc.)
+            target_service: Specific service to target, or None for broadcast
+            data: Optional data to include with signal
+        
+        Returns:
+            Dict of service responses
+        """
+        responses = {}
+        
+        if target_service:
+            # Send to specific service
+            if target_service in self.service_registry:
+                handler = self.service_registry[target_service]
+                try:
+                    if hasattr(handler, 'handle_signal'):
+                        responses[target_service] = handler.handle_signal(signal_type, data)
+                    elif callable(handler):
+                        responses[target_service] = handler(signal_type, data)
+                except Exception as e:
+                    responses[target_service] = {'error': str(e)}
+        else:
+            # Broadcast to all services
+            for service_name, handler in self.service_registry.items():
+                try:
+                    if hasattr(handler, 'handle_signal'):
+                        responses[service_name] = handler.handle_signal(signal_type, data)
+                    elif callable(handler):
+                        responses[service_name] = handler(signal_type, data)
+                except Exception as e:
+                    responses[service_name] = {'error': str(e)}
+        
+        return responses
     
     def get_announcements_for_claude(self) -> str:
         """

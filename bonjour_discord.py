@@ -27,19 +27,11 @@ class BonjourDiscord:
     """Minimal Discord capability - just announces messages"""
     
     def __init__(self):
-        # Load token
+        # ONLY use environment variable - NO fallback to .env file
         self.token = os.getenv('DISCORD_BOT_TOKEN')
-        if not self.token:
-            env_file = Path(__file__).parent / '.env'
-            if env_file.exists():
-                with open(env_file, 'r') as f:
-                    for line in f:
-                        if line.startswith('DISCORD_BOT_TOKEN='):
-                            self.token = line.split('=', 1)[1].strip().strip('"').strip("'")
-                            break
         
         if not self.token:
-            raise ValueError("No Discord token found!")
+            raise ValueError("No Discord token found in environment! Set DISCORD_BOT_TOKEN")
         
         # Setup minimal Discord client
         intents = discord.Intents.default()
@@ -48,6 +40,29 @@ class BonjourDiscord:
         
         # Message handlers - anyone can register
         self.message_handlers = []
+        
+        # Register with bonjour for status signals
+        announcer.register_service('Discord Bot', self)
+    
+    def handle_signal(self, signal_type: str, data: dict = None):
+        """Handle bonjour signals"""
+        if signal_type == 'status':
+            return {
+                'status': 'running' if self.client.is_ready() else 'connecting',
+                'connected': self.client.is_ready(),
+                'guilds': len(self.client.guilds) if self.client.is_ready() else 0,
+                'latency': f'{self.client.latency * 1000:.2f}ms' if self.client.is_ready() else 'N/A'
+            }
+        elif signal_type == 'ping':
+            return 'pong'
+        elif signal_type == 'info':
+            return {
+                'service': 'Discord Bot',
+                'bot_name': 'try-hard#8718',
+                'features': ['voice', 'text', 'bonjour']
+            }
+        else:
+            return f'Unknown signal: {signal_type}'
         
         # Announce ourselves
         announcer.announce(

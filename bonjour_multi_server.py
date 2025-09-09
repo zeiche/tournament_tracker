@@ -203,13 +203,16 @@ class BonjourMultiServer:
             thread.start()
             
             self.servers[port] = (server, thread)
+            return True
             
         except PermissionError:
+            # This shouldn't happen anymore with CAP_NET_BIND_SERVICE
             announcer.announce(
                 f"Permission denied for port {port}",
-                ["Need sudo for ports below 1024"]
+                ["Python needs CAP_NET_BIND_SERVICE capability"]
             )
-            print(f"❌ Port {port}: Permission denied (need sudo)")
+            print(f"❌ Port {port}: Permission denied (run: sudo setcap 'cap_net_bind_service=+ep' /usr/bin/python3.12)")
+            return False
             
         except OSError as e:
             if e.errno == 98:  # Address already in use
@@ -220,6 +223,7 @@ class BonjourMultiServer:
                 print(f"⚠️  Port {port}: Already in use")
             else:
                 print(f"❌ Port {port}: {e}")
+            return False
     
     def start_all(self):
         """Start servers on all configured ports"""

@@ -78,6 +78,24 @@ class DatabaseService:
         if any(word in query_lower for word in ["stats", "statistics", "summary"]):
             return self._get_summary_stats()
         
+        # Rankings queries (check before other categories)
+        if any(word in query_lower for word in ["ranking", "leaderboard", "top", "best"]) and "tournament" not in query_lower:
+            # Check what type of ranking is requested
+            if "organization" in query_lower or "org" in query_lower:
+                # Organization rankings
+                limit = self._extract_number(query, default=50)
+                return self._get_organization_rankings(limit)
+            elif "player" not in query_lower:
+                # If neither player nor org specified, check context
+                # If it has "org" anywhere, it's probably organizations
+                if "org" in query_lower:
+                    limit = self._extract_number(query, default=50)
+                    return self._get_organization_rankings(limit)
+            
+            # Default to player rankings
+            limit = self._extract_number(query, default=50)
+            return self._get_player_rankings(limit)
+        
         # Tournament queries
         if "tournament" in query_lower:
             # Check for specific tournament ID
@@ -104,24 +122,29 @@ class DatabaseService:
         
         # Player queries
         if "player" in query_lower:
-            # Check for specific player
-            parts = query.split()
-            if len(parts) > 1:
-                # Last word might be player name/id
-                player_ref = parts[-1]
-                if player_ref.isdigit():
-                    return self._get_player_by_id(int(player_ref))
-                else:
-                    # Search by name
-                    return self._search_player_by_name(player_ref)
-            
-            # Check for rankings
-            if "top" in query_lower or "ranking" in query_lower:
+            # Check for rankings FIRST (before trying to parse player names)
+            if "top" in query_lower or "ranking" in query_lower or "best" in query_lower or "leaderboard" in query_lower:
                 limit = self._extract_number(query, default=50)
                 return self._get_player_rankings(limit)
-            elif "all" in query_lower:
+            
+            # Check for specific player
+            parts = query.split()
+            if len(parts) > 1 and "all" not in query_lower:
+                # Last word might be player name/id
+                player_ref = parts[-1]
+                # But skip if it's a common word like "players"
+                if player_ref != "players" and player_ref != "player":
+                    if player_ref.isdigit():
+                        return self._get_player_by_id(int(player_ref))
+                    else:
+                        # Search by name
+                        return self._search_player_by_name(player_ref)
+            
+            # Check for all players
+            if "all" in query_lower:
                 return self._get_all_players()
             else:
+                # Default to rankings
                 return self._get_player_rankings(50)
         
         # Organization queries
@@ -159,9 +182,19 @@ class DatabaseService:
         if "heatmap" in query_lower or "heat map" in query_lower:
             return self._get_tournament_heatmap_data()
         
+        # "All" or "everything" queries - return comprehensive data
+        if query_lower in ["all", "everything", "show all", "list all", "get all"]:
+            return {
+                "players": self._get_player_rankings(10),  # Top 10 players
+                "recent_tournaments": self._get_recent_tournaments(10),  # Recent 10 tournaments
+                "organizations": self._get_all_organizations()[:10],  # Top 10 orgs
+                "stats": self._get_summary_stats(),
+                "help": "Showing top 10 of each category. Use 'all players', 'all tournaments', etc. for complete lists"
+            }
+        
         # Default - try to be helpful
         announcer.announce("Database Query", [f"Interpreting: {query}"])
-        return {"query": query, "help": "Try: 'tournament 123', 'top players', 'recent tournaments', 'stats'"}
+        return {"query": query, "help": "Try: 'tournament 123', 'top players', 'recent tournaments', 'stats', 'all'"}
     
     def tell(self, format: str, data: Any = None) -> str:
         """
@@ -517,6 +550,54 @@ class DatabaseService:
                     'contacts_json': org.contacts_json
                 }
             return None
+    
+    def _get_organization_rankings(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get organization rankings - organizations are independent entities"""
+        from models.tournament_models import Organization, Tournament
+        from sqlalchemy import func
+        
+        with self._session_scope() as session:
+            # Organizations are independent - they're identified from tournament owner_name
+            # Count tournaments by owner_name matching organization display_name
+            organizations = session.query(Organization).all()
+            
+            org_stats = []
+            for org in organizations:
+                # Count tournaments where owner_name matches this org
+                tournament_count = session.query(Tournament).filter(
+                    Tournament.owner_name == org.display_name
+                ).count()
+                
+                # Sum attendance for those tournaments
+                total_attendance = session.query(
+                    func.sum(Tournament.num_attendees)
+                ).filter(
+                    Tournament.owner_name == org.display_name
+                ).scalar() or 0
+                
+                org_stats.append({
+                    'id': org.id,
+                    'display_name': org.display_name,
+                    'tournament_count': tournament_count,
+                    'total_attendance': total_attendance
+                })
+            
+            # Sort by tournament count (descending)
+            org_stats.sort(key=lambda x: x['tournament_count'], reverse=True)
+            
+            # Add ranks and limit
+            rankings = org_stats[:limit]
+            
+            return [
+                {
+                    'rank': i + 1,
+                    'id': r['id'],
+                    'display_name': r['display_name'],
+                    'tournament_count': r['tournament_count'],
+                    'total_attendance': r['total_attendance']
+                }
+                for i, r in enumerate(rankings)
+            ]
     
     def _get_player_by_id(self, player_id: int) -> Optional[Dict]:
         """Get a specific player by ID"""
@@ -900,6 +981,39 @@ class DatabaseService:
     
     def _format_for_discord(self, data: Any) -> str:
         """Format data for Discord output"""
+        # Handle "all" query results specially
+        if isinstance(data, dict) and "players" in data and "recent_tournaments" in data:
+            output = []
+            
+            if "stats" in data:
+                stats = data["stats"]
+                output.append("📊 **Database Overview**")
+                output.append(f"• {stats.total_tournaments} tournaments")
+                output.append(f"• {stats.total_players} players")
+                output.append(f"• {stats.total_organizations} organizations")
+                output.append("")
+            
+            if "players" in data and data["players"]:
+                output.append("🏆 **Top Players**")
+                for p in data["players"][:5]:
+                    output.append(f"{p['rank']}. {p['gamer_tag']} - {p['points']} pts")
+                if len(data["players"]) > 5:
+                    output.append(f"... and {len(data['players']) - 5} more")
+                output.append("")
+            
+            if "recent_tournaments" in data and data["recent_tournaments"]:
+                output.append("🎮 **Recent Tournaments**")
+                for t in data["recent_tournaments"][:5]:
+                    output.append(f"• {t['name']} ({t.get('num_attendees', 0)} players)")
+                if len(data["recent_tournaments"]) > 5:
+                    output.append(f"... and {len(data['recent_tournaments']) - 5} more")
+                output.append("")
+            
+            if "help" in data:
+                output.append(f"ℹ️ {data['help']}")
+            
+            return "\n".join(output)
+        
         if isinstance(data, DatabaseStats):
             return f"""📊 **Database Statistics**
 Tournaments: {data.total_tournaments}
@@ -911,17 +1025,46 @@ Tournaments with standings: {data.tournaments_with_standings}"""
         if isinstance(data, list) and data:
             # Format list items
             output = []
-            for item in data[:10]:  # Limit to 10 for Discord
+            for i, item in enumerate(data[:25]):  # Show up to 25 items
                 if isinstance(item, dict):
                     # Format dict items nicely
-                    if 'rank' in item:
-                        output.append(f"{item['rank']}. {item.get('gamer_tag', item.get('organization', 'Unknown'))}")
+                    if 'rank' in item and 'gamer_tag' in item:
+                        # Player ranking
+                        output.append(f"{item['rank']}. {item['gamer_tag']} - {item.get('points', 0)} pts")
+                    elif 'display_name' in item:
+                        # Organization
+                        org_name = item['display_name']
+                        contacts = []
+                        if 'contacts_json' in item:
+                            import json
+                            try:
+                                contact_list = json.loads(item['contacts_json'])
+                                for c in contact_list[:2]:  # Show first 2 contacts
+                                    if c['type'] == 'discord':
+                                        contacts.append(f"Discord: {c['value'].split('/')[-1]}")
+                                    elif c['type'] == 'email':
+                                        contacts.append(f"Email: {c['value']}")
+                            except:
+                                pass
+                        contact_str = " | ".join(contacts) if contacts else "No contacts"
+                        output.append(f"• **{org_name}** - {contact_str}")
+                    elif 'name' in item and 'num_attendees' in item:
+                        # Tournament
+                        output.append(f"• {item['name']} ({item.get('num_attendees', 0)} players)")
                     elif 'name' in item:
                         output.append(f"• {item['name']}")
                     else:
-                        output.append(f"• {str(item)}")
+                        # Generic dict - show key fields
+                        if 'id' in item:
+                            output.append(f"• ID {item['id']}: {item.get('name', item.get('display_name', 'Unknown'))}")
+                        else:
+                            output.append(f"• {str(item)[:100]}...")  # Truncate long dicts
                 else:
                     output.append(f"• {str(item)}")
+            
+            if len(data) > 25:
+                output.append(f"... and {len(data) - 25} more")
+            
             return "\n".join(output)
         
         return str(data)

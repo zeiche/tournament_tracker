@@ -69,12 +69,22 @@ def main():
     # Service start flags
     parser.add_argument('--discord-bot', action='store_true',
                        help='START Discord bot service')
+    parser.add_argument('--discord-lightweight', action='store_true',
+                       help='START Discord with lightweight intelligence (no LLM)')
+    parser.add_argument('--bridge', type=str, metavar='TYPE',
+                       help='START a bridge service (use --list-bridges to see options)')
+    parser.add_argument('--list-bridges', action='store_true',
+                       help='List available bridge services')
     parser.add_argument('--edit-contacts', action='store_true',
                        help='START web editor service')
     parser.add_argument('--ai-chat', action='store_true',
                        help='START AI chat service')
     parser.add_argument('--interactive', action='store_true',
-                       help='START async interactive Claude with Bonjour discovery')
+                       help='START interactive bridge (auto-selects backend)')
+    parser.add_argument('--interactive-backend', type=str, 
+                       choices=['auto', 'lightweight', 'ollama', 'claude'],
+                       default='auto',
+                       help='Backend for interactive mode (default: auto)')
     
     # Sync/report flags (just start the process)
     parser.add_argument('--sync', action='store_true',
@@ -109,8 +119,22 @@ def main():
     # Bonjour discovery
     parser.add_argument('--bonjour-monitor', action='store_true',
                        help='START Bonjour announcement monitor')
+    parser.add_argument('--advertisements', action='store_true',
+                       help='Show current bonjour advertisements (non-blocking)')
     parser.add_argument('--discover', action='store_true',
                        help='START dynamic command discovery')
+    parser.add_argument('--bonjour-server', nargs='*', metavar='PORTS',
+                       help='START Bonjour Universal Server on specified ports (or common ports if none given)')
+    parser.add_argument('--ollama-bonjour', action='store_true',
+                       help='START Ollama Bonjour intelligence service (Claude\'s little brother)')
+    parser.add_argument('--ollama-bridge', action='store_true',
+                       help='START Ollama Bonjour bridge (async monitor)')
+    parser.add_argument('--ollama', action='store_true',
+                       help='START Ollama interactive mode (same as --ollama-bonjour)')
+    parser.add_argument('--ollama-interactive', action='store_true',
+                       help='START Ollama in interactive mode with stdin')
+    parser.add_argument('--lightweight', action='store_true',
+                       help='START Lightweight pattern intelligence (no LLM needed)')
     
     # Web screenshot service
     parser.add_argument('--screenshot', type=str, metavar='URL',
@@ -133,6 +157,18 @@ def main():
         # Start discord bot
         subprocess.run([sys.executable, 'bonjour_discord.py'])
     
+    elif args.discord_lightweight:
+        # Start Discord with lightweight intelligence (using bridge module)
+        subprocess.run([sys.executable, 'bridges/bridge_launcher.py', 'discord-lightweight'])
+    
+    elif args.bridge:
+        # Start a specific bridge service
+        subprocess.run([sys.executable, 'bridges/bridge_launcher.py', args.bridge])
+    
+    elif args.list_bridges:
+        # List available bridges
+        subprocess.run([sys.executable, 'bridges/bridge_launcher.py', '--list'])
+    
     elif args.edit_contacts:
         # Start web editor
         subprocess.run([sys.executable, 'services/web_editor.py'])
@@ -142,8 +178,9 @@ def main():
         subprocess.run([sys.executable, 'claude_service.py'])
     
     elif args.interactive:
-        # Start async interactive Claude
-        subprocess.run([sys.executable, 'claude/interactive.py'])
+        # Start interactive bridge with selected backend
+        backend = args.interactive_backend if hasattr(args, 'interactive_backend') else 'auto'
+        subprocess.run([sys.executable, 'bridges/interactive_bridge.py', '--backend', backend])
     
     elif args.sync:
         # Start sync
@@ -211,9 +248,38 @@ def main():
         # Start Bonjour monitor
         subprocess.run([sys.executable, 'utils/bonjour_monitor.py', 'live'])
     
+    elif args.advertisements:
+        # Show current advertisements (non-blocking)
+        subprocess.run([sys.executable, 'show_advertisements.py'])
+    
     elif args.discover:
         # Start discovery service
         subprocess.run([sys.executable, 'utils/bonjour_discovery_service.py'])
+    
+    elif args.bonjour_server is not None:
+        # Start Bonjour Universal Server
+        if args.bonjour_server:
+            # Specific ports provided
+            subprocess.run([sys.executable, 'bonjour_universal_server.py'] + args.bonjour_server)
+        else:
+            # No ports specified, use defaults
+            subprocess.run([sys.executable, 'bonjour_universal_server.py'])
+    
+    elif args.ollama_bonjour or args.ollama:
+        # Start Ollama Bonjour intelligence service
+        subprocess.run([sys.executable, '-u', 'ollama_bonjour/ollama_service.py'])
+    
+    elif args.ollama_interactive:
+        # Start Ollama in interactive mode with stdin connected
+        subprocess.call([sys.executable, '-u', 'ollama_bonjour/ollama_service.py'])
+    
+    elif args.ollama_bridge:
+        # Start Ollama Bonjour bridge (async monitor)
+        subprocess.run([sys.executable, 'ollama_bonjour/bonjour_bridge.py'])
+    
+    elif args.lightweight:
+        # Start lightweight pattern intelligence (no LLM)
+        subprocess.call([sys.executable, '-u', 'lightweight_bonjour.py'])
     
     elif args.screenshot:
         # Capture screenshot of URL
@@ -229,15 +295,59 @@ def main():
         subprocess.run(['pkill', '-f', 'polymorphic_discord'], stderr=subprocess.DEVNULL)
         subprocess.run(['pkill', '-f', 'web_editor'], stderr=subprocess.DEVNULL)
         subprocess.run(['pkill', '-f', 'editor_service'], stderr=subprocess.DEVNULL)
-        print("Services killed")
+        print("Services stopped")
+        
+        # Wait a moment for ports to be released
+        import time
+        time.sleep(1)
+        
+        # Start services back up (environment already loaded at top of go.py)
+        subprocess.Popen([sys.executable, 'bonjour_discord.py'])
+        subprocess.Popen([sys.executable, 'services/web_editor.py'])
+        print("Services restarted")
     
     elif args.service_status:
-        # Check status
-        print("=== Service Status ===")
-        result = subprocess.run(['pgrep', '-f', 'discord'], capture_output=True)
-        print(f"Discord: {'Running' if result.returncode == 0 else 'Not running'}")
-        result = subprocess.run(['pgrep', '-f', 'web_editor'], capture_output=True)
-        print(f"Editor: {'Running' if result.returncode == 0 else 'Not running'}")
+        # Check status using bonjour signals
+        print("=== Service Status (via Bonjour Signals) ===")
+        
+        try:
+            sys.path.append('/home/ubuntu/claude/tournament_tracker')
+            from polymorphic_core import announcer
+            
+            # Send status signal to all registered services
+            print("Sending status signal to all services...")
+            responses = announcer.send_signal('status')
+            
+            if responses:
+                print("\n=== Service Responses ===")
+                for service_name, response in responses.items():
+                    if isinstance(response, dict) and 'error' in response:
+                        print(f"{service_name}: ERROR - {response['error']}")
+                    else:
+                        print(f"{service_name}: {response}")
+            else:
+                print("No services responded to status signal")
+            
+            # Also show registered services
+            if announcer.service_registry:
+                print(f"\n=== Registered Services ({len(announcer.service_registry)}) ===")
+                for service_name in announcer.service_registry:
+                    print(f"  • {service_name}")
+            
+            # Show announcements
+            context = announcer.get_announcements_for_claude()
+            if context and "No services" not in context:
+                print("\n=== Service Announcements ===")
+                print(context)
+                
+        except Exception as e:
+            print(f"Error checking service status: {e}")
+            # Fallback to basic process check
+            print("\n=== Fallback: Process Check ===")
+            result = subprocess.run(['pgrep', '-f', 'discord'], capture_output=True)
+            print(f"Discord: {'Running' if result.returncode == 0 else 'Not running'}")
+            result = subprocess.run(['pgrep', '-f', 'web_editor'], capture_output=True)
+            print(f"Editor: {'Running' if result.returncode == 0 else 'Not running'}")
     
     elif args.test_env:
         # Test environment

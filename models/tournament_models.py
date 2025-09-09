@@ -2736,3 +2736,40 @@ def determine_contact_type(contact: str) -> str:
         return 'phone'
     else:
         return 'name'
+
+# ============================================================================
+# BONJOUR ANNOUNCEMENT
+# ============================================================================
+
+# Import and announce capabilities when module is loaded
+try:
+    from polymorphic_core import announcer
+    
+    # Announce the tournament models and their capabilities
+    announcer.announce(
+        "Tournament Models (Enhanced OOP)",
+        [
+            "200+ methods across Tournament, Player, Organization models",
+            "Intelligent objects with built-in analytics",
+            "Relationship traversal and cross-object queries", 
+            "Geographic intelligence via LocationMixin",
+            "Temporal tracking via TimestampMixin",
+            "Performance metrics: win_rate, podium_rate, consistency_score",
+            "Tournament metrics: is_major, growth_rate, venue_quality",
+            "Organization management: merge, contacts, network analysis",
+            "Player journey tracking and skill progression",
+            "Rich query builders with chainable methods",
+            "Cached properties for expensive calculations",
+            "SQLAlchemy ORM with type-safe operations"
+        ],
+        examples=[
+            "tournament.distance_to(lat, lng) - Calculate distance",
+            "player.win_rate - Get win percentage",
+            "org.merge_into(target) - Merge organizations",
+            "Tournament.get_major_tournaments(session) - Query majors",
+            "player.get_tournament_history() - Get player journey"
+        ]
+    )
+except ImportError:
+    # Bonjour not available, continue without announcement
+    pass

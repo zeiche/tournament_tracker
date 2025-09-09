@@ -100,11 +100,11 @@ class TournamentTracker:
         logger.info("Generating HTML tournament report")
         
         try:
-            # Use UnifiedVisualizer instead of duplicate HTML generation
-            from visualizer import UnifiedVisualizer
+            # Use GraphicsService instead of duplicate HTML generation
+            from graphics_service import GraphicsService
             from database_service import DatabaseService
             
-            viz = UnifiedVisualizer()
+            viz = GraphicsService()
             db = DatabaseService()
             
             # Get organization data
