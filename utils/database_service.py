@@ -3,6 +3,10 @@
 database_service.py - Database service with ONLY ask/tell/do methods
 All database operations go through these 3 polymorphic methods.
 """
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from typing import Any, Dict, List, Optional, Union
 from contextlib import contextmanager
 from dataclasses import dataclass

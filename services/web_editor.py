@@ -18,10 +18,12 @@ import urllib.parse
 import json
 import re
 from typing import Any, Optional, Union, Dict, List
-from tournament_models import Tournament, Organization, BaseModel, normalize_contact
+import html
+
+# Import after path setup
+from models.tournament_models import Tournament, Organization, BaseModel, normalize_contact
 from utils.database_service import database_service
 from polymorphic_core import announcer
-import html
 
 # Announce module capabilities on import
 announcer.announce(

@@ -46,25 +46,38 @@ class SSLProxyService:
             ]
         )
         
-        # SSL setup
+        # SSL setup - Use Let's Encrypt certificates
         self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        
+        # Try Let's Encrypt certificates first
+        le_cert_path = pathlib.Path(__file__).parent / "fullchain.pem"
+        le_key_path = pathlib.Path(__file__).parent / "privkey.pem"
+        
+        # Fallback to self-signed if Let's Encrypt not available
         cert_path = pathlib.Path(__file__).parent / "server.crt"
         key_path = pathlib.Path(__file__).parent / "server.key"
         
-        if cert_path.exists() and key_path.exists():
+        if le_cert_path.exists() and le_key_path.exists():
+            self.ssl_context.load_cert_chain(le_cert_path, le_key_path)
+            announcer.announce(
+                "SSL_CERTIFICATES_LOADED",
+                [f"Let's Encrypt certificates loaded from {le_cert_path}"],
+                ["Ready for secure connections with valid SSL"]
+            )
+        elif cert_path.exists() and key_path.exists():
             self.ssl_context.load_cert_chain(cert_path, key_path)
             announcer.announce(
                 "SSL_CERTIFICATES_LOADED",
-                [f"Certificates loaded from {cert_path}"],
-                ["Ready for secure connections"]
+                [f"Self-signed certificates loaded from {cert_path}"],
+                ["Ready for secure connections (self-signed)"]
             )
         else:
             announcer.announce(
                 "SSL_CERTIFICATES_MISSING",
-                [f"No certificates at {cert_path}"],
+                [f"No certificates found at {le_cert_path} or {cert_path}"],
                 ["Cannot provide SSL without certificates"]
             )
-            raise FileNotFoundError(f"SSL certificates not found at {cert_path}")
+            raise FileNotFoundError(f"SSL certificates not found")
     
     async def handle_client(self, client_ws, path):
         """Handle incoming SSL WebSocket and forward to backend."""

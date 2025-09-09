@@ -104,6 +104,12 @@ def main():
     parser.add_argument('--discover', action='store_true',
                        help='START dynamic command discovery')
     
+    # Web screenshot service
+    parser.add_argument('--screenshot', type=str, metavar='URL',
+                       help='Capture screenshot of URL')
+    parser.add_argument('--screenshot-service', action='store_true',
+                       help='START web screenshot service')
+    
     # Process management
     parser.add_argument('--restart-services', action='store_true',
                        help='Kill existing services')
@@ -119,7 +125,7 @@ def main():
     
     elif args.edit_contacts:
         # Start web editor
-        subprocess.run([sys.executable, 'editor_service.py'])
+        subprocess.run([sys.executable, 'services/web_editor.py'])
     
     elif args.ai_chat:
         # Start AI chat
@@ -127,23 +133,23 @@ def main():
     
     elif args.sync:
         # Start sync
-        subprocess.run([sys.executable, 'sync_service.py'])
+        subprocess.run([sys.executable, 'tournament_domain/services/sync_service.py'])
     
     elif args.sync_and_publish:
         # Start sync and publish
-        subprocess.run([sys.executable, 'sync_and_publish.py'])
+        subprocess.run([sys.executable, 'tournament_domain/services/sync_and_publish.py'])
     
     elif args.console:
         # Start report
-        subprocess.run([sys.executable, 'tournament_report.py'])
+        subprocess.run([sys.executable, 'tournament_domain/analytics/tournament_report.py'])
     
     elif args.heatmap:
         # Start heatmap
-        subprocess.run([sys.executable, 'tournament_heatmap.py'])
+        subprocess.run([sys.executable, 'tournament_domain/analytics/tournament_heatmap.py'])
     
     elif args.stats:
         # Start stats
-        subprocess.run([sys.executable, 'database_service.py', '--stats'])
+        subprocess.run([sys.executable, 'utils/database_service.py', '--stats'])
     
     elif args.voice_test:
         # Start polymorphic voice test
@@ -189,11 +195,19 @@ def main():
     
     elif args.bonjour_monitor:
         # Start Bonjour monitor
-        subprocess.run([sys.executable, 'bonjour_monitor.py', 'live'])
+        subprocess.run([sys.executable, 'utils/bonjour_monitor.py', 'live'])
     
     elif args.discover:
         # Start discovery service
-        subprocess.run([sys.executable, 'bonjour_discovery_service.py'])
+        subprocess.run([sys.executable, 'utils/bonjour_discovery_service.py'])
+    
+    elif args.screenshot:
+        # Capture screenshot of URL
+        subprocess.run([sys.executable, 'services/web_screenshot_service.py', args.screenshot])
+    
+    elif args.screenshot_service:
+        # Start screenshot service
+        subprocess.run([sys.executable, 'services/web_screenshot_service.py'])
     
     elif args.restart_services:
         # Kill services
