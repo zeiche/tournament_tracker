@@ -4,9 +4,10 @@ test_claude_bonjour.py - Test the enhanced Claude service with Bonjour discovery
 """
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directories to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from services.claude_bonjour_service import claude_bonjour, ask_claude_with_discovery, get_claude_capabilities
+from claude.services.claude_bonjour_service import claude_bonjour, ask_claude_with_discovery, get_claude_capabilities
 from polymorphic_core import announcer
 import time
 

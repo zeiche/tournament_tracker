@@ -22,15 +22,28 @@ logger = logging.getLogger(__name__)
 # Environment variables are already loaded by go.py
 # load_dotenv() - REMOVED: Duplicate loading
 
+# Add parent directories to path for imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 # Use the single database service
-from database_service import database_service
+from utils.database_service import database_service
 
 # Import fuzzy search for user query processing
-from fuzzy_search import fuzzy_searcher, fuzzy_search_objects
+# from utils.fuzzy_search import fuzzy_searcher, fuzzy_search_objects
+# Note: fuzzy_search not available, will implement inline if needed
 
 # Import for graceful shutdown
-from capability_announcer import announcer
-from shutdown_coordinator import on_shutdown
+# from utils.capability_announcer import announcer
+# from utils.shutdown_coordinator import on_shutdown
+# Note: Using polymorphic_core announcer instead
+from polymorphic_core import announcer
+
+# Mock on_shutdown for now
+def on_shutdown(func):
+    """Decorator for shutdown handlers - placeholder"""
+    return func
 
 
 class ConversationType(Enum):
@@ -325,13 +338,11 @@ class ClaudeService:
             # Get all players for fuzzy matching
             all_players = database_service.get_all_players()
             
-            # Use fuzzy search to find best match
-            matches = fuzzy_search_objects(
-                player_name,
-                all_players,
-                key_func=lambda p: p.gamertag if hasattr(p, 'gamertag') else str(p),
-                limit=1
-            )
+            # Simple name matching without fuzzy search
+            matches = [
+                p for p in all_players
+                if player_name.lower() in (p.gamertag if hasattr(p, 'gamertag') else str(p)).lower()
+            ][:1]
             
             if matches:
                 player = matches[0]

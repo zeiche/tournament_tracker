@@ -4,10 +4,11 @@ compare_claude_services.py - Show the difference between old and new Claude serv
 """
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directories to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Only import the new service for comparison
-from services.claude_bonjour_service import claude_bonjour as new_claude
+from claude.services.claude_bonjour_service import claude_bonjour as new_claude
 from polymorphic_core import announcer
 
 
