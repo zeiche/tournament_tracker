@@ -25,7 +25,7 @@ def voice_stream():
 <Response>
     <Say voice="alice">Connecting to tournament tracker real-time system...</Say>
     <Connect>
-        <Stream url="wss://0-page.com:8443/">
+        <Stream url="wss://0-page.com:8094/">
             <Parameter name="caller" value="{from_number}"/>
             <Parameter name="mode" value="tournament_chat"/>
         </Stream>

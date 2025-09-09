@@ -12,6 +12,7 @@ import sys
 sys.path.append('..')
 from universal_polymorphic import PolymorphicModel
 from models.mixins import TimestampMixin
+from polymorphic_core import announcer
 
 
 class Organization(PolymorphicModel, TimestampMixin):
@@ -346,3 +347,26 @@ class Organization(PolymorphicModel, TimestampMixin):
             "do('merge', other=...)",
             "do('analyze')"
         ]
+
+
+# Announce Organization Model Service
+announcer.announce(
+    "Organization Model Service",
+    [
+        "Polymorphic organization data model with ask/tell/do interface",
+        "Tournament organizer contact and information management",
+        "Organization merging and duplicate resolution",
+        "Tournament history and venue tracking per organization",
+        "Contact information management (Discord, Twitter, etc.)",
+        "Natural language organization queries and updates",
+        "Discord-friendly organization formatting and stats",
+        "Organization network analysis and relationship tracking"
+    ],
+    examples=[
+        "org.ask('tournaments')",
+        "org.ask('contacts')",
+        "org.ask('venues')",
+        "org.tell('discord', org_data)",
+        "org.do('add contact', type='discord', value='@user')"
+    ]
+)

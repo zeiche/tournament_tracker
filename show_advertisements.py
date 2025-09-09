@@ -17,9 +17,9 @@ from services import web_editor
 # Try to import graphics services
 failed_imports = []
 try:
-    from utils import visualizer
+    from utils import graphics_service
 except Exception as e:
-    failed_imports.append(f"visualizer: {e}")
+    failed_imports.append(f"graphics_service: {e}")
 
 try:
     from tournament_domain.analytics import tournament_heatmap
@@ -37,6 +37,18 @@ try:
     from models import tournament_models
 except Exception as e:
     failed_imports.append(f"tournament_models: {e}")
+
+# Try to import math services
+try:
+    from math_services import visualization_math, statistical_math, geometric_math, data_transforms
+except Exception as e:
+    failed_imports.append(f"math_services: {e}")
+
+# Try to import visualization services
+try:
+    from visualization_services import heatmap_service, chart_service, map_service
+except Exception as e:
+    failed_imports.append(f"visualization_services: {e}")
 
 # Just print what's currently advertised
 print("\n📡 Current Bonjour Advertisements:")

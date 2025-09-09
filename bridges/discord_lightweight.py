@@ -81,7 +81,11 @@ class DiscordLightweightBridge(BaseBridge):
 • stats
 • sync"""
             
-            # Everything else - let database handle it
+            # Visualization requests - route to proper visualization services
+            elif 'heatmap' in query_lower or 'heat map' in query_lower:
+                return await self._handle_heatmap_request(message, query)
+            
+            # Everything else - let database handle it (pure data queries)
             else:
                 result = self.db.ask(query)
                 
@@ -100,6 +104,72 @@ class DiscordLightweightBridge(BaseBridge):
                     
         except Exception as e:
             return f"Error: {str(e)}\nTry 'help' for examples."
+    
+    async def _handle_heatmap_request(self, message, query: str) -> str:
+        """Handle heatmap requests with potential image upload"""
+        try:
+            from visualization_services import heatmap_service
+            import discord
+            import os
+            
+            query_lower = query.lower()
+            
+            # Check if user wants an image/picture
+            wants_image = any(word in query_lower for word in ['picture', 'image', 'png', 'generate']) or ('show' in query_lower and 'me' in query_lower)
+            
+            if wants_image:
+                # Request image generation
+                result = heatmap_service.ask("generate image for tournament heatmap")
+                
+                if isinstance(result, dict) and 'image_path' in result:
+                    # Upload the image to Discord
+                    image_path = result['image_path']
+                    if os.path.exists(image_path):
+                        try:
+                            # Send the image file
+                            with open(image_path, 'rb') as f:
+                                discord_file = discord.File(f, filename='tournament_heatmap.png')
+                                await message.channel.send(
+                                    f"🗺️ **{result.get('title', 'Tournament Heatmap')}**\n"
+                                    f"📊 {result.get('data_points', 0)} tournament locations\n"
+                                    f"📁 {result.get('size', 0):,} bytes",
+                                    file=discord_file
+                                )
+                            
+                            # Clean up temporary file
+                            try:
+                                os.unlink(image_path)
+                            except:
+                                pass
+                            
+                            self.message_count += 1
+                            return None  # Already sent the response with image
+                        
+                        except Exception as upload_error:
+                            return f"Image generated but upload failed: {upload_error}"
+                    else:
+                        return "Image generation completed but file not found"
+                        
+                elif isinstance(result, dict) and 'error' in result:
+                    return f"Image generation failed: {result['error']}"
+                else:
+                    return "Image generation returned unexpected result"
+            
+            else:
+                # User wants data, not image
+                result = heatmap_service.ask(query)
+                
+                if result:
+                    formatted = f"Generated heatmap with {len(result)} tournament locations"
+                    self.message_count += 1
+                    return formatted
+                else:
+                    return "No heatmap data available"
+                    
+        except ImportError:
+            return "Visualization services not available"
+        except Exception as e:
+            return f"Heatmap request failed: {str(e)}"
     
     def start_discord_bot(self):
         """Start the Discord bot connection"""
@@ -126,7 +196,10 @@ class DiscordLightweightBridge(BaseBridge):
             
             # Process with the bridge
             response = await self.process(message)
-            await message.channel.send(response)
+            
+            # Only send text response if we got one (None means already handled)
+            if response is not None:
+                await message.channel.send(response)
         
         # Start the bot
         print(f"🚀 Starting {self.name}...")

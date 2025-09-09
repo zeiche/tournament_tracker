@@ -63,25 +63,7 @@ class InputHandler:
         else:
             return {'data': input_data}
 
-# Announce module capabilities on import
-announcer.announce(
-    "Unified Visualizer",
-    [
-        "Generate heat maps for tournament locations",
-        "Create HTML reports and tables",
-        "Build interactive Folium maps",
-        "Generate player ranking visualizations",
-        "Create tournament attendance graphs",
-        "Produce organization statistics charts",
-        "Accept ANY input format polymorphically",
-        "Output to HTML, PNG, or interactive formats"
-    ],
-    [
-        "visualizer.visualize(data)",
-        "visualizer.heatmap(tournaments)",
-        "visualizer.html_report(stats)"
-    ]
-)
+# Note: Graphics Service announces itself in the class definition below
 
 
 class GraphicsService:
@@ -1132,6 +1114,100 @@ class GraphicsService:
         else:
             return text_content
 
+    # ========================================================================
+    # POLYMORPHIC INTERFACE - ask/tell/do methods
+    # ========================================================================
+    
+    def ask(self, query: str, data: Any = None, **kwargs) -> Any:
+        """Process graphics requests using natural language"""
+        query_lower = query.lower().strip()
+        
+        # Heatmap requests
+        if 'heatmap' in query_lower:
+            if 'image' in query_lower or 'generate' in query_lower:
+                # Generate image file and return metadata
+                import tempfile
+                import os
+                from datetime import datetime
+                
+                if not data:
+                    return {"error": "No data provided for heatmap"}
+                
+                # Generate temp file path  
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                temp_dir = tempfile.gettempdir()
+                image_path = os.path.join(temp_dir, f'heatmap_{timestamp}.png')
+                
+                # Generate heatmap
+                result = self.heatmap(data, image_path, **kwargs)
+                
+                if result and os.path.exists(image_path):
+                    # Return metadata about the generated image
+                    data_points = len(data) if isinstance(data, list) else 'unknown'
+                    return {
+                        'image_path': image_path,
+                        'data_points': data_points,
+                        'format': 'png',
+                        'size': os.path.getsize(image_path),
+                        'title': f'Heatmap - {data_points} data points'
+                    }
+                else:
+                    return {"error": "Failed to generate heatmap image"}
+            else:
+                # Return heatmap data/HTML
+                return self.heatmap(data, **kwargs)
+        
+        # Map requests
+        elif 'map' in query_lower:
+            return self.map(data, **kwargs)
+        
+        # Chart requests
+        elif 'chart' in query_lower or 'graph' in query_lower:
+            return self.chart(data, **kwargs)
+        
+        # General visualization
+        elif 'visual' in query_lower or 'generate' in query_lower:
+            return self.visualize(data, **kwargs)
+        
+        else:
+            return f"Unknown graphics query: {query}"
+    
+    def tell(self, format: str, data: Any = None) -> str:
+        """Format graphics results for output"""
+        if format == "json":
+            import json
+            return json.dumps(data, indent=2, default=str)
+        elif format == "discord":
+            if isinstance(data, dict) and 'image_path' in data:
+                return f"Generated {data.get('format', 'image')} with {data.get('data_points', 'unknown')} data points"
+            else:
+                return f"Graphics result: {type(data).__name__}"
+        elif format == "html":
+            if isinstance(data, str) and data.endswith('.html'):
+                return f"<a href='{data}'>View visualization</a>"
+            else:
+                return str(data)
+        else:
+            return str(data)
+    
+    def do(self, action: str, data: Any = None, **kwargs) -> Any:
+        """Perform graphics actions"""
+        action_lower = action.lower().strip()
+        
+        if 'generate' in action_lower:
+            if 'heatmap' in action_lower:
+                return self.heatmap(data, **kwargs)
+            elif 'map' in action_lower:
+                return self.map(data, **kwargs)
+            elif 'chart' in action_lower:
+                return self.chart(data, **kwargs)
+            else:
+                return self.visualize(data, **kwargs)
+        elif 'create' in action_lower:
+            return self.visualize(data, **kwargs)
+        else:
+            return f"Unknown graphics action: {action}"
+
 
 # ============================================================================
 # GLOBAL INSTANCE - The ONE visualizer
@@ -1223,4 +1299,4 @@ if __name__ == "__main__":
     
     print("\n" + "=" * 60)
     print("✅ Unified Visualizer ready!")
-    print("Import with: from visualizer import visualize, heatmap, map, chart")
+    print("Import with: from utils.graphics_service import visualize, heatmap, map, chart")

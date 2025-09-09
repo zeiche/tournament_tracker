@@ -12,6 +12,7 @@ import sys
 sys.path.append('..')
 from universal_polymorphic import PolymorphicModel
 from models.mixins import TimestampMixin
+from polymorphic_core import announcer
 
 
 class Player(PolymorphicModel, TimestampMixin):
@@ -283,3 +284,25 @@ class Player(PolymorphicModel, TimestampMixin):
             "do('calculate points')",
             "do('update stats')"
         ]
+
+
+# Announce Player Model Service
+announcer.announce(
+    "Player Model Service",
+    [
+        "Polymorphic player data model with ask/tell/do interface",
+        "Player statistics and tournament performance tracking",
+        "Win rate calculations and ranking analysis",
+        "Character mains and social media integration",
+        "Natural language player queries and updates",
+        "Discord-friendly player profile formatting",
+        "Automatic points calculation and statistics updates"
+    ],
+    examples=[
+        "player.ask('points')",
+        "player.ask('win rate')",
+        "player.ask('recent tournaments')",
+        "player.tell('discord', player_data)",
+        "player.do('calculate points')"
+    ]
+)

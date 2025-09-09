@@ -178,9 +178,17 @@ class DatabaseService:
                 search_term = match.group(1)
                 return self._search_all(search_term)
         
-        # Heatmap data
-        if "heatmap" in query_lower or "heat map" in query_lower:
-            return self._get_tournament_heatmap_data()
+        # REMOVED: Heatmap logic moved to visualization_services.heatmap_service
+        # Database service should only know about data, not visualizations.
+        # Use: from visualization_services import heatmap_service; heatmap_service.ask('heatmap')
+        
+        # Location queries for visualization services (pure data queries)
+        if query_lower in ["tournaments with locations"]:
+            return self._get_tournaments_with_location()
+        elif query_lower in ["players with tournament locations"]:
+            return self._get_players_with_locations() 
+        elif query_lower in ["organizations with locations"]:
+            return self._get_organizations_with_locations()
         
         # "All" or "everything" queries - return comprehensive data
         if query_lower in ["all", "everything", "show all", "list all", "get all"]:
@@ -484,12 +492,45 @@ class DatabaseService:
             ]
     
     def _get_tournament_heatmap_data(self) -> List[tuple]:
-        """Get tournament data for heatmap visualization"""
+        """
+        Get tournament data for heatmap visualization
+        
+        DEPRECATED: Use visualization_services.heatmap_service for heatmap requests.
+        This method provides raw data only. For proper visualization architecture,
+        use the heatmap service which orchestrates database → math → graphics layers.
+        """
         tournaments = self._get_tournaments_with_location()
         return [
             (t['lat'], t['lng'], t.get('num_attendees', 1))
             for t in tournaments
         ]
+    
+    def _get_players_with_locations(self) -> List[Dict]:
+        """Get players with their tournament location data (for visualization services)"""
+        # This would need implementation based on player-tournament relationships
+        # For now, return empty list
+        return []
+    
+    def _get_organizations_with_locations(self) -> List[Dict]:
+        """Get organizations with their location data (for visualization services)"""
+        from models.tournament_models import Organization
+        
+        with self._session_scope() as session:
+            orgs = session.query(Organization).filter(
+                Organization.lat.isnot(None),
+                Organization.lng.isnot(None)
+            ).all()
+            
+            return [
+                {
+                    'id': org.id,
+                    'name': org.organization_name,
+                    'lat': org.lat,
+                    'lng': org.lng,
+                    'tournament_count': getattr(org, 'tournament_count', 0)
+                }
+                for org in orgs
+            ]
     
     def _get_all_tournaments(self) -> List[Dict]:
         """Get all tournaments"""

@@ -201,6 +201,10 @@ async def main():
     """Start the WebSocket server with SSL support."""
     handler = TwilioStreamHandler()
     
+    # Create a proper handler function
+    def websocket_handler(websocket):
+        return handler.handle_websocket(websocket, websocket.path)
+    
     port = 8087
     
     # SSL context setup
@@ -223,7 +227,7 @@ async def main():
     
     # Start WebSocket server with SSL
     async with websockets.serve(
-        handler.handle_websocket,
+        websocket_handler,
         "0.0.0.0",
         port,
         ssl=ssl_context,

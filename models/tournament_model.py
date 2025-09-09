@@ -11,6 +11,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
 from sqlalchemy.orm import relationship, Session
 from universal_polymorphic import PolymorphicModel
 from models.mixins import TimestampMixin, LocationMixin
+from polymorphic_core import announcer
 
 
 class Tournament(PolymorphicModel, TimestampMixin, LocationMixin):
@@ -219,3 +220,26 @@ class Tournament(PolymorphicModel, TimestampMixin, LocationMixin):
             "do('sync')",
             "do('calculate stats')"
         ]
+
+
+# Announce Tournament Model Service
+announcer.announce(
+    "Tournament Model Service",
+    [
+        "Polymorphic tournament data model with ask/tell/do interface",
+        "Tournament attendance and venue information tracking",
+        "Geographic location analysis with coordinate support",
+        "Tournament classification (major/minor/weekly events)",
+        "Top 8 placements and standings integration",
+        "Natural language tournament queries and updates",
+        "Discord-friendly tournament formatting and display",
+        "Automatic statistics calculation and sync operations"
+    ],
+    examples=[
+        "tournament.ask('attendance')",
+        "tournament.ask('is major')",
+        "tournament.ask('top 8')",
+        "tournament.tell('discord', tournament_data)",
+        "tournament.do('sync with startgg')"
+    ]
+)
