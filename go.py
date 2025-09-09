@@ -67,6 +67,8 @@ def main():
                        help='START web editor service')
     parser.add_argument('--ai-chat', action='store_true',
                        help='START AI chat service')
+    parser.add_argument('--interactive', action='store_true',
+                       help='START async interactive Claude with Bonjour discovery')
     
     # Sync/report flags (just start the process)
     parser.add_argument('--sync', action='store_true',
@@ -130,6 +132,10 @@ def main():
     elif args.ai_chat:
         # Start AI chat
         subprocess.run([sys.executable, 'claude_service.py'])
+    
+    elif args.interactive:
+        # Start async interactive Claude
+        subprocess.run([sys.executable, 'claude/interactive.py'])
     
     elif args.sync:
         # Start sync
