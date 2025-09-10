@@ -38,6 +38,10 @@ class RealBonjourAnnouncer:
             self.announcer = announcer
         
         def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+            # Skip if we already know about this service
+            if name in self.announcer.discovered_services:
+                return
+                
             info = zc.get_service_info(type_, name)
             if info:
                 # Parse service capabilities from TXT records
@@ -61,7 +65,7 @@ class RealBonjourAnnouncer:
                 
                 self.announcer.discovered_services[name] = service_data
                 
-                # Notify listeners
+                # Notify listeners (only once per service)
                 for listener in self.announcer.listeners:
                     try:
                         listener(
@@ -85,7 +89,7 @@ class RealBonjourAnnouncer:
     
     def announce(self, service_name: str, capabilities: List[str], examples: List[str] = None, port: int = None):
         """
-        Announce a service on the network using real mDNS.
+        Announce a service on the network using real mDNS - NON-BLOCKING!
         
         Args:
             service_name: Name of the service
@@ -95,62 +99,85 @@ class RealBonjourAnnouncer:
         """
         examples = examples or []
         
-        # Get a free port if none specified
-        if port is None:
-            sock = socket.socket()
-            sock.bind(('', 0))
-            port = sock.getsockname()[1]
-            sock.close()
+        # Skip if already announced
+        if service_name in self.announced_services:
+            return self
         
-        # Get local IP
-        hostname = socket.gethostname()
-        local_ip = socket.gethostbyname(hostname)
+        # Do the announcement in a background thread to avoid blocking
+        import threading
+        def _announce_background():
+            try:
+                # Get a free port if none specified
+                if port is None:
+                    sock = socket.socket()
+                    sock.bind(('', 0))
+                    port_to_use = sock.getsockname()[1]
+                    sock.close()
+                else:
+                    port_to_use = port
+                
+                # Get local IP (cached to avoid repeated DNS lookups)
+                if not hasattr(self, '_local_ip'):
+                    hostname = socket.gethostname()
+                    self._local_ip = socket.gethostbyname(hostname)
+                    self._hostname = hostname
+                
+                # Create TXT record properties
+                properties = {
+                    'capabilities': ','.join(capabilities),
+                    'examples': '|'.join(examples),
+                    'type': 'tournament-service',
+                    'version': '1.0'
+                }
+                
+                # Convert to bytes for zeroconf (limit to 255 bytes per value)
+                txt_properties = {}
+                for key, value in properties.items():
+                    # Truncate long values to avoid zeroconf error
+                    value_str = str(value)
+                    if len(value_str) > 200:  # Leave some margin
+                        value_str = value_str[:200] + "..."
+                    txt_properties[key.encode()[:63]] = value_str.encode()[:255]
+                
+                # Create service info
+                service_full_name = f"{service_name}.{self.service_type}"
+                info = ServiceInfo(
+                    self.service_type,
+                    service_full_name,
+                    addresses=[socket.inet_aton(self._local_ip)],
+                    port=port_to_use,
+                    properties=txt_properties,
+                    server=f"{self._hostname}.local."
+                )
+                
+                # Register the service with retry logic
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        self.zeroconf.register_service(info)
+                        self.announced_services[service_name] = info
+                        print(f"📡 Announced: {service_name} on {self._local_ip}:{port_to_use}")
+                        break
+                    except Exception as e:
+                        if attempt == max_retries - 1:  # Last attempt
+                            if "already registered" in str(e).lower():
+                                print(f"⚠️  {service_name} already registered (OK)")
+                            else:
+                                print(f"❌ Failed to announce {service_name} after {max_retries} attempts: {e}")
+                        else:
+                            # Wait a bit before retry
+                            import time
+                            time.sleep(0.1 * (attempt + 1))
+                
+            except Exception as e:
+                print(f"❌ Failed to announce {service_name}: {e}")
         
-        # Create TXT record properties
-        properties = {
-            'capabilities': ','.join(capabilities),
-            'examples': '|'.join(examples),
-            'type': 'tournament-service',
-            'version': '1.0'
-        }
+        # Start background thread
+        thread = threading.Thread(target=_announce_background, daemon=True)
+        thread.start()
         
-        # Convert to bytes for zeroconf (limit to 255 bytes per value)
-        txt_properties = {}
-        for key, value in properties.items():
-            # Truncate long values to avoid zeroconf error
-            value_str = str(value)
-            if len(value_str) > 200:  # Leave some margin
-                value_str = value_str[:200] + "..."
-            txt_properties[key.encode()[:63]] = value_str.encode()[:255]
-        
-        # Create service info
-        service_full_name = f"{service_name}.{self.service_type}"
-        info = ServiceInfo(
-            self.service_type,
-            service_full_name,
-            addresses=[socket.inet_aton(local_ip)],
-            port=port,
-            properties=txt_properties,
-            server=f"{hostname}.local."
-        )
-        
-        # Register the service
-        try:
-            self.zeroconf.register_service(info)
-            self.announced_services[service_name] = info
-            print(f"📡 Announced: {service_name} on {local_ip}:{port}")
-            
-            # Also add to local registry for backward compatibility
-            if hasattr(self, 'announcements'):
-                self.announcements.append({
-                    'service': service_name,
-                    'capabilities': capabilities,
-                    'examples': examples
-                })
-            
-        except Exception as e:
-            print(f"❌ Failed to announce {service_name}: {e}")
-        
+        # Return immediately - don't block!
+        print(f"🚀 Starting mDNS announcement for {service_name}...")
         return self
     
     def discover_services(self) -> Dict[str, Dict]:

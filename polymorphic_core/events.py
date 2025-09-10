@@ -1,23 +1,13 @@
 #!/usr/bin/env python3
 """
-events.py - Real Bonjour/mDNS network discovery
-All fake announcements stripped - only real network discovery remains.
+events.py - Hybrid Service Discovery
+Fast local announcements + Real network discovery where appropriate.
+Smart routing based on service characteristics.
 """
 
-from .real_bonjour import RealBonjourAnnouncer
+from .hybrid_announcer import HybridAnnouncer, announcer, CapabilityAnnouncer, announces_capability
 
-# Global real mDNS announcer - no more fake fallback
-announcer = RealBonjourAnnouncer()
-CapabilityAnnouncer = RealBonjourAnnouncer
-
-def announces_capability(service_name: str, *capabilities):
-    """Decorator for auto-announcing capabilities via real mDNS"""
-    def decorator(obj):
-        announcer.announce(service_name, list(capabilities))
-        return obj
-    return decorator
-
-# Exports - only real Bonjour
+# Export everything from hybrid announcer
 __all__ = ['announcer', 'CapabilityAnnouncer', 'announces_capability']
 
-print("🎉 Using REAL Bonjour/mDNS only - fake announcements stripped!")
+print("🎯 Using Hybrid Service Discovery - fast local + real network!")
