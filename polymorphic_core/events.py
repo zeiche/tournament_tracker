@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
 """
-events.py - Hybrid Service Discovery
-Fast local announcements + Real network discovery where appropriate.
-Smart routing based on service characteristics.
+events.py - Pure mDNS Service Discovery
+Real network discovery only. No fake announcements, no local registry.
+Services discover each other via actual Bonjour protocol.
 """
 
-from .hybrid_announcer import HybridAnnouncer, announcer, CapabilityAnnouncer, announces_capability
+from .real_bonjour import RealBonjourAnnouncer
 
-# Export everything from hybrid announcer
+# Pure mDNS - no compromises
+announcer = RealBonjourAnnouncer()
+CapabilityAnnouncer = RealBonjourAnnouncer
+
+def announces_capability(service_name: str, *capabilities):
+    """Decorator for announcing capabilities via real mDNS only"""
+    def decorator(obj):
+        announcer.announce(service_name, list(capabilities))
+        return obj
+    return decorator
+
 __all__ = ['announcer', 'CapabilityAnnouncer', 'announces_capability']
 
-print("🎯 Using Hybrid Service Discovery - fast local + real network!")
+print("🌐 Using PURE mDNS Service Discovery - real network only!")

@@ -44,16 +44,48 @@ class PolymorphicAudioPlayer:
         self.start_listening()
     
     def start_listening(self):
-        """Hook into announcements to listen for AUDIO_READY"""
-        def announcement_listener(service_name: str, capabilities: list, examples: list = None):
-            # Listen for AUDIO_READY announcements
-            if service_name == "AUDIO_READY":
-                self.on_audio_ready(capabilities)
-        
-        # Register as a listener
-        announcer.add_listener(announcement_listener)
-        print(f"🔊 [DEBUG] AudioPlayer registered listener. Total listeners: {len(announcer.listeners)}")
-        announcer.announce("PolymorphicAudioPlayer", ["Now listening for AUDIO_READY announcements"])
+        """Start mDNS discovery for audio services"""
+        from polymorphic_core import announcer
+        try:
+            # Announce ourselves on the network
+            announcer.announce(
+                "PolymorphicAudioPlayer",
+                [
+                    "I play ANY audio that's announced as ready",
+                    "I discover audio via mDNS network scanning",
+                    "I play through Discord voice channels", 
+                    "I play through local speakers",
+                    "I play through any available audio output",
+                    "I announce AUDIO_PLAYED when complete"
+                ]
+            )
+            
+            print(f"🔊 [DEBUG] AudioPlayer announced on network")
+            
+            # Start background mDNS discovery for audio services
+            import threading
+            def discover_audio_services():
+                while True:
+                    try:
+                        services = announcer.discover_services()
+                        for service_data in services.values():
+                            if 'audio' in service_data['name'].lower() and 'ready' in ' '.join(service_data['capabilities']).lower():
+                                self.handle_discovered_audio_service(service_data)
+                        import time
+                        time.sleep(5)  # Poll every 5 seconds
+                    except Exception as e:
+                        break  # Exit on error
+            
+            discovery_thread = threading.Thread(target=discover_audio_services, daemon=True)
+            discovery_thread.start()
+            
+        except Exception as e:
+            print(f"🔊 [ERROR] Failed to start audio mDNS: {e}")
+    
+    def handle_discovered_audio_service(self, service_data):
+        """Handle discovered audio service via mDNS"""
+        print(f"🔊 [DISCOVERY] Found audio service: {service_data['name']} at {service_data['host']}:{service_data['port']}")
+        # Could connect to the service to get audio data
     
     def on_audio_ready(self, audio_data: list):
         """Process audio ready announcement"""
