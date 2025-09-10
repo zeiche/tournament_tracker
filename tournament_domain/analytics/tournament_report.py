@@ -8,13 +8,32 @@ import httpx
 import datetime
 import time
 from collections import defaultdict
-from database_service import database_service
+from utils.database_service import database_service
 from log_manager import LogManager
+from polymorphic_core import announcer
 
 # Initialize logger for this module
 logger = LogManager().get_logger('tournament_report')
 from visualizer import UnifiedVisualizer
 from tournament_stylesheet import get_inline_styles, format_rank_badge
+
+# Announce tournament reporting service via mDNS
+announcer.announce(
+    "Tournament Report Service",
+    [
+        "Generate HTML tournament reports and rankings",
+        "Create console reports for terminal display",
+        "Publish attendance data to Shopify",
+        "Format player rankings with styling",
+        "Export data to various formats",
+        "Tournament data visualization and reporting"
+    ],
+    [
+        "main() - Generate complete tournament report",
+        "generate_html_report() - Create HTML output",
+        "publish_to_shopify() - Update Shopify pages"
+    ]
+)
 
 def get_display_name(primary_contact, data, org_names):
     """Get the best display name for a contact group"""

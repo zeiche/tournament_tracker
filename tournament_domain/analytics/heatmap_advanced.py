@@ -8,11 +8,32 @@ import json
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from database_utils import get_session
-from tournament_models import Tournament, Organization, Player, TournamentPlacement
+from models.tournament_models import Tournament, Organization, Player, TournamentPlacement
 from log_manager import LogManager
+from polymorphic_core import announcer
 
 # Initialize logger for this module
 logger = LogManager().get_logger('heatmap_advanced')
+
+# Announce this advanced service via mDNS
+announcer.announce(
+    "Advanced Heatmap Generator",
+    [
+        "Generate player skill geography heatmaps",
+        "Create growth velocity maps over time",
+        "Show player journey paths and trajectories",
+        "Map community networks via venues",
+        "Venue quality scoring based on usage",
+        "Temporal flow maps for seasonal patterns",
+        "Competitive cluster analysis",
+        "Uses rich object relationships for impossible insights"
+    ],
+    [
+        "generator.generate_player_skill_geography()",
+        "generator.generate_growth_velocity_map()",
+        "generator.generate_player_journey_paths(player_id)"
+    ]
+)
 
 
 class AdvancedHeatmapGenerator:

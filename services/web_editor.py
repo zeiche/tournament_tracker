@@ -2,6 +2,7 @@
 """
 Web-based tournament organization editor
 Replaces the curses TUI with a web interface accessible via lynx
+Self-manages web editor process.
 
 NOW USING POLYMORPHIC ask/tell/do PATTERN:
 - ask(query) - Get data: "unnamed tournaments", "organizations", "rankings"
@@ -19,11 +20,25 @@ import json
 import re
 from typing import Any, Optional, Union, Dict, List
 import html
+import csv
+import io
 
 # Import after path setup
 from models.tournament_models import Tournament, Organization, BaseModel, normalize_contact
 from utils.database_service import database_service
 from polymorphic_core import announcer
+
+try:
+    from polymorphic_core.process_management import BaseProcessManager
+except ImportError:
+    BaseProcessManager = object
+
+class WebEditorProcessManager(BaseProcessManager):
+    """Process manager for Web Editor service"""
+    
+    SERVICE_NAME = "WebEditor"
+    PROCESSES = ['services/web_editor.py']
+    PORTS = [8081]
 
 # Announce module capabilities on import
 announcer.announce(
@@ -135,7 +150,6 @@ class OrganizationEditor:
         
         elif 'tournament' in query_lower:
             # Check for specific ID
-            import re
             match = re.search(r'\d+', query)
             if match:
                 tournament_id = int(match.group())
@@ -208,8 +222,7 @@ class OrganizationEditor:
     
     def _get_session(self):
         """Get database session"""
-        from database import get_session
-        return get_session()
+        return database_service.get_session()
         
     def _is_contact_unnamed(self, primary_contact):
         """Determine if a primary contact needs naming"""
@@ -305,7 +318,6 @@ class OrganizationEditor:
     def _get_organization_rankings(self):
         """Get organization rankings by tournament count"""
         from sqlalchemy import func
-        from tournament_models import Tournament
         
         with self._get_session() as session:
             # Query for organization rankings
@@ -383,8 +395,6 @@ class OrganizationEditor:
     
     def _format_csv(self, data: Any) -> str:
         """Format data as CSV"""
-        import csv
-        import io
         
         if isinstance(data, list) and data and isinstance(data[0], dict):
             output = io.StringIO()
@@ -397,7 +407,6 @@ class OrganizationEditor:
     
     def _do_update_tournament(self, action: str, **kwargs) -> str:
         """Update tournament contact"""
-        import re
         
         # Parse tournament ID
         id_match = re.search(r'tournament\s+(\d+)', action)
@@ -423,7 +432,6 @@ class OrganizationEditor:
     
     def _do_create_organization(self, action: str, **kwargs) -> str:
         """Create new organization"""
-        import re
         
         # Parse name
         name_match = re.search(r'name\s*=\s*["\']?([^"\'\n]+)["\']?', action)
@@ -448,7 +456,6 @@ class OrganizationEditor:
     
     def _do_merge_organizations(self, action: str, **kwargs) -> str:
         """Merge organizations"""
-        import re
         
         # Parse IDs
         match = re.search(r'(\d+)\s+into\s+(\d+)', action)
@@ -458,7 +465,7 @@ class OrganizationEditor:
         source_id = int(match.group(1))
         target_id = int(match.group(2))
         
-        # TODO: Implement merge logic
+        # Merge functionality not yet implemented
         return f"Would merge organization {source_id} into {target_id} (not implemented)"
 
 # Singleton instance
@@ -775,6 +782,10 @@ def run_server(port=8081, host='127.0.0.1'):
     print(f"Starting web editor on port {port}")
     print(f"Access with: lynx http://localhost:{port}")
     httpd.serve_forever()
+
+# Create global process manager instance to announce capabilities
+if BaseProcessManager != object:  # Only if we have the real class
+    _web_editor_process_manager = WebEditorProcessManager()
 
 if __name__ == '__main__':
     run_server()

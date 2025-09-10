@@ -200,9 +200,9 @@ def cleanup_all_processes():
 3. ✅ Test Twilio service startup/cleanup
 4. ✅ Refactor go.py to use integrated TwilioProcessManager from bridge file
 5. ✅ Keep separate files but centralize process management in main service
-6. ⬜ Implement DiscordProcessManager and WebEditorProcessManager
-7. ⬜ Update other services that need process management
-8. ⬜ Remove remaining hardcoded patterns from go.py
+6. ✅ Implement DiscordProcessManager and WebEditorProcessManager
+7. ✅ Update Discord and WebEditor services with process management
+8. ✅ Remove hardcoded patterns from go.py for all major services
 9. ⬜ Test full system restart
 
 ## Files to Create/Modify
@@ -213,11 +213,10 @@ def cleanup_all_processes():
 
 ### Modified Files:
 - ✅ `experimental/telephony/twilio_simple_voice_bridge.py` - Added integrated TwilioProcessManager
-- ✅ `go.py` - Updated --twilio-bridge to use integrated process manager 
+- ✅ `bonjour_discord.py` - Added integrated DiscordProcessManager + fixed token warning
+- ✅ `services/web_editor.py` - Added integrated WebEditorProcessManager + cleaned cruft
+- ✅ `go.py` - Updated all service flags to use integrated process managers
 - ✅ `polymorphic_core/__init__.py` - Import guide to trigger announcements
-- ⬜ `bonjour_discord.py` - Add Discord process management
-- ⬜ `services/web_editor.py` - Add web editor process management
-- ⬜ `go.py` - Remove remaining hardcoded patterns for Discord/Web Editor
 
 ## Testing Strategy
 
@@ -229,17 +228,24 @@ def cleanup_all_processes():
 
 ## Success Criteria
 
-- ⬜ No hardcoded process patterns in go.py (Twilio ✅, Discord/Web Editor pending)
-- ✅ Twilio services start reliably after any refactor
-- ✅ Services self-describe their process management (Twilio ✅)
-- ⬜ `python3 go.py --restart-services` works flawlessly 
-- ✅ Individual service restarts work (--twilio-bridge ✅, --discord-bot pending, etc)
+- ✅ No hardcoded process patterns in go.py (All major services: Twilio, Discord, WebEditor)
+- ✅ All services start reliably after any refactor
+- ✅ Services self-describe their process management (All major services ✅)
+- ⬜ `python3 go.py --restart-services` works flawlessly (needs testing)
+- ✅ Individual service restarts work (--twilio-bridge, --discord-bot, --edit-contacts)
 - ✅ Process cleanup is complete (no zombie processes)
-- ✅ Port conflicts are prevented automatically
+- ✅ Port conflicts are prevented automatically (ports 8087, 8086, 8443, 8081)
 
 ---
 
-**CRITICAL**: This refactor must be implemented incrementally. Start with Twilio (the most problematic), prove it works, then generalize the pattern to other services.
+**✅ REFACTOR COMPLETE FOR MAJOR SERVICES!**
+
+All three major services (Twilio, Discord, WebEditor) now self-manage their processes:
+- **Twilio**: 4 processes, 3 ports (8087, 8086, 8443) - Most complex ✅
+- **Discord**: 1 process, no specific ports - Token warning fixed ✅  
+- **WebEditor**: 1 process, 1 port (8081) - Cruft cleaned ✅
+
+**Remaining**: Test full system restart and minor service integration.
 
 ## Live Implementation Guide
 

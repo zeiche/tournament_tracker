@@ -6,12 +6,29 @@ Creates both static images and interactive HTML maps
 
 import json
 import numpy as np
-from database_service import database_service
+from utils.database_service import database_service
 from models.tournament_models import Tournament
 from log_manager import LogManager
+from polymorphic_core import announcer
 
 # Initialize logger for this module
 logger = LogManager().get_logger('tournament_heatmap')
+
+# Announce this service via mDNS
+announcer.announce(
+    "Tournament Heatmap Service",
+    [
+        "Generate static PNG heatmaps of tournament locations",
+        "Create interactive HTML maps with Folium",
+        "Focus on Southern California tournament density",
+        "Support multiple heatmap styles and backgrounds",
+        "Export to high-resolution images"
+    ],
+    [
+        "generate_static_heatmap('socal_tournaments.png')",
+        "generate_interactive_heatmap('tournaments.html')"
+    ]
+)
 
 def generate_static_heatmap(output_file='tournament_heatmap.png', dpi=150, use_map_background=True):
     """

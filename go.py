@@ -174,8 +174,17 @@ def main():
         subprocess.run([sys.executable, 'bridges/bridge_launcher.py', '--list'])
     
     elif args.edit_contacts:
-        # Start web editor using ProcessManager (prevents duplicates)
-        ProcessManager.restart_service('services/web_editor.py')
+        # Start Web Editor using self-managing service
+        try:
+            from services.web_editor import _web_editor_process_manager
+            print("Starting Web Editor via integrated WebEditorProcessManager...")
+            pids = _web_editor_process_manager.start_services()
+            print(f"Web Editor started with PIDs: {pids}")
+        except (ImportError, NameError) as e:
+            print(f"Integrated WebEditorProcessManager not available: {e}")
+            # Fallback to old method
+            print("Falling back to manual process management...")
+            ProcessManager.restart_service('services/web_editor.py')
     
     elif args.ai_chat:
         # Start AI chat
@@ -321,10 +330,16 @@ def main():
             killed_polymorphic = ProcessManager.kill_pattern('polymorphic_discord')
             ProcessManager.start_service_safe('bonjour_discord.py', check_existing=False)
         
-        # Web Editor still using old method (will be updated next)
-        killed_web = ProcessManager.kill_pattern('web_editor')
-        killed_editor = ProcessManager.kill_pattern('editor_service')
-        ProcessManager.start_service_safe('services/web_editor.py', check_existing=False)
+        # Restart Web Editor using its process manager
+        try:
+            from services.web_editor import _web_editor_process_manager
+            web_pids = _web_editor_process_manager.start_services()
+            print(f"Web Editor restarted with PIDs: {web_pids}")
+        except (ImportError, NameError) as e:
+            print(f"Web Editor ProcessManager not available, using fallback: {e}")
+            killed_web = ProcessManager.kill_pattern('web_editor')
+            killed_editor = ProcessManager.kill_pattern('editor_service')
+            ProcessManager.start_service_safe('services/web_editor.py', check_existing=False)
         
         print("Services restarted")
     
