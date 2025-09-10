@@ -2,13 +2,23 @@
 """
 bonjour_discord.py - Minimal Discord capability that announces itself
 Just receives messages and announces them. That's it.
+Self-manages Discord bot processes.
 """
 
 import discord
 import asyncio
 import os
+import sys
 from pathlib import Path
+
+sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker')
+
 from polymorphic_core import announcer, register_capability
+
+try:
+    from polymorphic_core.process_management import BaseProcessManager
+except ImportError:
+    BaseProcessManager = object
 
 # Import voice services - they self-register via Bonjour
 from polymorphic_core.audio import (
@@ -23,15 +33,19 @@ _ = PolymorphicAudioPlayer()
 _ = PolymorphicTTSService()
 _ = PolymorphicTranscription()
 
+class DiscordProcessManager(BaseProcessManager):
+    """Process manager for Discord bot"""
+    
+    SERVICE_NAME = "Discord"
+    PROCESSES = ['bonjour_discord.py']
+    PORTS = []  # Discord uses WebSocket, no specific ports
+
 class BonjourDiscord:
     """Minimal Discord capability - just announces messages"""
     
     def __init__(self):
-        # ONLY use environment variable - NO fallback to .env file
-        self.token = os.getenv('DISCORD_BOT_TOKEN')
-        
-        if not self.token:
-            raise ValueError("No Discord token found in environment! Set DISCORD_BOT_TOKEN")
+        # Don't check token until we actually need to run
+        self.token = None
         
         # Setup minimal Discord client
         intents = discord.Intents.default()
@@ -142,6 +156,12 @@ class BonjourDiscord:
     
     async def run(self):
         """Run the Discord bot"""
+        # Only check token when actually starting
+        if not self.token:
+            self.token = os.getenv('DISCORD_BOT_TOKEN')
+            if not self.token:
+                raise ValueError("No Discord token found in environment! Set DISCORD_BOT_TOKEN")
+        
         await self.client.start(self.token)
 
 # Global instance
@@ -156,6 +176,10 @@ def get_discord():
 
 # Register as discoverable capability
 register_capability("discord", get_discord)
+
+# Create global process manager instance to announce capabilities
+if BaseProcessManager != object:  # Only if we have the real class
+    _discord_process_manager = DiscordProcessManager()
 
 # Simple message handler for testing
 async def echo_handler(message):

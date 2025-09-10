@@ -30,12 +30,12 @@ class PolymorphicTranscription:
         announcer.announce(
             "PolymorphicTranscription",
             [
-                "I transcribe ANY audio",
+                "I transcribe ANY audio with voice activity detection",
                 "I listen for AUDIO_AVAILABLE announcements",
-                "I use Whisper, Google Speech, or simulation",
-                "I announce TRANSCRIPTION_COMPLETE when done",
-                "I don't care where audio comes from",
-                "I am the universal transcriber"
+                "I use Vosk (offline) with built-in silence detection",
+                "I announce TRANSCRIPTION_COMPLETE only when speech detected",
+                "I ignore silence automatically",
+                "I am the universal offline transcriber"
             ]
         )
         
@@ -74,60 +74,82 @@ class PolymorphicTranscription:
         if metadata.get('format') == 'pcm_s16le' or metadata.get('decoded'):
             audio_data = self.pcm_to_wav(audio_data, metadata)
         
-        # Try Whisper first if available (most accurate)
-        transcription = self.transcribe_with_whisper(audio_data)
+        # Try Vosk first (offline with silence detection)
+        transcription = self.transcribe_with_vosk(audio_data)
         if transcription:
             self.announce_transcription(source, transcription)
             return
         
-        # Try SpeechRecognition as fallback
-        transcription = self.transcribe_with_speech_recognition(audio_data)
-        if transcription:
-            self.announce_transcription(source, transcription)
-            return
-        
-        # Try Google Speech
-        transcription = self.transcribe_with_google(audio_data)
-        if transcription:
-            self.announce_transcription(source, transcription)
-            return
-        
-        # Fallback
+        # No speech detected or transcription failed
         announcer.announce(
-            "TRANSCRIPTION_FAILED",
+            "NO_SPEECH_DETECTED",
             [
-                f"Could not transcribe audio from {source}",
-                "Install Whisper: pip install openai-whisper"
+                f"No speech detected in audio from {source}",
+                "Either silence or transcription failed"
             ]
         )
     
-    def transcribe_with_speech_recognition(self, audio_data: bytes) -> str:
-        """Try to transcribe with SpeechRecognition"""
+    def transcribe_with_vosk(self, audio_data: bytes) -> str:
+        """Transcribe with vosk (offline with built-in silence detection)"""
         try:
-            import speech_recognition as sr
-            import io
+            import vosk
+            import json
+            import audioop
+            import numpy as np
             
-            recognizer = sr.Recognizer()
-            
-            # Create audio file in memory
-            audio_file = io.BytesIO(audio_data)
-            
-            # Try to read as audio
-            with sr.AudioFile(audio_file) as source:
-                audio = recognizer.record(source)
+            # Convert mulaw to linear PCM if needed
+            if len(audio_data) > 0:
+                try:
+                    # Try treating as mulaw first
+                    linear_data = audioop.ulaw2lin(audio_data, 2)
+                except audioop.error:
+                    # Already linear, use as-is
+                    linear_data = audio_data
                 
-            # Try Google Speech Recognition
-            try:
-                text = recognizer.recognize_google(audio)
-                return text
-            except sr.UnknownValueError:
-                return None
-            except sr.RequestError as e:
-                announcer.announce("PolymorphicTranscription", [f"Google Speech error: {e}"])
-                return None
+                # Convert to numpy array for analysis
+                audio_array = np.frombuffer(linear_data, dtype=np.int16)
                 
+                # Simple voice activity detection using RMS
+                rms = np.sqrt(np.mean(audio_array.astype(np.float64)**2))
+                silence_threshold = 10  # Very low threshold for testing
+                
+                # Debug logging
+                announcer.announce("VoskDebug", [f"RMS: {rms:.1f}, Threshold: {silence_threshold}"])
+                
+                if rms < silence_threshold:
+                    announcer.announce("VoskDebug", [f"Silence: RMS {rms:.1f} < {silence_threshold}"])
+                    return None  # Silence detected, don't transcribe
+                else:
+                    announcer.announce("VoskDebug", [f"Speech detected: RMS {rms:.1f} >= {silence_threshold}"])
+                
+                # Initialize vosk model if not already done
+                if not hasattr(self, '_vosk_model'):
+                    model_path = "/home/ubuntu/claude/tournament_tracker/models/vosk-model-small-en-us-0.15"
+                    self._vosk_model = vosk.Model(model_path)
+                    self._vosk_rec = vosk.KaldiRecognizer(self._vosk_model, 16000)  # Model expects 16kHz
+                
+                # Proper upsampling from 8kHz to 16kHz using scipy
+                try:
+                    from scipy import signal
+                    # Use scipy for proper resampling
+                    upsampled = signal.resample(audio_array, len(audio_array) * 2)
+                    vosk_data = upsampled.astype(np.int16).tobytes()
+                except ImportError:
+                    # Fallback to simple duplication if scipy not available
+                    upsampled = np.repeat(audio_array, 2)
+                    vosk_data = upsampled.astype(np.int16).tobytes()
+                
+                # Process audio with vosk
+                if self._vosk_rec.AcceptWaveform(vosk_data):
+                    result = json.loads(self._vosk_rec.Result())
+                    return result.get('text', '').strip()
+                else:
+                    # Partial result
+                    partial = json.loads(self._vosk_rec.PartialResult())
+                    return partial.get('partial', '').strip()
+            
         except Exception as e:
-            announcer.announce("PolymorphicTranscription", [f"SpeechRecognition error: {e}"])
+            announcer.announce("PolymorphicTranscription", [f"Vosk error: {e}"])
             return None
     
     def pcm_to_wav(self, pcm_data: bytes, metadata: dict) -> bytes:
@@ -154,53 +176,6 @@ class PolymorphicTranscription:
         wav_buffer.seek(0)
         return wav_buffer.getvalue()
     
-    def transcribe_with_whisper(self, audio_data: bytes) -> str:
-        """Try to transcribe with Whisper"""
-        try:
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
-                f.write(audio_data)
-                temp_path = f.name
-            
-            result = subprocess.run(
-                ['whisper', temp_path, '--model', 'base', '--language', 'en', '--output_format', 'txt'],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            if result.returncode == 0:
-                with open(temp_path + '.txt', 'r') as f:
-                    transcription = f.read().strip()
-                
-                # Cleanup
-                os.remove(temp_path)
-                if os.path.exists(temp_path + '.txt'):
-                    os.remove(temp_path + '.txt')
-                
-                return transcription
-        except:
-            pass
-        return None
-    
-    def transcribe_with_google(self, audio_data: bytes) -> str:
-        """Try to transcribe with Google Speech"""
-        try:
-            import speech_recognition as sr
-            recognizer = sr.Recognizer()
-            
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
-                f.write(audio_data)
-                temp_path = f.name
-            
-            with sr.AudioFile(temp_path) as source:
-                audio = recognizer.record(source)
-                text = recognizer.recognize_google(audio)
-            
-            os.remove(temp_path)
-            return text
-        except:
-            pass
-        return None
     
     def announce_transcription(self, source: str, text: str):
         """Announce completed transcription"""

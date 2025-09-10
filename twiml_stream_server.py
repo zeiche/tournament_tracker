@@ -5,6 +5,9 @@ TwiML server with Stream support for real-time audio.
 
 from flask import Flask, Response, request
 import os
+import subprocess
+import signal
+import time
 
 app = Flask(__name__)
 
@@ -25,9 +28,9 @@ def voice_stream():
 <Response>
     <Say voice="alice">Connecting to tournament tracker real-time system...</Say>
     <Connect>
-        <Stream url="wss://0-page.com:8094/">
+        <Stream url="wss://0-page.com:8088/">
             <Parameter name="caller" value="{from_number}"/>
-            <Parameter name="mode" value="tournament_chat"/>
+            <Parameter name="mode" value="polymorphic_transcription"/>
         </Stream>
     </Connect>
 </Response>'''
@@ -96,7 +99,49 @@ def index():
     <p>WebSocket URL: {}</p>
     """.format(WS_URL)
 
+def kill_old_processes():
+    """Kill any existing instances of this server"""
+    try:
+        # Find processes running this script (excluding current process)
+        result = subprocess.run(['pgrep', '-f', 'twiml_stream_server.py'], 
+                              capture_output=True, text=True)
+        
+        if result.stdout.strip():
+            pids = result.stdout.strip().split('\n')
+            current_pid = str(os.getpid())
+            
+            for pid in pids:
+                if pid != current_pid:
+                    try:
+                        os.kill(int(pid), signal.SIGTERM)
+                        print(f"🗑️ Killed old TwiML process {pid}")
+                    except (ProcessLookupError, ValueError):
+                        pass
+                        
+        # Also kill any processes using port 8086
+        try:
+            result = subprocess.run(['lsof', '-ti:8086'], 
+                                  capture_output=True, text=True)
+            if result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    try:
+                        os.kill(int(pid), signal.SIGTERM)
+                        print(f"🗑️ Killed process using port 8086: {pid}")
+                    except (ProcessLookupError, ValueError):
+                        pass
+        except FileNotFoundError:
+            # lsof not available
+            pass
+            
+    except Exception as e:
+        print(f"⚠️ Process cleanup warning: {e}")
+
 if __name__ == "__main__":
+    print("🧹 Cleaning up old TwiML processes...")
+    kill_old_processes()
+    time.sleep(1)  # Wait for cleanup
+    
     print("🎯 TwiML Stream Server for Tournament Tracker")
     print("📞 Bidirectional stream at /voice-stream.xml")
     print(f"🔗 WebSocket URL: {WS_URL}")

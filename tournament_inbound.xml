@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Play>https://demo.twilio.com/docs/classic.mp3</Play>
-    <Say voice="alice">Just kidding! This is the tournament tracker.</Say>
-    <Pause length="1"/>
-    <Say voice="alice">West Coast Warzone had 256 players.</Say>
-    <Say voice="alice">West is the top player with 45 wins.</Say>
-    <Say voice="alice">Backyard try-hards forever!</Say>
+    <Connect>
+        <Stream url="wss://64.111.98.139:8088/" />
+    </Connect>
 </Response>

@@ -3,7 +3,12 @@
 twilio_simple_voice_bridge.py - Minimal Twilio bridge (like Discord)
 Just receives speech and forwards to handlers. That's it.
 Uses audio service for continuous streaming.
+Self-manages all Twilio bridge processes.
 """
+
+import sys
+import os
+sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker')
 
 from flask import Flask, request, Response, send_file
 from twilio.twiml.voice_response import VoiceResponse, Connect, Start, Stream
@@ -16,17 +21,18 @@ import base64
 import threading
 from pathlib import Path
 try:
-    from capability_announcer import announcer
+    from polymorphic_core import announcer
+    from polymorphic_core.process_management import BaseProcessManager
 except ImportError:
-    import sys
-    sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker/utils')
     try:
         from capability_announcer import announcer
+        BaseProcessManager = object  # Fallback
     except ImportError:
         class DummyAnnouncer:
             def announce(self, *args, **kwargs):
                 pass
         announcer = DummyAnnouncer()
+        BaseProcessManager = object
 
 try:
     from bonjour_audio_mixer import BonjourAudioMixer
@@ -37,6 +43,67 @@ try:
     from audio_service import AudioService
 except ImportError:
     AudioService = None
+
+class TwilioProcessManager(BaseProcessManager):
+    """Process manager for Twilio bridge components"""
+    
+    SERVICE_NAME = "Twilio"
+    PROCESSES = [
+        'twilio_stream_server.py',           # WebSocket on 8087
+        'twiml_stream_server.py',            # TwiML on 8086  
+        'polymorphic_encryption_service.py', # SSL proxy on 8443 → 8087
+        'experimental/telephony/twilio_simple_voice_bridge.py'  # Main bridge
+    ]
+    PORTS = [8087, 8086, 8443, 8082]  # Added 8082 for this bridge
+    
+    def start_services(self):
+        """Custom startup for Twilio with special args for encryption service"""
+        # Clean up first
+        self.cleanup_processes()
+        
+        # Wait for processes to die and ports to be released  
+        import time
+        time.sleep(1)
+        
+        # Start services with special handling for encryption service
+        from polymorphic_core.process import ProcessManager
+        
+        started_pids = []
+        
+        try:
+            # Start basic services
+            proc1 = ProcessManager.start_service_safe('twilio_stream_server.py', check_existing=False)
+            started_pids.append(proc1.pid)
+            
+            proc2 = ProcessManager.start_service_safe('twiml_stream_server.py', check_existing=False) 
+            started_pids.append(proc2.pid)
+            
+            # Start encryption service with special args
+            proc3 = ProcessManager.start_service_safe(
+                'polymorphic_encryption_service.py', '--proxy', '8443', '8087', 
+                check_existing=False
+            )
+            started_pids.append(proc3.pid)
+            
+            # Start main bridge
+            proc4 = ProcessManager.start_service_safe(
+                'experimental/telephony/twilio_simple_voice_bridge.py', 
+                check_existing=False
+            )
+            started_pids.append(proc4.pid)
+            
+            announcer.announce(
+                "TwilioProcessManager",
+                [f"Successfully started all {len(started_pids)} Twilio processes: {started_pids}"]
+            )
+            
+        except Exception as e:
+            announcer.announce(
+                "TwilioProcessManager", 
+                [f"Error during Twilio startup: {e}"]
+            )
+        
+        return started_pids
 
 class SimpleTwilioBridge:
     """Minimal Twilio bridge with audio service integration"""
@@ -548,6 +615,10 @@ def get_bridge():
     if _bridge is None:
         _bridge = SimpleTwilioBridge()
     return _bridge
+
+# Create global process manager instance to announce capabilities
+if BaseProcessManager != object:  # Only if we have the real class
+    _twilio_process_manager = TwilioProcessManager()
 
 if __name__ == "__main__":
     bridge = get_bridge()

@@ -59,11 +59,6 @@ class InteractiveBridge(BaseBridge):
             except:
                 pass
             
-            try:
-                from ollama_bonjour import get_ollama_bonjour
-                return "ollama"
-            except:
-                pass
             
             try:
                 from claude.services.claude_service import ClaudeService
@@ -75,8 +70,6 @@ class InteractiveBridge(BaseBridge):
         
         elif requested in ["lightweight", "light", "db", "database"]:
             return "lightweight"
-        elif requested in ["ollama", "llama"]:
-            return "ollama"
         elif requested in ["claude", "anthropic"]:
             return "claude"
         else:

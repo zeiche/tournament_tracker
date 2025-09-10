@@ -5,6 +5,8 @@ This has nothing to do with tournaments - it's pure polymorphic patterns.
 
 from .events import SynchronousEvents, announcer, CapabilityAnnouncer, announces_capability
 from .discovery import register_capability, discover_capability, list_capabilities, get_capability_info
+from .process import ProcessManager
+from . import process_management_guide  # Import to trigger announcements
 
 __all__ = [
     'SynchronousEvents',
@@ -14,5 +16,6 @@ __all__ = [
     'CapabilityAnnouncer',
     'announces_capability',
     'list_capabilities',
-    'get_capability_info'
+    'get_capability_info',
+    'ProcessManager'
 ]

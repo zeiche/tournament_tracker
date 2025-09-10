@@ -9,7 +9,7 @@ Announces itself like Bonjour and provides real-time mixing
 import os
 import threading
 import queue
-from capability_announcer import announcer
+from polymorphic_core import announcer
 
 class BonjourAudioMixer:
     """
@@ -23,8 +23,10 @@ class BonjourAudioMixer:
         self.is_mixing = False
         self.music_streaming = False
         
-        # Check for music
-        if os.path.exists("game.wav"):
+        # Check for music files in priority order
+        if os.path.exists("Main Menu.wav"):
+            self.background_music = "Main Menu.wav"
+        elif os.path.exists("game.wav"):
             self.background_music = "game.wav"
         
         # Announce ourselves like Bonjour
@@ -118,13 +120,36 @@ class BonjourAudioMixer:
     
     def _listen_for_announcements(self):
         """
-        Listen for bonjour announcements that request music
+        Listen for bonjour announcements and use timer to call ourselves
         """
         import time
+        
+        # Start music immediately via self-announcement
+        announcer.announce(
+            "START_CONTINUOUS_MUSIC",
+            [
+                "Timer-triggered music start",
+                "Mixer calling itself via Bonjour",
+                "Background music should begin now"
+            ]
+        )
+        self.start_continuous_music()
+        
+        # Timer loop - announce music status periodically
         while True:
-            # In a real implementation, this would listen to announcement events
-            # For now, we just check periodically
-            time.sleep(0.1)
+            time.sleep(5.0)  # Check every 5 seconds
+            
+            # Use Bonjour to announce our status and potentially restart music
+            if self.background_music and not self.music_streaming:
+                announcer.announce(
+                    "MUSIC_RESTART_NEEDED",
+                    [
+                        "Music stopped, restarting via Bonjour",
+                        f"File: {self.background_music}",
+                        "Mixer self-triggering restart"
+                    ]
+                )
+                self.start_continuous_music()
     
     def _mixing_loop(self):
         """
@@ -202,10 +227,11 @@ class BonjourAudioMixer:
                 "ffmpeg",
                 "-stream_loop", "-1",  # Loop forever
                 "-i", self.background_music,
-                "-filter_complex", "[0:a]volume=0.35",  # Lower volume for background
-                "-f", "wav",
+                "-filter_complex", "[0:a]volume=0.8",  # Higher volume so it's audible
+                "-f", "mulaw",  # Twilio expects mulaw format
                 "-ac", "1",
                 "-ar", "8000",
+                "-loglevel", "quiet",
                 "pipe:1"
             ]
             self._music_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)

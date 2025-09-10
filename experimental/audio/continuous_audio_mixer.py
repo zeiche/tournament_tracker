@@ -14,7 +14,42 @@ import os
 import time
 import subprocess
 import threading
+from collections import deque
 from capability_announcer import announcer
+
+class CircularAudioBuffer:
+    """Circular buffer for smooth audio streaming"""
+    
+    def __init__(self, max_size_mb=5):
+        self.buffer = deque()
+        self.max_size = max_size_mb * 1024 * 1024  # Convert to bytes
+        self.current_size = 0
+        self.lock = threading.Lock()
+    
+    def add_chunk(self, chunk: bytes):
+        """Add audio chunk to buffer"""
+        with self.lock:
+            self.buffer.append(chunk)
+            self.current_size += len(chunk)
+            
+            # Remove old chunks if buffer is too large
+            while self.current_size > self.max_size and self.buffer:
+                old_chunk = self.buffer.popleft()
+                self.current_size -= len(old_chunk)
+    
+    def get_chunk(self) -> bytes:
+        """Get next chunk from buffer"""
+        with self.lock:
+            if self.buffer:
+                chunk = self.buffer.popleft()
+                self.current_size -= len(chunk)
+                return chunk
+            return b''
+    
+    def has_data(self) -> bool:
+        """Check if buffer has data"""
+        with self.lock:
+            return len(self.buffer) > 0
 
 class ContinuousAudioMixer:
     """
@@ -27,6 +62,7 @@ class ContinuousAudioMixer:
         self.music_start_time = time.time()  # When we started playing
         self.background_music = "game.wav" if os.path.exists("game.wav") else None
         self.lock = threading.Lock()
+        self.audio_buffer = CircularAudioBuffer(max_size_mb=2)  # 2MB buffer
         
         announcer.announce(
             "ContinuousAudioMixer",
@@ -88,10 +124,25 @@ class ContinuousAudioMixer:
                 tts_proc = subprocess.Popen(tts_cmd, stdout=subprocess.PIPE)
                 mix_proc = subprocess.Popen(mix_cmd, stdin=tts_proc.stdout, stdout=subprocess.PIPE)
                 
-                # Read the REAL-TIME stream
-                audio_data = mix_proc.stdout.read()
+                # Read the REAL-TIME stream in chunks for better streaming
+                audio_chunks = []
+                chunk_size = 4096
                 
-                return audio_data
+                while True:
+                    chunk = mix_proc.stdout.read(chunk_size)
+                    if not chunk:
+                        break
+                    audio_chunks.append(chunk)
+                    
+                    # Prevent excessive memory usage
+                    if len(audio_chunks) > 100:  # Limit buffer size
+                        break
+                
+                # Wait for processes to complete
+                tts_proc.wait()
+                mix_proc.wait()
+                
+                return b''.join(audio_chunks)
             
             # Fallback - just TTS
             tts_cmd = ["espeak", "-w", "-", speech_text]

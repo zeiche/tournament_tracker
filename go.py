@@ -40,6 +40,7 @@ import sys
 import os
 import subprocess
 import argparse
+from polymorphic_core.process import ProcessManager
 
 # Set authorization for go_py_guard (this is ALL we set)
 os.environ['GO_PY_AUTHORIZED'] = '1'
@@ -82,7 +83,7 @@ def main():
     parser.add_argument('--interactive', action='store_true',
                        help='START interactive bridge (auto-selects backend)')
     parser.add_argument('--interactive-backend', type=str, 
-                       choices=['auto', 'lightweight', 'ollama', 'claude'],
+                       choices=['auto', 'lightweight', 'claude'],
                        default='auto',
                        help='Backend for interactive mode (default: auto)')
     
@@ -110,11 +111,13 @@ def main():
     parser.add_argument('--twilio-service', action='store_true',
                        help='START Twilio telephony service')
     parser.add_argument('--twilio-config', action='store_true',
-                       help='Generate Twilio/Asterisk configs')
+                       help='Generate Twilio configs')
+    parser.add_argument('--twilio-voice', action='store_true',
+                       help='Start voice-enabled Twilio stream servers')
+    parser.add_argument('--twilio-transcription', action='store_true',
+                       help='START Twilio stream with polymorphic transcription')
     parser.add_argument('--inbound-calls', action='store_true',
                        help='START inbound call handler (tournament info via phone)')
-    parser.add_argument('--asterisk-status', action='store_true',
-                       help='Check Asterisk PBX status')
     
     # Bonjour discovery
     parser.add_argument('--bonjour-monitor', action='store_true',
@@ -125,14 +128,6 @@ def main():
                        help='START dynamic command discovery')
     parser.add_argument('--bonjour-server', nargs='*', metavar='PORTS',
                        help='START Bonjour Universal Server on specified ports (or common ports if none given)')
-    parser.add_argument('--ollama-bonjour', action='store_true',
-                       help='START Ollama Bonjour intelligence service (Claude\'s little brother)')
-    parser.add_argument('--ollama-bridge', action='store_true',
-                       help='START Ollama Bonjour bridge (async monitor)')
-    parser.add_argument('--ollama', action='store_true',
-                       help='START Ollama interactive mode (same as --ollama-bonjour)')
-    parser.add_argument('--ollama-interactive', action='store_true',
-                       help='START Ollama in interactive mode with stdin')
     parser.add_argument('--lightweight', action='store_true',
                        help='START Lightweight pattern intelligence (no LLM needed)')
     
@@ -154,33 +149,42 @@ def main():
     
     # Start requested services - NO LOGIC, just subprocess calls
     if args.discord_bot:
-        # Start discord bot
-        subprocess.run([sys.executable, 'bonjour_discord.py'])
+        # Start Discord using self-managing service
+        try:
+            from bonjour_discord import _discord_process_manager
+            print("Starting Discord bot via integrated DiscordProcessManager...")
+            pids = _discord_process_manager.start_services()
+            print(f"Discord bot started with PIDs: {pids}")
+        except (ImportError, NameError) as e:
+            print(f"Integrated DiscordProcessManager not available: {e}")
+            # Fallback to old method
+            print("Falling back to manual process management...")
+            ProcessManager.restart_service('bonjour_discord.py')
     
     elif args.discord_lightweight:
         # Start Discord with lightweight intelligence (using bridge module)
-        subprocess.run([sys.executable, 'bridges/bridge_launcher.py', 'discord-lightweight'])
+        subprocess.Popen([sys.executable, 'bridges/bridge_launcher.py', 'discord-lightweight'])
     
     elif args.bridge:
         # Start a specific bridge service
-        subprocess.run([sys.executable, 'bridges/bridge_launcher.py', args.bridge])
+        subprocess.Popen([sys.executable, 'bridges/bridge_launcher.py', args.bridge])
     
     elif args.list_bridges:
         # List available bridges
         subprocess.run([sys.executable, 'bridges/bridge_launcher.py', '--list'])
     
     elif args.edit_contacts:
-        # Start web editor
-        subprocess.run([sys.executable, 'services/web_editor.py'])
+        # Start web editor using ProcessManager (prevents duplicates)
+        ProcessManager.restart_service('services/web_editor.py')
     
     elif args.ai_chat:
         # Start AI chat
-        subprocess.run([sys.executable, 'claude_service.py'])
+        subprocess.Popen([sys.executable, 'claude_service.py'])
     
     elif args.interactive:
         # Start interactive bridge with selected backend
         backend = args.interactive_backend if hasattr(args, 'interactive_backend') else 'auto'
-        subprocess.run([sys.executable, 'bridges/interactive_bridge.py', '--backend', backend])
+        subprocess.Popen([sys.executable, 'bridges/interactive_bridge.py', '--backend', backend])
     
     elif args.sync:
         # Start sync
@@ -211,42 +215,66 @@ def main():
         subprocess.run([sys.executable, 'polymorphic_demo.py'])
     
     elif args.twilio_bridge:
-        # Start Twilio with Stream WebSocket servers and SSL proxy
-        # Kill old processes first
-        subprocess.run(['pkill', '-f', 'twilio_simple_voice_bridge'], stderr=subprocess.DEVNULL)
-        subprocess.run(['pkill', '-f', 'twiml_stream_server'], stderr=subprocess.DEVNULL)
-        subprocess.run(['pkill', '-f', 'twilio_stream_server'], stderr=subprocess.DEVNULL)
-        subprocess.run(['pkill', '-f', 'polymorphic_encryption'], stderr=subprocess.DEVNULL)
-        
-        # Start new Stream servers with SSL proxy
-        subprocess.Popen([sys.executable, 'twilio_stream_server.py'])  # WebSocket on 8087
-        subprocess.Popen([sys.executable, 'twiml_stream_server.py'])   # TwiML on 8086
-        subprocess.Popen([sys.executable, 'polymorphic_encryption_service.py', '--proxy', '8443', '8087'])  # SSL proxy
-        subprocess.run([sys.executable, 'experimental/telephony/twilio_simple_voice_bridge.py'])  # Main bridge
+        # Start Twilio using self-managing service from bridge
+        try:
+            # Import the bridge file to get access to its process manager
+            sys.path.insert(0, 'experimental/telephony')
+            from twilio_simple_voice_bridge import _twilio_process_manager
+            print("Starting Twilio services via integrated TwilioProcessManager...")
+            pids = _twilio_process_manager.start_services()
+            print(f"Twilio services started with PIDs: {pids}")
+        except (ImportError, NameError) as e:
+            print(f"Integrated TwilioProcessManager not available: {e}")
+            # Fallback to old method if needed
+            print("Falling back to manual process management...")
+            ProcessManager.kill_pattern('twilio_simple_voice_bridge')
+            ProcessManager.kill_pattern('twiml_stream_server')
+            ProcessManager.kill_pattern('twilio_stream_server')
+            ProcessManager.kill_pattern('polymorphic_encryption')
+            ProcessManager.kill_port(8087)
+            ProcessManager.kill_port(8086)
+            ProcessManager.kill_port(8443)
+            import time
+            time.sleep(1)
+            ProcessManager.start_service_safe('twilio_stream_server.py', check_existing=False)
+            ProcessManager.start_service_safe('twiml_stream_server.py', check_existing=False)
+            ProcessManager.start_service_safe('polymorphic_encryption_service.py', '--proxy', '8443', '8087', check_existing=False)
+            ProcessManager.start_service_safe('experimental/telephony/twilio_simple_voice_bridge.py', check_existing=False)
     
     elif args.call:
         # Make an outbound call
         subprocess.run([sys.executable, 'call_me.py', args.call])
     
     elif args.twilio_service:
-        # Start Twilio service
-        subprocess.run([sys.executable, 'bonjour_twilio.py'])
+        # Start Twilio service using ProcessManager
+        ProcessManager.restart_service('bonjour_twilio.py')
     
     elif args.twilio_config:
         # Generate Twilio configs
         subprocess.run([sys.executable, 'twilio_config.py'])
+    elif args.twilio_voice:
+        # Start voice-enabled Twilio stream servers using ProcessManager
+        ProcessManager.kill_pattern('twiml_stream_server')
+        ProcessManager.kill_pattern('modern_stream_server')
+        ProcessManager.start_service_safe('twiml_stream_server.py', check_existing=False)  # TwiML on 8086
+        ProcessManager.start_service_safe('modern_stream_server.py', check_existing=False)  # Voice WebSocket on 8094
+    
+    elif args.twilio_transcription:
+        # Start Twilio stream with polymorphic transcription integration using ProcessManager
+        ProcessManager.kill_pattern('twilio_stream_polymorphic')
+        ProcessManager.kill_pattern('twilio_transcription_bridge')
+        ProcessManager.kill_pattern('twiml_stream_server')
+        ProcessManager.start_service_safe('twiml_stream_server.py', check_existing=False)  # TwiML on 8086
+        ProcessManager.start_service_safe('twilio_transcription_bridge.py', check_existing=False)  # Bridge
+        ProcessManager.start_service_safe('twilio_stream_polymorphic.py', check_existing=False)  # WebSocket on 8088
     
     elif args.inbound_calls:
         # Start inbound call handler
-        subprocess.run([sys.executable, 'inbound_call_handler.py'])
-    
-    elif args.asterisk_status:
-        # Check Asterisk status
-        subprocess.run(['sudo', 'systemctl', 'status', 'asterisk'])
+        subprocess.Popen([sys.executable, 'inbound_call_handler.py'])
     
     elif args.bonjour_monitor:
         # Start Bonjour monitor
-        subprocess.run([sys.executable, 'utils/bonjour_monitor.py', 'live'])
+        subprocess.Popen([sys.executable, 'utils/bonjour_monitor.py', 'live'])
     
     elif args.advertisements:
         # Show current advertisements (non-blocking)
@@ -260,22 +288,11 @@ def main():
         # Start Bonjour Universal Server
         if args.bonjour_server:
             # Specific ports provided
-            subprocess.run([sys.executable, 'bonjour_universal_server.py'] + args.bonjour_server)
+            subprocess.Popen([sys.executable, 'bonjour_universal_server.py'] + args.bonjour_server)
         else:
             # No ports specified, use defaults
-            subprocess.run([sys.executable, 'bonjour_universal_server.py'])
+            subprocess.Popen([sys.executable, 'bonjour_universal_server.py'])
     
-    elif args.ollama_bonjour or args.ollama:
-        # Start Ollama Bonjour intelligence service
-        subprocess.run([sys.executable, '-u', 'ollama_bonjour/ollama_service.py'])
-    
-    elif args.ollama_interactive:
-        # Start Ollama in interactive mode with stdin connected
-        subprocess.call([sys.executable, '-u', 'ollama_bonjour/ollama_service.py'])
-    
-    elif args.ollama_bridge:
-        # Start Ollama Bonjour bridge (async monitor)
-        subprocess.run([sys.executable, 'ollama_bonjour/bonjour_bridge.py'])
     
     elif args.lightweight:
         # Start lightweight pattern intelligence (no LLM)
@@ -286,24 +303,29 @@ def main():
         subprocess.run([sys.executable, 'services/web_screenshot_service.py', args.screenshot])
     
     elif args.screenshot_service:
-        # Start screenshot service
-        subprocess.run([sys.executable, 'services/web_screenshot_service.py'])
+        # Start screenshot service using ProcessManager
+        ProcessManager.restart_service('services/web_screenshot_service.py')
     
     elif args.restart_services:
-        # Kill services
-        subprocess.run(['pkill', '-f', 'discord'], stderr=subprocess.DEVNULL)
-        subprocess.run(['pkill', '-f', 'polymorphic_discord'], stderr=subprocess.DEVNULL)
-        subprocess.run(['pkill', '-f', 'web_editor'], stderr=subprocess.DEVNULL)
-        subprocess.run(['pkill', '-f', 'editor_service'], stderr=subprocess.DEVNULL)
-        print("Services stopped")
+        # Restart services using integrated process managers
+        print("Restarting services via integrated ProcessManagers...")
         
-        # Wait a moment for ports to be released
-        import time
-        time.sleep(1)
+        # Restart Discord using its process manager
+        try:
+            from bonjour_discord import _discord_process_manager
+            discord_pids = _discord_process_manager.start_services()
+            print(f"Discord restarted with PIDs: {discord_pids}")
+        except (ImportError, NameError) as e:
+            print(f"Discord ProcessManager not available, using fallback: {e}")
+            killed_discord = ProcessManager.kill_pattern('discord')
+            killed_polymorphic = ProcessManager.kill_pattern('polymorphic_discord')
+            ProcessManager.start_service_safe('bonjour_discord.py', check_existing=False)
         
-        # Start services back up (environment already loaded at top of go.py)
-        subprocess.Popen([sys.executable, 'bonjour_discord.py'])
-        subprocess.Popen([sys.executable, 'services/web_editor.py'])
+        # Web Editor still using old method (will be updated next)
+        killed_web = ProcessManager.kill_pattern('web_editor')
+        killed_editor = ProcessManager.kill_pattern('editor_service')
+        ProcessManager.start_service_safe('services/web_editor.py', check_existing=False)
+        
         print("Services restarted")
     
     elif args.service_status:
@@ -342,12 +364,14 @@ def main():
                 
         except Exception as e:
             print(f"Error checking service status: {e}")
-            # Fallback to basic process check
-            print("\n=== Fallback: Process Check ===")
-            result = subprocess.run(['pgrep', '-f', 'discord'], capture_output=True)
-            print(f"Discord: {'Running' if result.returncode == 0 else 'Not running'}")
-            result = subprocess.run(['pgrep', '-f', 'web_editor'], capture_output=True)
-            print(f"Editor: {'Running' if result.returncode == 0 else 'Not running'}")
+            # Fallback to ProcessManager process check
+            print("\n=== Fallback: Process Check via ProcessManager ===")
+            processes = ProcessManager.list_tournament_processes()
+            if processes:
+                for pattern, pids in processes.items():
+                    print(f"{pattern}: Running ({len(pids)} processes)")
+            else:
+                print("No tournament tracker processes found")
     
     elif args.test_env:
         # Test environment
