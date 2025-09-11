@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Import models to register them with SQLAlchemy
-from models import Base
+from database import Base
 
 config = context.config
 

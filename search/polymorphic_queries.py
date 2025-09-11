@@ -1,0 +1,449 @@
+#!/usr/bin/env python3
+"""
+polymorphic_queries.py - Polymorphic Query Interface
+
+This module provides a clean, polymorphic way to query the database.
+Everything accepts anything and figures out what to do.
+"""
+from typing import Any, List, Optional, Union
+from sqlalchemy import func, case, desc, and_
+from sqlalchemy.orm import Session
+from utils.database import session_scope
+from utils.database_service import database_service
+from database.tournament_models import Player, Tournament, Organization, TournamentPlacement
+from utils.formatters import PlayerFormatter, TournamentFormatter
+from utils.points_system import PointsSystem
+from polymorphic_core import announcer
+
+
+class PolymorphicQuery:
+    """Universal query interface - accepts anything"""
+    
+    @classmethod
+    def find_players(cls, input_data: Any, session: Session) -> List[Player]:
+        """
+        Find players based on polymorphic input
+        
+        Examples:
+            find_players("west")          # Name search
+            find_players("top 8")         # Top 8 by points
+            find_players({"limit": 10})   # Top 10
+            find_players(5)               # Player with ID 5 or top 5
+        """
+        if isinstance(input_data, str):
+            input_lower = input_data.lower()
+            
+            # Check for "top X" pattern
+            if "top" in input_lower:
+                # Extract number from string like "top 8" or "top 50"
+                import re
+                numbers = re.findall(r'\d+', input_data)
+                limit = int(numbers[0]) if numbers else 8
+                return cls._get_top_players(session, limit)
+            
+            # Otherwise, search by name
+            else:
+                return cls._search_players_by_name(session, input_data)
+        
+        elif isinstance(input_data, int):
+            # Could be ID or limit for top players
+            if input_data > 100:
+                # Probably an ID
+                player = session.query(Player).filter_by(id=input_data).first()
+                return [player] if player else []
+            else:
+                # Probably a limit
+                return cls._get_top_players(session, input_data)
+        
+        elif isinstance(input_data, dict):
+            # Complex query with filters
+            limit = input_data.get('limit', 10)
+            event = input_data.get('event')
+            return cls._get_top_players(session, limit, event)
+        
+        elif isinstance(input_data, list):
+            # Multiple searches
+            results = []
+            for item in input_data:
+                results.extend(cls.find_players(item, session))
+            return results
+        
+        else:
+            # Default: return top 10
+            return cls._get_top_players(session, 10)
+    
+    @classmethod
+    def _search_players_by_name(cls, session: Session, name: str) -> List[Player]:
+        """Search for players by name (case-insensitive, fuzzy)"""
+        search_pattern = f'%{name}%'
+        players = session.query(Player).filter(
+            func.lower(Player.gamer_tag).like(search_pattern.lower())
+        ).limit(10).all()
+        
+        # If no results, try the name column (real name)
+        if not players:
+            players = session.query(Player).filter(
+                func.lower(Player.name).like(search_pattern.lower())
+            ).limit(10).all()
+        
+        return players
+    
+    @classmethod
+    def _get_top_players(cls, session: Session, limit: int = 8, event: Optional[str] = None) -> List[Player]:
+        """Get top players by points with calculated stats
+        
+        Now uses UnifiedTabulator for consistent ranking logic.
+        """
+        from utils.unified_tabulator import UnifiedTabulator
+        
+        # Use the unified tabulator
+        ranked_items = UnifiedTabulator.tabulate_player_points(session, limit, event)
+        
+        # Extract just the Player objects with attached metadata
+        players_with_stats = []
+        for item in ranked_items:
+            player = session.query(Player).get(item.metadata['player_id'])
+            if player:
+                # Attach calculated stats for backward compatibility
+                player._total_points = int(item.score)
+                player._tournament_count = item.metadata['tournament_count']
+                players_with_stats.append(player)
+        
+        return players_with_stats
+    
+    @classmethod
+    def find_tournaments(cls, input_data: Any, session: Session) -> List[Tournament]:
+        """
+        Find tournaments based on polymorphic input
+        
+        Examples:
+            find_tournaments("recent")           # Recent tournaments
+            find_tournaments("tuesday")          # Tuesday tournaments
+            find_tournaments({"year": 2025})    # 2025 tournaments
+            find_tournaments("large")            # High attendance
+        """
+        if isinstance(input_data, str):
+            input_lower = input_data.lower()
+            
+            if "recent" in input_lower:
+                return session.query(Tournament)\
+                    .order_by(desc(Tournament.start_at))\
+                    .limit(10).all()
+            
+            elif "upcoming" in input_lower:
+                from datetime import datetime
+                from time import time
+                current_timestamp = int(time())
+                return session.query(Tournament)\
+                    .filter(Tournament.start_at > current_timestamp)\
+                    .order_by(Tournament.start_at)\
+                    .limit(10).all()
+            
+            elif "large" in input_lower or "big" in input_lower:
+                return session.query(Tournament)\
+                    .filter(Tournament.num_attendees > 50)\
+                    .order_by(desc(Tournament.num_attendees))\
+                    .limit(10).all()
+            
+            else:
+                # Search by name
+                return session.query(Tournament)\
+                    .filter(func.lower(Tournament.name).like(f'%{input_data}%'))\
+                    .limit(10).all()
+        
+        elif isinstance(input_data, dict):
+            query = session.query(Tournament)
+            
+            if 'year' in input_data:
+                from datetime import datetime
+                year = input_data['year']
+                start = datetime(year, 1, 1)
+                end = datetime(year, 12, 31, 23, 59, 59)
+                query = query.filter(and_(
+                    Tournament.start_at >= int(start.timestamp()),
+                    Tournament.start_at <= int(end.timestamp())
+                ))
+            
+            if 'limit' in input_data:
+                query = query.limit(input_data['limit'])
+            else:
+                query = query.limit(10)
+            
+            return query.all()
+        
+        else:
+            # Default: recent tournaments
+            return session.query(Tournament)\
+                .order_by(desc(Tournament.start_at))\
+                .limit(10).all()
+    
+    @classmethod
+    def find_organizations(cls, input_data: Any, session: Session) -> List[Organization]:
+        """
+        Find organizations based on polymorphic input
+        
+        Examples:
+            find_organizations("top")          # Top orgs by tournament count
+            find_organizations("TNS")          # Search by name
+        """
+        if isinstance(input_data, str):
+            input_lower = input_data.lower()
+            
+            if "top" in input_lower:
+                # Get top organizations by tournament count
+                import re
+                numbers = re.findall(r'\d+', input_data)
+                limit = int(numbers[0]) if numbers else 8
+                
+                query = session.query(
+                    Organization,
+                    func.count(Tournament.id).label('tournament_count')
+                ).join(
+                    Tournament,
+                    Tournament.organization_id == Organization.id
+                ).group_by(Organization.id)\
+                 .order_by(desc('tournament_count'))\
+                 .limit(limit)
+                
+                results = query.all()
+                orgs = []
+                for org, count in results:
+                    org._tournament_count = count
+                    orgs.append(org)
+                return orgs
+            
+            else:
+                # Search by name
+                return session.query(Organization)\
+                    .filter(func.lower(Organization.name).like(f'%{input_data}%'))\
+                    .limit(10).all()
+        
+        else:
+            # Default: all organizations
+            return session.query(Organization).limit(20).all()
+
+
+# Convenience functions for direct use
+def find(entity_type: str, input_data: Any) -> Any:
+    """
+    Universal find function
+    
+    Usage:
+        find("players", "west")
+        find("tournaments", "recent")
+        find("organizations", "top 5")
+    """
+    with session_scope() as session:
+        if "player" in entity_type.lower():
+            return PolymorphicQuery.find_players(input_data, session)
+        elif "tournament" in entity_type.lower():
+            return PolymorphicQuery.find_tournaments(input_data, session)
+        elif "org" in entity_type.lower():
+            return PolymorphicQuery.find_organizations(input_data, session)
+        else:
+            return None
+
+
+def query(input_string: str) -> str:
+    """
+    Natural language query interface
+    
+    Usage:
+        query("show top 8 players")
+        query("find player west")
+        query("recent tournaments")
+    """
+    from database.tournament_models import Player, Tournament, Organization, TournamentPlacement
+    
+    # Announce query capability
+    announcer.announce(
+        "Polymorphic Query Engine",
+        [
+            f"Processing query: {input_string}",
+            "I understand natural language",
+            "I can find players, tournaments, and organizations"
+        ]
+    )
+    
+    with session_scope() as session:
+        input_lower = input_string.lower()
+        
+        # Determine what to query
+        if "player" in input_lower:
+            # Check if it's asking for top players
+            if "top" in input_lower:
+                # It's a top X query - pass the full string
+                players = PolymorphicQuery.find_players(input_string, session)
+            else:
+                # Extract the query part after "player"
+                parts = input_lower.split("player", 1)
+                if len(parts) > 1 and parts[1].strip():
+                    search_term = parts[1].strip()
+                    players = PolymorphicQuery.find_players(search_term, session)
+                else:
+                    # Default to top 8
+                    players = PolymorphicQuery.find_players("top 8", session)
+            
+            if not players:
+                return "No players found"
+            
+            # Format response
+            if len(players) == 1:
+                # Single player - formatted output
+                p = players[0]
+                points = getattr(p, '_total_points', 0)
+                events = getattr(p, '_tournament_count', 0)
+                
+                output = f"**{p.gamer_tag}** - Player Profile\n"
+                output += f"```\n"
+                output += f"Total Points: {points}\n"
+                output += f"Tournaments: {events}\n"
+                output += f"```\n"
+                
+                # Get recent placements
+                recent = session.query(
+                    TournamentPlacement, Tournament
+                ).join(Tournament).filter(
+                    TournamentPlacement.player_id == p.id
+                ).limit(5).all()
+                
+                if recent:
+                    output += "\n**Recent Results:**\n"
+                    for tp, t in recent[:5]:
+                        output += f"• {t.name}: Placement {tp.placement}\n"
+                
+                return output
+            else:
+                # Multiple players - simple list format
+                output = f"**Found {len(players)} players:**\n"
+                for i, p in enumerate(players[:10], 1):
+                    points = getattr(p, '_total_points', 0)
+                    events = getattr(p, '_tournament_count', 0)
+                    output += f"{i}. **{p.gamer_tag}** - {points} points ({events} events)\n"
+                return output
+        
+        elif "tournament" in input_lower:
+            # Check if looking for upcoming tournaments
+            if "upcoming" in input_lower or "future" in input_lower or "next" in input_lower:
+                from datetime import datetime
+                import time
+                
+                current_time = int(time.time())
+                tournaments = session.query(Tournament).filter(
+                    Tournament.start_at > current_time
+                ).order_by(Tournament.start_at).limit(10).all()
+                
+                if not tournaments:
+                    return "No upcoming tournaments found"
+                
+                output = "**🗓️ Upcoming Tournaments:**\n"
+                for t in tournaments[:10]:
+                    if t.start_at:
+                        date = datetime.fromtimestamp(t.start_at)
+                        date_str = date.strftime('%b %d, %Y')
+                        days_until = (date - datetime.now()).days
+                        if days_until == 0:
+                            time_str = "Today"
+                        elif days_until == 1:
+                            time_str = "Tomorrow"
+                        else:
+                            time_str = f"In {days_until} days"
+                        output += f"• **{t.name}** - {date_str} ({time_str})\n"
+                        if t.num_attendees:
+                            output += f"  Expected: {t.num_attendees} attendees\n"
+                    else:
+                        output += f"• {t.name}\n"
+                return output
+            else:
+                # Default to recent tournaments
+                tournaments = PolymorphicQuery.find_tournaments("recent", session)
+                
+                if not tournaments:
+                    return "No tournaments found"
+                
+                output = "**Recent Tournaments:**\n"
+                for t in tournaments[:10]:
+                    if t.start_date:
+                        date_str = t.start_date.strftime('%Y-%m-%d')
+                        output += f"- {t.name} ({date_str})\n"
+                    else:
+                        output += f"- {t.name}\n"
+                return output
+        
+        elif "org" in input_lower:
+            orgs = PolymorphicQuery.find_organizations("top", session)
+            
+            if not orgs:
+                return "No organizations found"
+            
+            output = "**Top Organizations:**\n"
+            for i, org in enumerate(orgs[:10], 1):
+                count = getattr(org, '_tournament_count', 0)
+                output += f"{i}. {org.name} ({count} tournaments)\n"
+            return output
+        
+        elif "attendance" in input_lower and ("over time" in input_lower or "timeline" in input_lower or "trend" in input_lower):
+            # Handle attendance over time query
+            from models.tournament_models import Tournament
+            from datetime import datetime
+            import calendar
+            
+            # Get recent tournaments with attendance
+            tournaments = session.query(Tournament).filter(
+                Tournament.num_attendees > 0,
+                Tournament.start_at > 0
+            ).order_by(Tournament.start_at.desc()).limit(100).all()
+            
+            if not tournaments:
+                return "No attendance data available"
+            
+            # Group by month (simplified for Discord)
+            monthly_data = {}
+            for t in tournaments:
+                date = datetime.fromtimestamp(t.start_at)
+                month_key = f"{date.year}-{date.month:02d}"
+                
+                if month_key not in monthly_data:
+                    monthly_data[month_key] = {
+                        'month': calendar.month_name[date.month][:3],
+                        'year': date.year,
+                        'total': 0,
+                        'count': 0
+                    }
+                
+                monthly_data[month_key]['total'] += t.num_attendees
+                monthly_data[month_key]['count'] += 1
+            
+            # Create output (last 6 months)
+            output = "**📈 Attendance Over Time (Recent Months):**\n\n"
+            months = sorted(monthly_data.keys(), reverse=True)[:6]
+            
+            for month_key in reversed(months):  # Show chronologically
+                data = monthly_data[month_key]
+                avg = data['total'] // data['count'] if data['count'] > 0 else 0
+                output += f"**{data['month']} {data['year']}:** {data['total']:,} total ({data['count']} events, avg {avg})\n"
+            
+            # Add summary
+            total_attendance = sum(d['total'] for d in monthly_data.values())
+            total_events = sum(d['count'] for d in monthly_data.values())
+            output += f"\n**Summary:** {total_attendance:,} total attendance across {total_events} events"
+            
+            return output
+        
+        else:
+            return "I'm not sure what you're looking for. Try 'show players', 'show tournaments', or 'show organizations'."
+
+
+if __name__ == "__main__":
+    # Test the polymorphic queries
+    print("Testing polymorphic queries...")
+    
+    # Test player queries
+    print("\n1. Testing 'top 5':")
+    print(query("show top 5 players"))
+    
+    print("\n2. Testing 'player west':")
+    print(query("show player west"))
+    
+    print("\n3. Testing 'recent tournaments':")
+    print(query("recent tournaments"))

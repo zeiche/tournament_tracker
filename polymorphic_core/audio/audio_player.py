@@ -27,18 +27,6 @@ class PolymorphicAudioPlayer:
         
         print("🔊 [DEBUG] PolymorphicAudioPlayer initializing...")
         
-        # Announce our capabilities
-        announcer.announce(
-            "PolymorphicAudioPlayer",
-            [
-                "I play ANY audio that's announced as ready",
-                "I listen for AUDIO_READY announcements", 
-                "I play through Discord voice channels",
-                "I play through local speakers",
-                "I play through any available audio output",
-                "I announce AUDIO_PLAYED when complete"
-            ]
-        )
         
         self.discord_bot = None
         self.start_listening()
@@ -47,18 +35,6 @@ class PolymorphicAudioPlayer:
         """Start mDNS discovery for audio services"""
         from polymorphic_core import announcer
         try:
-            # Announce ourselves on the network
-            announcer.announce(
-                "PolymorphicAudioPlayer",
-                [
-                    "I play ANY audio that's announced as ready",
-                    "I discover audio via mDNS network scanning",
-                    "I play through Discord voice channels", 
-                    "I play through local speakers",
-                    "I play through any available audio output",
-                    "I announce AUDIO_PLAYED when complete"
-                ]
-            )
             
             print(f"🔊 [DEBUG] AudioPlayer announced on network")
             
@@ -272,10 +248,6 @@ class PolymorphicAudioPlayer:
     def register_discord_bot(self, bot):
         """Register Discord bot for voice playback"""
         self.discord_bot = bot
-        announcer.announce(
-            "PolymorphicAudioPlayer",
-            ["Discord bot registered for audio playback"]
-        )
     
     def tell(self, format: str = "brief") -> str:
         """Polymorphic tell method"""
@@ -302,11 +274,14 @@ audio_player = PolymorphicAudioPlayer()
 # Register as discoverable
 register_capability('audio_player', lambda: audio_player)
 
+# Single announcement for the service
 announcer.announce(
     "PolymorphicAudioPlayer",
     [
-        "Audio Player initialized and listening!",
-        "Announce AUDIO_READY and I'll play it",
-        "I support Discord, local, and any audio output"
+        "I play ANY audio that's announced as ready",
+        "I listen for AUDIO_READY announcements", 
+        "I play through Discord voice channels",
+        "I play through local speakers",
+        "I announce AUDIO_PLAYED when complete"
     ]
 )

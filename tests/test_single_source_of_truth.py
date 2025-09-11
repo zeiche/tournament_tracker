@@ -25,7 +25,7 @@ try:
     
     # Test session scope
     with session_scope() as session:
-        from tournament_models import Tournament
+        from database.tournament_models import Tournament
         count = session.query(Tournament).count()
         print(f"   Tournaments in database: {count}")
     

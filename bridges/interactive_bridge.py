@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bridges.base_bridge import BaseBridge, BridgeRegistry
 from polymorphic_core import announcer
+from dynamic_switches import announce_switch
 
 
 class InteractiveBridge(BaseBridge):
@@ -201,6 +202,33 @@ class InteractiveBridge(BaseBridge):
                 print(f"Error: {e}")
         
         print("\n👋 Goodbye!")
+
+
+def start_interactive_service(args=None):
+    """Handler for --interactive switch"""
+    backend = "auto"  # default
+    
+    if hasattr(args, 'interactive') and args.interactive:
+        backend = args.interactive
+    
+    print(f"Starting interactive bridge with backend: {backend}")
+    
+    try:
+        bridge = InteractiveBridge(backend=backend)
+        bridge.run_interactive()
+    except Exception as e:
+        print(f"Interactive bridge failed: {e}")
+
+
+announce_switch(
+    flag="--interactive",
+    help="START interactive bridge/repl (auto|lightweight|claude)",
+    handler=start_interactive_service,
+    action="store",
+    nargs="?",
+    const="auto",
+    metavar="BACKEND"
+)
 
 
 # Make it runnable directly

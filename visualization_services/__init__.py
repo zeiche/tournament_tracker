@@ -28,22 +28,34 @@ heatmap_service = HeatmapService()
 chart_service = ChartService()
 map_service = MapService()
 
-# Announce the module
+# Announce individual services to avoid duplication
 announcer.announce(
-    "Visualization Services Module",
+    "Heatmap Service",
     [
-        "Orchestrates visualization requests across multiple services",
-        "Separates data concerns from visualization concerns",
-        "Heatmap generation and processing",
-        "Chart and graph creation",
+        "Tournament location heatmap generation",
+        "Player distribution heatmaps", 
+        "Organization venue heatmaps",
+        "Polymorphic ask/tell/do interface"
+    ]
+)
+
+announcer.announce(
+    "Chart Service",
+    [
+        "Chart and graph generation for tournament data",
+        "Player ranking visualizations",
+        "Tournament statistics charts", 
+        "Polymorphic ask/tell/do interface"
+    ]
+)
+
+announcer.announce(
+    "Map Service",
+    [
         "Interactive map generation",
-        "Coordinates database, math, and graphics services",
-        "Polymorphic ask/tell/do interface for all visualizations"
-    ],
-    examples=[
-        "heatmap_service.ask('tournament heatmap')",
-        "chart_service.ask('player rankings chart')", 
-        "map_service.ask('tournament locations map')"
+        "Tournament location mapping",
+        "Geographic visualizations",
+        "Polymorphic ask/tell/do interface"
     ]
 )
 

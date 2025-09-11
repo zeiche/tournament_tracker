@@ -4,7 +4,7 @@ test_interactive.py - Interactive test of the enhanced models
 """
 
 from database_utils import init_db, get_session
-from tournament_models import Tournament, Organization, Player, TournamentPlacement
+from database.tournament_models import Tournament, Organization, Player, TournamentPlacement
 
 # Initialize database
 init_db()

@@ -31,22 +31,45 @@ geometric_math = GeometricMathService()
 visualization_math = VisualizationMathService()
 data_transforms = DataTransformService()
 
-# Announce the module
+# Announce individual services instead of duplicating
 announcer.announce(
-    "Math Services Module",
+    "Statistical Math Service",
     [
-        "Centralized mathematical operations with Bonjour discovery",
-        "Statistical analysis and distributions",
+        "Advanced statistical mathematical operations",
+        "Gaussian kernel density estimation (KDE)",
+        "Statistical distributions and analysis", 
+        "Data clustering algorithms",
+        "Polymorphic ask/tell/do interface"
+    ]
+)
+
+announcer.announce(
+    "Geometric Math Service",
+    [
         "Geometric calculations and spatial math",
-        "Visualization data processing",
-        "Data transformations and scaling",
-        "All services use ask/tell/do polymorphic interface"
-    ],
-    examples=[
-        "statistical_math.ask('gaussian kde for data')",
-        "geometric_math.ask('distance between points')",
-        "visualization_math.ask('heatmap weights')",
-        "data_transforms.ask('log scale data')"
+        "Distance calculations between points",
+        "Spatial transformations",
+        "Polymorphic ask/tell/do interface"
+    ]
+)
+
+announcer.announce(
+    "Visualization Math Service", 
+    [
+        "Mathematical operations for visualizations",
+        "Heatmap weight calculations",
+        "Data scaling and normalization",
+        "Polymorphic ask/tell/do interface"
+    ]
+)
+
+announcer.announce(
+    "Data Transform Service",
+    [
+        "Data transformations and preprocessing", 
+        "Logarithmic scaling",
+        "Data normalization",
+        "Polymorphic ask/tell/do interface"
     ]
 )
 

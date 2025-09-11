@@ -190,7 +190,7 @@ class DatabaseServicePolymorphic:
     
     def _get_stats(self) -> DatabaseStats:
         """Get database statistics"""
-        from models.tournament_models import Tournament, Organization, Player, TournamentPlacement
+        from database.tournament_models import Tournament, Organization, Player, TournamentPlacement
         
         with self.session_scope() as session:
             return DatabaseStats(
@@ -205,21 +205,21 @@ class DatabaseServicePolymorphic:
     
     def _get_tournament(self, tournament_id: str) -> Any:
         """Get a specific tournament"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         with self.session_scope() as session:
             return session.query(Tournament).filter_by(id=str(tournament_id)).first()
     
     def _get_all_tournaments(self) -> List[Any]:
         """Get all tournaments"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         with self.session_scope() as session:
             return session.query(Tournament).all()
     
     def _get_recent_tournaments(self, days: int = 90) -> List[Any]:
         """Get recent tournaments"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         from datetime import datetime, timedelta
         
         cutoff = (datetime.now() - timedelta(days=days)).timestamp()
@@ -231,7 +231,7 @@ class DatabaseServicePolymorphic:
     
     def _get_player(self, name: str) -> Any:
         """Get a player by name or ID"""
-        from models.tournament_models import Player
+        from database.tournament_models import Player
         
         with self.session_scope() as session:
             # Try as ID first
@@ -244,7 +244,7 @@ class DatabaseServicePolymorphic:
     
     def _get_player_rankings(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get player rankings"""
-        from models.tournament_models import Player, TournamentPlacement
+        from database.tournament_models import Player, TournamentPlacement
         from sqlalchemy import func
         
         with self.session_scope() as session:
@@ -275,28 +275,28 @@ class DatabaseServicePolymorphic:
     
     def _get_all_players(self) -> List[Any]:
         """Get all players"""
-        from models.tournament_models import Player
+        from database.tournament_models import Player
         
         with self.session_scope() as session:
             return session.query(Player).all()
     
     def _get_organization(self, org_id: int) -> Any:
         """Get a specific organization"""
-        from models.tournament_models import Organization
+        from database.tournament_models import Organization
         
         with self.session_scope() as session:
             return session.query(Organization).filter_by(id=org_id).first()
     
     def _get_all_organizations(self) -> List[Any]:
         """Get all organizations"""
-        from models.tournament_models import Organization
+        from database.tournament_models import Organization
         
         with self.session_scope() as session:
             return session.query(Organization).all()
     
     def _get_organizations_with_stats(self) -> List[Dict[str, Any]]:
         """Get organizations with tournament counts"""
-        from models.tournament_models import Organization, Tournament
+        from database.tournament_models import Organization, Tournament
         from sqlalchemy import func
         
         with self.session_scope() as session:
@@ -321,7 +321,7 @@ class DatabaseServicePolymorphic:
     
     def _get_tournament_placements(self, tournament_id: str) -> List[Any]:
         """Get placements for a tournament"""
-        from models.tournament_models import TournamentPlacement
+        from database.tournament_models import TournamentPlacement
         
         with self.session_scope() as session:
             return session.query(TournamentPlacement).filter_by(
@@ -330,7 +330,7 @@ class DatabaseServicePolymorphic:
     
     def _get_tournaments_with_location(self) -> List[Any]:
         """Get tournaments that have location data"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         with self.session_scope() as session:
             return session.query(Tournament).filter(
@@ -402,7 +402,7 @@ Placements: {data.total_placements}"""
     
     def _create_organization(self, action: str, **kwargs) -> Any:
         """Create a new organization"""
-        from models.tournament_models import Organization
+        from database.tournament_models import Organization
         
         # Parse name from action string
         import re

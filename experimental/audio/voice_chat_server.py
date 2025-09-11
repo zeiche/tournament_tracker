@@ -33,7 +33,7 @@ def process_speech():
         # Process through Claude
         try:
             # Try polymorphic query first for tournament stuff
-            from polymorphic_queries import query as pq
+            from search.polymorphic_queries import query as pq
             answer = pq(speech_result)
             
             if answer == "I don't understand that query.":

@@ -33,7 +33,8 @@ import traceback
 
 # Import database and models
 from utils.database_service import database_service
-from tournament_models import Tournament, Organization, Player
+from utils.error_handler import handle_errors, handle_exception, ErrorSeverity
+from database.tournament_models import Tournament, Organization, Player
 
 
 class WebServices:

@@ -32,7 +32,7 @@ def handle_tournament_speech(speech: str, from_number: str) -> str:
     
     try:
         # Use the Intelligence system - polymorphic_queries!
-        from polymorphic_queries import PolymorphicQuery
+        from search.polymorphic_queries import PolymorphicQuery
         from database import get_session
         
         # Pass to Intelligence system

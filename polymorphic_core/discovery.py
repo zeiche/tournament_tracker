@@ -119,7 +119,7 @@ class CapabilityRegistry:
     
     def discover_models(self):
         """
-        Auto-discover and register models from tournament_models.
+        Auto-discover and register models from database.tournament_models.
         """
         try:
             import tournament_models
@@ -216,7 +216,7 @@ def discover_all_capabilities() -> str:
     try:
         from database import get_session
         with get_session() as session:
-            from tournament_models import Tournament, Player, Organization
+            from database.tournament_models import Tournament, Player, Organization
             
             tournament_count = session.query(Tournament).count()
             player_count = session.query(Player).count()

@@ -165,7 +165,7 @@ class TranscriptionToClaudeBridge:
                     return response
                 else:
                     # Try polymorphic query as fallback
-                    from polymorphic_queries import query as pq
+                    from search.polymorphic_queries import query as pq
                     response = pq(transcription)
                     announcer.announce(
                         "BRIDGE_CLAUDE", 

@@ -333,7 +333,7 @@ class DatabaseService:
     
     def _get_summary_stats(self) -> DatabaseStats:
         """Get database summary statistics"""
-        from models.tournament_models import Tournament, Organization, Player, TournamentPlacement
+        from database.tournament_models import Tournament, Organization, Player, TournamentPlacement
         
         with self._session_scope() as session:
             return DatabaseStats(
@@ -367,7 +367,7 @@ class DatabaseService:
     
     def _get_organizations_with_stats(self) -> List[Dict[str, Any]]:
         """Get organizations with tournament and attendance stats"""
-        from models.tournament_models import Organization, Tournament
+        from database.tournament_models import Organization, Tournament
         from sqlalchemy import func
         
         with self._session_scope() as session:
@@ -394,7 +394,7 @@ class DatabaseService:
     
     def _get_recent_tournaments(self, days: int = 90) -> List[Dict[str, Any]]:
         """Get recent tournaments within specified days"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         from datetime import datetime, timedelta
         
         cutoff = (datetime.now() - timedelta(days=days)).timestamp()
@@ -418,7 +418,7 @@ class DatabaseService:
     
     def _get_player_rankings(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get player rankings based on tournament placements"""
-        from models.tournament_models import Player, TournamentPlacement
+        from database.tournament_models import Player, TournamentPlacement
         from sqlalchemy import func
         
         with self._session_scope() as session:
@@ -451,7 +451,7 @@ class DatabaseService:
     
     def _get_tournament_by_id(self, tournament_id: str) -> Optional[Dict]:
         """Get a specific tournament by ID"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         with self._session_scope() as session:
             tournament = session.query(Tournament).filter_by(id=str(tournament_id)).first()
@@ -469,7 +469,7 @@ class DatabaseService:
     
     def _get_tournaments_with_location(self, limit: Optional[int] = None) -> List[Dict]:
         """Get tournaments that have location data"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         with self._session_scope() as session:
             query = session.query(Tournament).filter(
@@ -513,7 +513,7 @@ class DatabaseService:
     
     def _get_organizations_with_locations(self) -> List[Dict]:
         """Get organizations with their location data (for visualization services)"""
-        from models.tournament_models import Organization
+        from database.tournament_models import Organization
         
         with self._session_scope() as session:
             orgs = session.query(Organization).filter(
@@ -534,7 +534,7 @@ class DatabaseService:
     
     def _get_all_tournaments(self) -> List[Dict]:
         """Get all tournaments"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         with self._session_scope() as session:
             tournaments = session.query(Tournament).all()
@@ -550,7 +550,7 @@ class DatabaseService:
     
     def _get_all_organizations(self) -> List[Dict]:
         """Get all organizations"""
-        from models.tournament_models import Organization
+        from database.tournament_models import Organization
         
         with self._session_scope() as session:
             orgs = session.query(Organization).all()
@@ -565,7 +565,7 @@ class DatabaseService:
     
     def _get_all_players(self) -> List[Dict]:
         """Get all players"""
-        from models.tournament_models import Player
+        from database.tournament_models import Player
         
         with self._session_scope() as session:
             players = session.query(Player).all()
@@ -580,7 +580,7 @@ class DatabaseService:
     
     def _get_organization_by_id(self, org_id: int) -> Optional[Dict]:
         """Get a specific organization by ID"""
-        from models.tournament_models import Organization
+        from database.tournament_models import Organization
         
         with self._session_scope() as session:
             org = session.query(Organization).filter_by(id=org_id).first()
@@ -594,7 +594,7 @@ class DatabaseService:
     
     def _get_organization_rankings(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get organization rankings - organizations are independent entities"""
-        from models.tournament_models import Organization, Tournament
+        from database.tournament_models import Organization, Tournament
         from sqlalchemy import func
         
         with self._session_scope() as session:
@@ -642,7 +642,7 @@ class DatabaseService:
     
     def _get_player_by_id(self, player_id: int) -> Optional[Dict]:
         """Get a specific player by ID"""
-        from models.tournament_models import Player
+        from database.tournament_models import Player
         
         with self._session_scope() as session:
             player = session.query(Player).filter_by(id=player_id).first()
@@ -657,7 +657,7 @@ class DatabaseService:
     
     def _search_player_by_name(self, name: str) -> List[Dict]:
         """Search for players by name/tag"""
-        from models.tournament_models import Player
+        from database.tournament_models import Player
         
         with self._session_scope() as session:
             players = session.query(Player).filter(
@@ -675,7 +675,7 @@ class DatabaseService:
     
     def _get_tournament_placements(self, tournament_id: str) -> List[Dict]:
         """Get placements for a tournament"""
-        from models.tournament_models import TournamentPlacement, Player
+        from database.tournament_models import TournamentPlacement, Player
         
         with self._session_scope() as session:
             placements = session.query(
@@ -699,7 +699,7 @@ class DatabaseService:
     
     def _get_or_create_player(self, action: str, **kwargs) -> Dict:
         """Get or create a player"""
-        from models.tournament_models import Player
+        from database.tournament_models import Player
         
         # Parse player info from action
         startgg_id = kwargs.get('startgg_id', '')
@@ -727,7 +727,7 @@ class DatabaseService:
     
     def _update_organization(self, action: str, **kwargs) -> bool:
         """Update an organization"""
-        from models.tournament_models import Organization
+        from database.tournament_models import Organization
         
         # Parse org ID and updates
         match = re.search(r'(\d+)', action)
@@ -753,7 +753,7 @@ class DatabaseService:
     
     def _create_organization(self, action: str, **kwargs) -> Dict:
         """Create a new organization"""
-        from models.tournament_models import Organization
+        from database.tournament_models import Organization
         import json
         
         # Parse name from action or kwargs
@@ -779,7 +779,7 @@ class DatabaseService:
     
     def _get_tournaments_by_organization(self, org_id: int) -> List[Dict]:
         """Get tournaments for an organization"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         with self._session_scope() as session:
             tournaments = session.query(Tournament).filter_by(
@@ -797,7 +797,7 @@ class DatabaseService:
     
     def _get_player_placements(self, player_id: int) -> List[Dict]:
         """Get tournament placements for a player"""
-        from models.tournament_models import TournamentPlacement, Tournament
+        from database.tournament_models import TournamentPlacement, Tournament
         
         with self._session_scope() as session:
             placements = session.query(
@@ -821,7 +821,7 @@ class DatabaseService:
     
     def _get_tournaments_needing_standings(self, limit: int = 10) -> List[Dict]:
         """Get tournaments that need standings data"""
-        from models.tournament_models import Tournament, TournamentPlacement
+        from database.tournament_models import Tournament, TournamentPlacement
         from sqlalchemy import and_, not_, exists
         
         with self._session_scope() as session:
@@ -845,7 +845,7 @@ class DatabaseService:
     
     def _update_tournament(self, action: str, **kwargs) -> bool:
         """Update a tournament"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         # Parse tournament ID
         match = re.search(r'tournament\s+(\d+)', action)
@@ -874,7 +874,7 @@ class DatabaseService:
     
     def _update_player(self, action: str, **kwargs) -> bool:
         """Update a player"""
-        from models.tournament_models import Player
+        from database.tournament_models import Player
         
         # Parse player ID
         match = re.search(r'player\s+(\d+)', action)
@@ -905,7 +905,7 @@ class DatabaseService:
     
     def _create_player(self, action: str, **kwargs) -> Dict:
         """Create a new player"""
-        from models.tournament_models import Player
+        from database.tournament_models import Player
         
         gamer_tag = kwargs.get('gamer_tag')
         if not gamer_tag:
@@ -931,7 +931,7 @@ class DatabaseService:
     
     def _merge_organizations(self, action: str, **kwargs) -> bool:
         """Merge organizations"""
-        from models.tournament_models import Organization, Tournament
+        from database.tournament_models import Organization, Tournament
         
         # Parse source and target IDs
         match = re.search(r'(\d+)\s+into\s+(\d+)', action)
@@ -962,7 +962,7 @@ class DatabaseService:
     
     def _assign_tournament_to_org(self, action: str, **kwargs) -> bool:
         """Assign a tournament to an organization"""
-        from models.tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         # Parse tournament and org IDs
         match = re.search(r'tournament\s+(\d+)\s+to\s+org\s+(\d+)', action)
@@ -997,7 +997,7 @@ class DatabaseService:
             'organizations': []
         }
         
-        from models.tournament_models import Tournament, Player, Organization
+        from database.tournament_models import Tournament, Player, Organization
         
         with self._session_scope() as session:
             # Search tournaments

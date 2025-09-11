@@ -40,7 +40,7 @@ def test_model_announcements():
     
     try:
         # Import models - they should announce on import
-        from tournament_models import Tournament, Player, Organization
+        from database.tournament_models import Tournament, Player, Organization
         
         # Create a test tournament - should announce
         tournament = Tournament()
@@ -72,7 +72,7 @@ def test_database_announcements():
         
         # Try a database operation
         from database import get_session
-        from tournament_models import Tournament
+        from database.tournament_models import Tournament
         
         with get_session() as session:
             # This should announce the query

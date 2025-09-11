@@ -19,8 +19,8 @@ from claude_ai_service import claude_ai, process_message
 
 # Import database and models
 from database import session_scope
-from tournament_models import Tournament, Player, Organization, TournamentPlacement
-from conversational_search import ConversationalSearch
+from database.tournament_models import Tournament, Player, Organization, TournamentPlacement
+from search.conversational_search import ConversationalSearch
 from formatters import PlayerFormatter, TournamentFormatter
 
 

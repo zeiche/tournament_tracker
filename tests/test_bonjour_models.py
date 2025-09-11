@@ -2,11 +2,11 @@
 """
 test_bonjour_models.py - Test that models now announce their operations
 """
-from initialize_bonjour import initialize_all_bonjour
+from networking.initialize_bonjour import initialize_all_bonjour
 from polymorphic_core import announcer
 from bonjour_monitor import BonjourMonitor
 from database import session_scope
-from tournament_models import Tournament, Player, Organization
+from database.tournament_models import Tournament, Player, Organization
 
 # Initialize Bonjour first
 initialize_all_bonjour()

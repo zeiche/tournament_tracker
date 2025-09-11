@@ -15,7 +15,7 @@ sys.path.insert(0, '/home/ubuntu/claude')
 
 # Import database and models
 from database import init_database, get_session
-from tournament_models import Tournament, Organization
+from database.tournament_models import Tournament, Organization
 from database_queue import commit_queue
 
 # Import Claude chat functionality
@@ -162,7 +162,7 @@ Examples with Polymorphic Pattern:
             
             # Initialize polymorphic models
             try:
-                from tournament_models_simplified import simplify_existing_models
+                from database.tournament_models_simplified import simplify_existing_models
                 if simplify_existing_models():
                     print("\n✨ Polymorphic models enabled! Use ask(), tell(), do()")
             except Exception as e:

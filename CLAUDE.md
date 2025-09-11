@@ -343,6 +343,99 @@ class ServiceName:
 
 **This is the ULTIMATE simplification!**
 
+## ⚠️ CRITICAL RULE #8: SERVICE LOCATOR PATTERN ⚠️
+
+### 🌐 All Services Use Service Locator for Dependencies
+
+**CLAUDE: ALL refactored services now use the service locator pattern for dependencies!**
+
+The tournament tracker has been completely refactored to use a **distributed service locator architecture** where services find their dependencies automatically via capability names, not import paths.
+
+#### ✅ **Completed Refactoring Status:**
+- **15 out of 15 Major Services** migrated to service locator pattern
+- **4 Core Services** (Database, Logger, Error Handler, Config)
+- **4 Business Services** (Claude CLI, Web Editor, Interactive, Message Handler)
+- **3 Specialized Services** (Twilio, Report, Process)
+- **1 Domain Service** (StartGG Sync)
+- **1 Analytics Service** (Analytics)
+- **3 Utility Services** (Database Queue, Points System, Unified Tabulator)
+
+#### **Service Locator Usage Pattern:**
+```python
+# OLD WAY (Direct Import) - DEPRECATED
+from utils.database_service import database_service
+from utils.simple_logger import info, warning, error
+
+def some_function():
+    data = database_service.ask("some query")
+    info(f"Got data: {data}")
+
+# NEW WAY (Service Locator) - CURRENT STANDARD
+from polymorphic_core.service_locator import get_service
+
+class SomeService:
+    def __init__(self, prefer_network=False):
+        self.prefer_network = prefer_network
+        self._database = None
+        self._logger = None
+    
+    @property
+    def database(self):
+        if self._database is None:
+            self._database = get_service("database", self.prefer_network)
+        return self._database
+    
+    @property
+    def logger(self):
+        if self._logger is None:
+            self._logger = get_service("logger", self.prefer_network)
+        return self._logger
+    
+    def some_function(self):
+        data = self.database.ask("some query")
+        self.logger.info(f"Got data: {data}")
+```
+
+#### **Key Benefits Achieved:**
+- **Location Transparency**: Services work identically whether local or network
+- **Zero Configuration**: Services find each other automatically via mDNS
+- **Distributed Architecture**: Any service can run on any machine
+- **Fault Tolerance**: Automatic fallback between local and network services
+- **Development Flexibility**: Mix local and remote services during development
+- **100% Backward Compatibility**: All existing code continues to work
+
+#### **Available Services via Service Locator:**
+```python
+# Get any service by capability name
+database = get_service("database", prefer_network=False)
+logger = get_service("logger", prefer_network=False)
+points_system = get_service("points_system", prefer_network=False)
+tabulator = get_service("tabulator", prefer_network=False)
+claude_cli = get_service("claude", prefer_network=False)
+web_editor = get_service("web_editor", prefer_network=False)
+analytics = get_service("analytics", prefer_network=False)
+
+# All services support the 3-method pattern
+result = service.ask("query")
+formatted = service.tell("format", data)
+action_result = service.do("action")
+```
+
+#### **Network Service Discovery:**
+- Services automatically announce themselves via mDNS
+- Network services provide HTTP endpoints for remote access  
+- Service locator tries local first, then network discovery
+- Zero manual configuration required
+
+#### **When Adding New Services:**
+1. **Use service locator for dependencies**: Never direct import
+2. **Implement 3-method pattern**: ask(), tell(), do()
+3. **Add network wrapper**: For distributed access
+4. **Register capability**: In service locator mapping
+5. **Test both local and network**: Verify transparent operation
+
+**CLAUDE: Always use the service locator pattern for ANY new service or refactoring work!**
+
 ## ⚠️ OTHER CRITICAL RULES ⚠️
 
 ### 0. CHECK EXISTING FUNCTIONS AND METHODS FIRST

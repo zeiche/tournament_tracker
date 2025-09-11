@@ -23,25 +23,7 @@ class VisualizationMathService:
     """Mathematical operations for data visualization with ask/tell/do interface"""
     
     def __init__(self):
-        # Announce capabilities via Bonjour
-        announcer.announce(
-            "Visualization Math Service",
-            [
-                "Mathematical operations for data visualization",
-                "Heatmap data processing and weight calculations", 
-                "Logarithmic and linear scaling algorithms",
-                "Color intensity mapping",
-                "Spatial density calculations",
-                "Data normalization for visual balance",
-                "Polymorphic ask/tell/do interface"
-            ],
-            examples=[
-                "ask('heatmap weights for tournament data')",
-                "ask('log scale attendance numbers')",
-                "tell('json', processed_weights)",
-                "do('normalize data for visualization')"
-            ]
-        )
+        pass
     
     def ask(self, query: str, data: Any = None, **kwargs) -> Any:
         """Process visualization math queries"""

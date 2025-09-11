@@ -24,25 +24,7 @@ class DataTransformService:
     """Data transformation operations with ask/tell/do interface"""
     
     def __init__(self):
-        # Announce capabilities via Bonjour
-        announcer.announce(
-            "Data Transform Service",
-            [
-                "Data preprocessing and transformation operations",
-                "Normalization and scaling algorithms", 
-                "Type conversion and data cleaning",
-                "Data aggregation and grouping",
-                "Missing value imputation",
-                "Format transformations for visualization",
-                "Polymorphic ask/tell/do interface"
-            ],
-            examples=[
-                "ask('normalize tournament attendance')",
-                "ask('clean missing coordinates')",
-                "tell('json', cleaned_data)",
-                "do('aggregate by organization')"
-            ]
-        )
+        pass
     
     def ask(self, query: str, data: Any = None, **kwargs) -> Any:
         """Process data transformation queries"""

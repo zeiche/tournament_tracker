@@ -8,7 +8,7 @@ import sys
 import json
 from datetime import datetime, timedelta
 from database_utils import init_db, get_session
-from tournament_models import Tournament, Organization, Player, TournamentPlacement
+from database.tournament_models import Tournament, Organization, Player, TournamentPlacement
 from log_manager import LogManager
 
 # Initialize logger for this module

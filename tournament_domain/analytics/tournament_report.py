@@ -8,8 +8,11 @@ import httpx
 import datetime
 import time
 from collections import defaultdict
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from utils.database_service import database_service
-from log_manager import LogManager
+from utils.log_manager import LogManager
 from polymorphic_core import announcer
 
 # Initialize logger for this module

@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def init_database(force_recreate=False):
     """Initialize database with proper schema"""
-    from models import init_db
+    from database import init_db
     
     db_path = 'tournament_tracker.db'
     
@@ -126,7 +126,7 @@ def try_direct_startgg_sync():
 def process_tournaments_into_database(tournaments):
     """Process tournament data into database"""
     try:
-        from models import init_db, Tournament, Organization, AttendanceRecord, OrganizationContact, normalize_contact
+        from database import init_db, Tournament, Organization, AttendanceRecord, OrganizationContact, normalize_contact
         import time
         
         processed = 0

@@ -40,12 +40,9 @@ class BonjourAudioMixerPolymorphic(UniversalPolymorphic):
         self.volume_level = 0.7
         self.duck_level = 0.15  # Volume during speech
         
-        # Check for music files
-        music_files = ["game.wav", "background.wav", "music.wav"]
-        for file in music_files:
-            if os.path.exists(file):
-                self.background_music = file
-                break
+        # Only use Main Menu.wav - no fallbacks
+        if os.path.exists("Main Menu.wav"):
+            self.background_music = "Main Menu.wav"
         
         # Call parent init (announces via UniversalPolymorphic)
         super().__init__()

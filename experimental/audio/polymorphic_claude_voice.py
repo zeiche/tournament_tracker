@@ -70,7 +70,7 @@ class PolymorphicClaudeVoice:
         """Get player info polymorphically"""
         try:
             from database import get_session
-            from tournament_models import Player, TournamentPlacement
+            from database.tournament_models import Player, TournamentPlacement
             
             with get_session() as session:
                 # Get top players polymorphically
@@ -138,7 +138,7 @@ class PolymorphicClaudeVoice:
         """Get tournament info polymorphically"""
         try:
             from database import get_session
-            from tournament_models import Tournament
+            from database.tournament_models import Tournament
             
             with get_session() as session:
                 # Get recent tournaments
@@ -163,7 +163,7 @@ class PolymorphicClaudeVoice:
         """Get stats polymorphically"""
         try:
             from database import get_session
-            from tournament_models import Tournament, Player, Organization
+            from database.tournament_models import Tournament, Player, Organization
             
             with get_session() as session:
                 t_count = session.query(Tournament).count()

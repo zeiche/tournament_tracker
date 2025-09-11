@@ -6,9 +6,14 @@ Announces itself like Bonjour and provides real-time mixing
 ⚠️ THIS is where audio mixing happens - NOT in Twilio! ⚠️
 """
 
+import sys
 import os
 import threading
 import queue
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 from polymorphic_core import announcer
 
 class BonjourAudioMixer:
@@ -23,11 +28,9 @@ class BonjourAudioMixer:
         self.is_mixing = False
         self.music_streaming = False
         
-        # Check for music files in priority order
+        # Only use Main Menu.wav - no fallbacks
         if os.path.exists("Main Menu.wav"):
             self.background_music = "Main Menu.wav"
-        elif os.path.exists("game.wav"):
-            self.background_music = "game.wav"
         
         # Announce ourselves like Bonjour
         announcer.announce(
@@ -96,27 +99,159 @@ class BonjourAudioMixer:
     
     def mix_realtime(self, speech_text: str):
         """
-        Mix audio in REAL-TIME - not a recording!
-        This streams audio as it's being mixed
+        Mix audio in REAL-TIME - generate actual mixed audio for Twilio
+        This generates TTS + background music mixed together
         """
         announcer.announce(
             "BonjourAudioMixer.mix_realtime",
             [
                 f"Mixing in REAL-TIME: {speech_text[:50]}...",
-                "NOT creating a recording",
-                "Streaming as we mix"
+                "Generating TTS + background music mix",
+                "Returning actual audio data for Twilio"
             ]
         )
         
-        # Add to mixing queue for real-time processing
-        self.mixing_queue.put({
-            'type': 'speech',
-            'text': speech_text,
-            'timestamp': os.times()
-        })
+        # Generate TTS audio first
+        tts_audio = self._generate_tts_audio(speech_text)
+        if not tts_audio:
+            return None
+            
+        # Get background music chunk of same length
+        music_audio = self._get_background_music_chunk(len(tts_audio))
         
-        # Return stream handle (not a file!)
-        return f"stream://{id(speech_text)}"
+        # Mix them together (simple volume mixing)
+        mixed_audio = self._mix_audio_streams(tts_audio, music_audio)
+        
+        announcer.announce(
+            "BonjourAudioMixer.MIXED_AUDIO_READY",
+            [
+                f"Generated {len(mixed_audio)} bytes of mixed audio",
+                "TTS + background music combined",
+                "Ready for Twilio transmission"
+            ]
+        )
+        
+        return mixed_audio
+        
+    def _generate_tts_audio(self, text: str) -> bytes:
+        """Generate TTS audio in mulaw format for Twilio"""
+        try:
+            import subprocess
+            import tempfile
+            
+            print(f"🔊 DEBUG: Starting TTS generation for: {text[:50]}...")
+            
+            # Generate WAV with espeak
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as wav_file:
+                wav_path = wav_file.name
+            
+            print(f"🔊 DEBUG: WAV temp file: {wav_path}")
+            cmd_wav = ['espeak', '-s', '175', '-p', '50', '-g', '2', '-w', wav_path, text]
+            print(f"🔊 DEBUG: Running espeak command: {' '.join(cmd_wav)}")
+            
+            # Run espeak with error output visible
+            result_wav = subprocess.run(cmd_wav, check=True, capture_output=True, text=True)
+            print(f"🔊 DEBUG: espeak completed, return code: {result_wav.returncode}")
+            if result_wav.stderr:
+                print(f"🔊 DEBUG: espeak stderr: {result_wav.stderr}")
+            
+            # Check if WAV file was created
+            if os.path.exists(wav_path):
+                wav_size = os.path.getsize(wav_path)
+                print(f"🔊 DEBUG: WAV file created, size: {wav_size} bytes")
+            else:
+                print(f"🔊 ERROR: WAV file not created!")
+                return b''
+            
+            # Convert to mulaw for Twilio
+            cmd_mulaw = [
+                'ffmpeg', '-y', '-i', wav_path,
+                '-acodec', 'pcm_mulaw', '-ar', '8000', '-ac', '1',
+                '-f', 'mulaw', 'pipe:1'
+            ]
+            print(f"🔊 DEBUG: Running ffmpeg command: {' '.join(cmd_mulaw)}")
+            
+            # Run ffmpeg with error output visible
+            result = subprocess.run(cmd_mulaw, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            print(f"🔊 DEBUG: ffmpeg completed, return code: {result.returncode}")
+            if result.stderr:
+                print(f"🔊 DEBUG: ffmpeg stderr: {result.stderr.decode()}")
+            
+            print(f"🔊 DEBUG: Generated {len(result.stdout)} bytes of mulaw audio")
+            
+            # Cleanup
+            os.unlink(wav_path)
+            
+            return result.stdout
+            
+        except Exception as e:
+            print(f"🔊 TTS generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return b''
+    
+    def _get_background_music_chunk(self, target_length: int) -> bytes:
+        """Get background music chunk to match TTS length"""
+        if not self.background_music or not os.path.exists(self.background_music):
+            return b'\x00' * target_length  # Silence if no music
+            
+        try:
+            import subprocess
+            
+            # Get music in mulaw format, same as TTS
+            cmd = [
+                'ffmpeg', '-y', '-i', self.background_music,
+                '-acodec', 'pcm_mulaw', '-ar', '8000', '-ac', '1',
+                '-f', 'mulaw', '-t', '10',  # Max 10 seconds
+                'pipe:1'
+            ]
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            
+            # Trim or pad to match target length
+            music_data = result.stdout
+            if len(music_data) > target_length:
+                return music_data[:target_length]
+            elif len(music_data) < target_length:
+                # Repeat/loop to fill
+                multiplier = (target_length // len(music_data)) + 1
+                return (music_data * multiplier)[:target_length]
+            else:
+                return music_data
+                
+        except Exception as e:
+            print(f"🎵 Music generation error: {e}")
+            return b'\x00' * target_length  # Silence fallback
+    
+    def _mix_audio_streams(self, tts_audio: bytes, music_audio: bytes) -> bytes:
+        """Mix TTS and background music with volume control"""
+        try:
+            import array
+            
+            # Convert bytes to arrays for mixing
+            tts_samples = array.array('b', tts_audio)
+            music_samples = array.array('b', music_audio)
+            
+            # Ensure same length
+            min_len = min(len(tts_samples), len(music_samples))
+            tts_samples = tts_samples[:min_len]
+            music_samples = music_samples[:min_len]
+            
+            # Mix with volume control (TTS at full volume, music at 25%)
+            mixed = array.array('b')
+            for i in range(min_len):
+                tts_val = tts_samples[i]
+                music_val = int(music_samples[i] * 0.25)  # Lower volume for music
+                
+                # Simple mixing (clamp to prevent overflow)
+                mixed_val = tts_val + music_val
+                mixed_val = max(-128, min(127, mixed_val))  # Clamp to byte range
+                mixed.append(mixed_val)
+            
+            return mixed.tobytes()
+            
+        except Exception as e:
+            print(f"🎚️ Audio mixing error: {e}")
+            return tts_audio  # Return TTS only as fallback
     
     def _listen_for_announcements(self):
         """
@@ -126,11 +261,11 @@ class BonjourAudioMixer:
         
         # Start music immediately via self-announcement
         announcer.announce(
-            "START_CONTINUOUS_MUSIC",
+            "AudioMixer Starting",
             [
-                "Timer-triggered music start",
-                "Mixer calling itself via Bonjour",
-                "Background music should begin now"
+                "Background music mixer activated",
+                "Continuous audio stream available",
+                "Generic audio service - no protocol specifics"
             ]
         )
         self.start_continuous_music()

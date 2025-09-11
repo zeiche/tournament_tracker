@@ -27,7 +27,7 @@ class MessageHandler:
     def _load_query_handler(self):
         """Try to load the polymorphic query handler"""
         try:
-            from polymorphic_queries import query as pq
+            from search.polymorphic_queries import query as pq
             self.query_handler = pq
             logger.info("Query handler loaded successfully")
         except ImportError as e:
@@ -103,7 +103,7 @@ Examples:
         try:
             from database_service import database_service
             with get_session() as session:
-                from tournament_models import Tournament, Player
+                from database.tournament_models import Tournament, Player
                 tournament_count = session.query(Tournament).count()
                 player_count = session.query(Player).count()
                 status += f"- Database: ✅ Connected\n"

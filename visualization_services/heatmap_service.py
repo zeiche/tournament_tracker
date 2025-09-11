@@ -26,26 +26,7 @@ class HeatmapService:
     """
     
     def __init__(self):
-        # Announce capabilities via Bonjour
-        announcer.announce(
-            "Heatmap Service",
-            [
-                "Tournament location heatmap generation",
-                "Player distribution heatmaps",
-                "Organization venue heatmaps", 
-                "Orchestrates database → math → graphics pipeline",
-                "Handles all heatmap-specific logic",
-                "Database service remains pure data layer",
-                "Polymorphic ask/tell/do interface"
-            ],
-            examples=[
-                "ask('tournament heatmap')",
-                "ask('player heatmap')",
-                "ask('venue heatmap')",
-                "tell('html', heatmap_data)",
-                "do('generate tournament heatmap')"
-            ]
-        )
+        pass
         
         # Services will be lazy-loaded
         self._database_service = None

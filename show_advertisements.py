@@ -1,68 +1,47 @@
 #!/usr/bin/env python3
 """
-Show current bonjour advertisements - immediate, non-blocking
+show_advertisements.py - Display current mDNS advertisements
+Shows services discovered on the network via Bonjour/mDNS
 """
 
-import sys
-sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker')
+from polymorphic_core.real_bonjour import announcer
+import time
 
-from polymorphic_core import announcer
+def main():
+    """Show current mDNS advertisements"""
+    print("🔍 Current mDNS Service Advertisements")
+    print("=" * 50)
+    
+    # Wait a moment for any discovery to complete
+    time.sleep(1)
+    
+    # Get discovered services
+    discovered = announcer.discover_services()
+    
+    if not discovered:
+        print("No services discovered on the network.")
+        print("\n💡 Services may take a few seconds to appear after startup.")
+        return
+    
+    print(f"Found {len(discovered)} services:\n")
+    
+    for service_data in discovered.values():
+        print(f"📡 {service_data['name']}")
+        print(f"   Host: {service_data['host']}:{service_data['port']}")
+        
+        if service_data['capabilities']:
+            print("   Capabilities:")
+            for cap in service_data['capabilities']:
+                if cap.strip():  # Skip empty capabilities
+                    print(f"     • {cap}")
+        
+        if service_data['examples']:
+            print("   Examples:")
+            for ex in service_data['examples']:
+                if ex.strip():  # Skip empty examples
+                    print(f"     - {ex}")
+        
+        print()  # Empty line between services
 
-# Import modules to trigger their advertisements
-from utils import database_service
-from services import startgg_sync
-from utils import tournament_operations
-from services import web_editor
-
-# Try to import graphics services
-failed_imports = []
-try:
-    from utils import graphics_service
-except Exception as e:
-    failed_imports.append(f"graphics_service: {e}")
-
-try:
-    from tournament_domain.analytics import tournament_heatmap
-except Exception as e:
-    failed_imports.append(f"tournament_heatmap: {e}")
-
-# Try to import audio services
-try:
-    from polymorphic_core.audio import audio_player, tts_service, audio_provider
-except Exception as e:
-    failed_imports.append(f"audio modules: {e}")
-
-# Try to import core models
-try:
-    from models import tournament_models
-except Exception as e:
-    failed_imports.append(f"tournament_models: {e}")
-
-# Try to import math services
-try:
-    from math_services import visualization_math, statistical_math, geometric_math, data_transforms
-except Exception as e:
-    failed_imports.append(f"math_services: {e}")
-
-# Try to import visualization services
-try:
-    from visualization_services import heatmap_service, chart_service, map_service
-except Exception as e:
-    failed_imports.append(f"visualization_services: {e}")
-
-# Just print what's currently advertised
-print("\n📡 Current Bonjour Advertisements:")
-print("=" * 50)
-
-if not announcer.announcements:
-    print("No services advertising yet")
-else:
-    for ann in announcer.announcements:
-        print(f"\n🔹 {ann['service']}")
-        for cap in ann['capabilities']:
-            print(f"   • {cap}")
-
-if failed_imports:
-    print("\n⚠️  Services that failed to advertise:")
-    for failure in failed_imports:
-        print(f"   ❌ {failure}")
+if __name__ == "__main__":
+    main()

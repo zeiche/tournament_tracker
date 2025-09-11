@@ -40,7 +40,7 @@ class TestDatabaseService(unittest.TestCase):
     
     def test_crud_operations(self):
         """Test CRUD operations"""
-        from tournament_models import Organization
+        from database.tournament_models import Organization
         
         # Create
         org = Organization(
@@ -68,7 +68,7 @@ class TestDatabaseService(unittest.TestCase):
     
     def test_transaction_context(self):
         """Test transaction context manager"""
-        from tournament_models import Organization
+        from database.tournament_models import Organization
         
         # Test successful transaction
         with self.db_service.transaction() as session:
@@ -102,7 +102,7 @@ class TestDatabaseService(unittest.TestCase):
         """Test that statistics are tracked"""
         initial_stats = self.db_service._stats.copy()
         
-        from tournament_models import Organization
+        from database.tournament_models import Organization
         
         # Perform operations
         with self.db_service.transaction() as session:
@@ -388,7 +388,7 @@ class TestIntegration(unittest.TestCase):
             logger.info("Starting integration test")
             
             # Create test data
-            from tournament_models import Organization, Tournament
+            from database.tournament_models import Organization, Tournament
             
             org = Organization(
                 normalized_key='test_org',

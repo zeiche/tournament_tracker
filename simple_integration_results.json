@@ -1,0 +1,88 @@
+{
+  "service_locator": {
+    "database": {
+      "discovered": true,
+      "discovery_time": 0.8376626968383789,
+      "has_ask": true,
+      "has_tell": true,
+      "has_do": true
+    },
+    "logger": {
+      "discovered": true,
+      "discovery_time": 0.006276607513427734,
+      "has_ask": true,
+      "has_tell": true,
+      "has_do": true
+    },
+    "error_handler": {
+      "discovered": true,
+      "discovery_time": 0.015037059783935547,
+      "has_ask": true,
+      "has_tell": true,
+      "has_do": true
+    },
+    "config": {
+      "discovered": true,
+      "discovery_time": 0.014185190200805664,
+      "has_ask": true,
+      "has_tell": true,
+      "has_do": true
+    }
+  },
+  "method_pattern": {
+    "database": {
+      "ask_works": false,
+      "tell_works": true,
+      "do_works": true,
+      "all_methods_work": false,
+      "ask_result": "DatabaseStats(total_organizations=0, total_tournaments=0, total_players=0, total_placements=0, tournaments_with_standings=0)",
+      "tell_result": "{\n  \"test\": \"data\"\n}",
+      "do_result": {
+        "error": "Don't know how to: reset stats"
+      }
+    },
+    "logger": {
+      "ask_works": true,
+      "tell_works": true,
+      "do_works": true,
+      "all_methods_work": true,
+      "ask_result": {
+        "total": 3,
+        "info": 2,
+        "warn": 1,
+        "error": 0,
+        "debug": 0
+      },
+      "tell_result": "{\n  \"test\": \"data\"\n}",
+      "do_result": {
+        "error": "Don't know how to: reset stats"
+      }
+    },
+    "points_system": {
+      "skipped": "service not available"
+    }
+  },
+  "dependencies": {
+    "database": {
+      "works": true,
+      "stats": "DatabaseStats(total_organizations=0, total_tournaments=0, total_players=0, total_placements=0, tournaments_with_standings=0)"
+    },
+    "logger": {
+      "works": true,
+      "stats": {
+        "total": 6,
+        "info": 4,
+        "warn": 2,
+        "error": 0,
+        "debug": 0
+      }
+    },
+    "points_system": {
+      "works": false,
+      "reason": "not discovered"
+    }
+  },
+  "points_workflow": {
+    "skipped": "points system not available"
+  }
+}

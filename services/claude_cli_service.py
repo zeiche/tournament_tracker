@@ -24,7 +24,24 @@ logger = logging.getLogger(__name__)
 
 # Add path for local imports
 sys.path.append('/home/ubuntu/claude/tournament_tracker')
-from fuzzy_search import fuzzy_searcher, fuzzy_search_objects
+
+try:
+    from fuzzy_search import fuzzy_searcher, fuzzy_search_objects
+except ImportError:
+    fuzzy_searcher = None
+    fuzzy_search_objects = None
+
+try:
+    from utils.error_handler import handle_errors, handle_exception, ErrorSeverity
+except ImportError:
+    def handle_errors(func):
+        return func
+    def handle_exception(e, severity=None):
+        logger.error(f"Error: {e}")
+    ErrorSeverity = None
+
+from polymorphic_core import announcer
+from dynamic_switches import announce_switch
 
 
 @dataclass
@@ -101,7 +118,8 @@ class ClaudeCLIService:
                 timeout=5
             )
             return result.returncode == 0
-        except:
+        except Exception as e:
+            handle_exception(e, {"operation": "check_claude_cli", "timeout": 5})
             return False
     
     def _start_processor(self):
@@ -197,7 +215,7 @@ Key relationships:
 
 BEST APPROACH - Use the polymorphic_queries module:
 # For ANY query, just use:
-from polymorphic_queries import query as pq
+from search.polymorphic_queries import query as pq
 output = pq(message)  # It figures out what to do with proper formatting!
 
 # IMPORTANT: Points are calculated using the centralized PointsSystem
@@ -289,10 +307,10 @@ Always set 'output' variable. Format for Discord with ** for bold."""
                         
                         # Execute the code
                         from database_service import database_service
-                        from tournament_models import Player, Tournament, Organization, TournamentPlacement
+                        from database.tournament_models import Player, Tournament, Organization, TournamentPlacement
                         from sqlalchemy import func, case, desc
                         from datetime import datetime
-                        from polymorphic_queries import query as pq, PolymorphicQuery
+                        from search.polymorphic_queries import query as pq, PolymorphicQuery
                         from formatters import PlayerFormatter, TournamentFormatter
                         from points_system import PointsSystem
                         
@@ -431,6 +449,46 @@ Always set 'output' variable. Format for Discord with ** for bold."""
             ),
             'cache_hits': self.stats['cache_hits']
         }
+    
+    def tell(self, format: str, data: Any = None) -> str:
+        """Format data for output (3-method pattern)"""
+        if data is None:
+            data = self.get_stats()
+        
+        if format.lower() in ['json']:
+            return json.dumps(data, indent=2)
+        elif format.lower() in ['discord', 'text']:
+            if isinstance(data, dict):
+                if 'cli_available' in data:  # Stats format
+                    return f"Claude CLI Status: {'Available' if data['cli_available'] else 'Unavailable'}\nQueue: {data['queue_size']} requests"
+                else:
+                    return str(data)
+            return str(data)
+        else:
+            return str(data)
+    
+    def do(self, action: str, **kwargs) -> Any:
+        """Perform actions (3-method pattern)"""
+        action = action.lower().strip()
+        
+        if 'clear queue' in action:
+            # Clear the request queue
+            while not self.request_queue.empty():
+                try:
+                    self.request_queue.get_nowait()
+                except:
+                    break
+            return "Queue cleared"
+        elif 'restart' in action:
+            # Restart the processor
+            self._start_processor()
+            return "Processor restarted"
+        elif 'stats' in action:
+            return self.get_stats()
+        else:
+            # Treat as a message to ask Claude
+            response = self.ask(action)
+            return response.response if response.success else response.error
 
 
 # ============================================================================
@@ -489,7 +547,7 @@ async def process_message_async(message: str, context: Optional[Dict[str, Any]] 
     if "attendance" in message_lower and any(term in message_lower for term in ["over time", "timeline", "trend", "history", "monthly"]):
         try:
             # Handle directly with polymorphic queries
-            from polymorphic_queries import query as pq
+            from search.polymorphic_queries import query as pq
             result = pq(message)
             return {
                 'success': True,
@@ -504,7 +562,7 @@ async def process_message_async(message: str, context: Optional[Dict[str, Any]] 
     # Check for other common queries that can be handled directly
     if any(keyword in message_lower for keyword in ["show top", "top players", "show player", "recent tournament", "upcoming tournament", "future tournament", "next tournament", "show org"]):
         try:
-            from polymorphic_queries import query as pq
+            from search.polymorphic_queries import query as pq
             result = pq(message)
             if result and result != "I'm not sure what you're looking for. Try 'show players', 'show tournaments', or 'show organizations'.":
                 return {
@@ -547,3 +605,63 @@ if __name__ == "__main__":
     # Show stats
     print("\n3. Service stats:")
     print(json.dumps(claude_cli.get_stats(), indent=2))
+
+
+# ============================================================================
+# GO.PY INTEGRATION
+# ============================================================================
+
+def start_ai_service(args=None):
+    """Handler for --ai switch"""
+    mode = "chat"  # default
+    
+    if hasattr(args, 'ai') and args.ai:
+        mode = args.ai
+    
+    print(f"Starting AI service with mode: {mode}")
+    
+    try:
+        if mode == "chat":
+            # Start interactive Claude chat
+            print("Claude AI Chat Service")
+            print("Type 'quit' to exit\n")
+            
+            while True:
+                try:
+                    query = input("🤖 > ")
+                    if query.lower() in ['quit', 'exit', 'q']:
+                        break
+                    
+                    response = ask_claude(query)
+                    print(f"\n{response}\n")
+                    
+                except (EOFError, KeyboardInterrupt):
+                    break
+                except Exception as e:
+                    print(f"Error: {e}")
+            
+            print("\n👋 Goodbye!")
+        
+        elif mode == "test":
+            # Test the service
+            print("Testing Claude CLI Service...")
+            response = ask_claude("What is 2+2?")
+            print(f"Test response: {response}")
+        
+        else:
+            print(f"Unknown AI mode: {mode}. Using chat.")
+            start_ai_service(args)  # Fallback to chat
+            
+    except Exception as e:
+        print(f"AI service failed: {e}")
+
+
+announce_switch(
+    flag="--ai",
+    help="START AI chat service (chat|test)",
+    handler=start_ai_service,
+    action="store",
+    nargs="?",
+    const="chat",
+    metavar="MODE"
+)

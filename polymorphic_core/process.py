@@ -17,28 +17,81 @@ class ProcessManager:
     
     @staticmethod
     def find_processes_by_script(script_name: str) -> List[int]:
-        """Find all PIDs running a specific script"""
+        """Find all PIDs running a specific script (filters out temporary commands)"""
         pids = []
         try:
-            for proc in psutil.process_iter(['pid', 'cmdline']):
+            for proc in psutil.process_iter(['pid', 'cmdline', 'ppid', 'name']):
                 cmdline = proc.info['cmdline']
-                if cmdline and any(script_name in arg for arg in cmdline):
-                    # Exclude grep/pgrep commands themselves
-                    if not any(grep in ' '.join(cmdline) for grep in ['grep', 'pgrep']):
-                        pids.append(proc.info['pid'])
+                if not cmdline or not any(script_name in arg for arg in cmdline):
+                    continue
+                
+                cmd_str = ' '.join(cmdline)
+                
+                # Skip grep/pgrep commands
+                if any(grep in cmd_str for grep in ['grep', 'pgrep']):
+                    continue
+                
+                # Skip bash wrapper commands (temporary Claude Code executions)
+                if any(wrapper in cmd_str for wrapper in ['bash -c', 'eval', 'python3 -c']):
+                    continue
+                
+                # Skip if parent process is bash and command is embedded in a larger script
+                try:
+                    parent = psutil.Process(proc.info['ppid'])
+                    if parent.name() == 'bash' and len(cmd_str) > 200:  # Long embedded commands
+                        continue
+                except:
+                    pass
+                
+                # Only include direct python script executions
+                if (proc.info['name'] in ['python3', 'python'] and 
+                    len(cmdline) >= 2 and 
+                    script_name in cmdline[1]):
+                    pids.append(proc.info['pid'])
+                        
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
         return pids
     
     @staticmethod  
     def find_processes_by_pattern(pattern: str) -> List[int]:
-        """Find processes matching a pattern in command line"""
+        """Find processes matching a pattern in command line (filters out temporary commands)"""
         pids = []
         try:
+            # Use pgrep first for speed
             result = subprocess.run(['pgrep', '-f', pattern], 
                                   capture_output=True, text=True)
             if result.stdout.strip():
-                pids = [int(pid) for pid in result.stdout.strip().split('\n')]
+                candidate_pids = [int(pid) for pid in result.stdout.strip().split('\n')]
+                
+                # Filter out temporary/wrapper commands
+                for pid in candidate_pids:
+                    try:
+                        proc = psutil.Process(pid)
+                        cmdline = proc.cmdline()
+                        if not cmdline:
+                            continue
+                            
+                        cmd_str = ' '.join(cmdline)
+                        
+                        # Skip bash wrapper commands (temporary Claude Code executions)
+                        if any(wrapper in cmd_str for wrapper in ['bash -c', 'eval', 'python3 -c']):
+                            continue
+                            
+                        # Skip if parent process is bash and command is very long (embedded)
+                        try:
+                            parent = psutil.Process(proc.ppid())
+                            if parent.name() == 'bash' and len(cmd_str) > 200:
+                                continue
+                        except:
+                            pass
+                            
+                        pids.append(pid)
+                        
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        # If we can't check the process, include it (conservative approach)
+                        pids.append(pid)
+                        
         except (subprocess.SubprocessError, ValueError):
             pass
         return pids
@@ -53,6 +106,26 @@ class ProcessManager:
             try:
                 # Skip our own process
                 if pid == os.getpid():
+                    continue
+                
+                # Additional safety: verify this is actually a service we should kill
+                try:
+                    proc = psutil.Process(pid)
+                    cmdline = proc.cmdline()
+                    if not cmdline:
+                        continue
+                        
+                    # Only kill Python processes that look like services
+                    if not (proc.name() in ['python3', 'python'] and len(cmdline) >= 2):
+                        continue
+                        
+                    # Extra safety: don't kill system Python processes
+                    cmd_str = ' '.join(cmdline)
+                    if any(sys_pattern in cmd_str for sys_pattern in ['/usr/', 'unattended-upgrade', 'apt']):
+                        continue
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    # If we can't verify it's safe, skip it
                     continue
                     
                 os.kill(pid, signal_type)
@@ -106,9 +179,11 @@ class ProcessManager:
                 ProcessManager.kill_processes(existing)
                 time.sleep(1)  # Give processes time to die
         
-        # Start new process
+        # Start new process with output redirected to log file
         cmd = ['python3', script_path] + list(args)
-        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        log_file = f'/tmp/{os.path.basename(script_path)}.log'
+        with open(log_file, 'w') as f:
+            proc = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
         
         announcer.announce(
             "ProcessManager",
@@ -127,20 +202,41 @@ class ProcessManager:
         """Find processes listening on a specific port"""
         pids = []
         try:
-            # Use ss command to find processes by port
-            result = subprocess.run(['ss', '-tulpn'], capture_output=True, text=True)
-            if result.stdout:
+            # Use lsof for reliable port detection
+            result = subprocess.run(['lsof', '-ti', f':{port}'], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.stdout.strip():
+                for pid_str in result.stdout.strip().split('\n'):
+                    try:
+                        pid = int(pid_str)
+                        if pid not in pids:
+                            pids.append(pid)
+                    except ValueError:
+                        continue
+        except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError):
+            # Fallback to netstat if lsof not available
+            try:
+                result = subprocess.run(['netstat', '-tlnp'], 
+                                      capture_output=True, text=True, timeout=5)
                 for line in result.stdout.split('\n'):
-                    if f':{port} ' in line or f':{port}\t' in line:
-                        # Extract PID from ss output format: users:(("process",pid=12345,fd=3))
-                        import re
-                        pid_match = re.search(r'pid=(\d+)', line)
-                        if pid_match:
-                            pid = int(pid_match.group(1))
-                            if pid not in pids:
-                                pids.append(pid)
-        except (subprocess.SubprocessError, ValueError):
-            pass
+                    if f':{port} ' in line and 'LISTEN' in line:
+                        parts = line.split()
+                        for part in parts:
+                            if '/' in part:
+                                try:
+                                    pid = int(part.split('/')[0])
+                                    if pid not in pids:
+                                        pids.append(pid)
+                                except ValueError:
+                                    continue
+            except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+                # Final fallback - pattern matching
+                try:
+                    all_processes = ProcessManager.find_processes_by_pattern(f'python.*{port}')
+                    pids.extend(all_processes)
+                except:
+                    pass
+        
         return pids
     
     @staticmethod
@@ -171,13 +267,5 @@ class ProcessManager:
         
         return processes
 
-# Announce the process manager
-announcer.announce(
-    "ProcessManager",
-    [
-        "Process management with duplicate prevention",
-        "Safe service starting and stopping", 
-        "Pattern-based process discovery",
-        "Automatic cleanup of old processes"
-    ]
-)
+# ProcessManager capabilities announced by individual process managers
+# (removed module-level announcement to prevent duplicates)

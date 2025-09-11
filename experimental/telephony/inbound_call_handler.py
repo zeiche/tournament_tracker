@@ -6,7 +6,7 @@ Processes voice input through polymorphic queries and provides tournament info
 
 from flask import Flask, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
-from polymorphic_queries import query as pq
+from search.polymorphic_queries import query as pq
 from capability_announcer import announcer
 import subprocess
 import re

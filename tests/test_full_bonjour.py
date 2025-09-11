@@ -12,7 +12,7 @@ def test_model_layer():
     print("\n🏗️ Testing Model Layer Bonjour")
     print("-"*40)
     
-    from tournament_models import Tournament, Player, Organization
+    from database.tournament_models import Tournament, Player, Organization
     
     # Create instances - should announce
     t = Tournament()
@@ -65,7 +65,7 @@ def test_query_layer():
     print("\n🔍 Testing Query Layer Bonjour")
     print("-"*40)
     
-    from polymorphic_queries import query
+    from search.polymorphic_queries import query
     
     # This should announce
     result = query("show top 3 players")
@@ -102,11 +102,11 @@ def test_logging_integration():
     print("\n📝 Testing Logger Bonjour Integration")
     print("-"*40)
     
-    from supercharged_logger import logger
+    from utils.logger import logger
     
     # Logger should have announced itself
     logger.info("Test log message")
-    print("✅ Supercharged logger announces itself")
+    print("✅ Clean logger announces itself")
     print("✅ Logger captures Bonjour announcements")
 
 
@@ -121,7 +121,7 @@ def show_integration_summary():
             "Bonjour infrastructure (announcer, monitor, discovery)",
             "Service layer (Discord, Editor services)",
             "Query layer (polymorphic_queries)",
-            "Logging system (supercharged_logger)",
+            "Logging system (clean logger with 3-method pattern)",
             "Bonjour monitor and discovery tools"
         ],
         "⚠️  Partial": [

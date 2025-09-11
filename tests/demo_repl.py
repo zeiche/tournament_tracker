@@ -5,7 +5,7 @@ Run with: python3 -i demo_repl.py
 """
 
 from database_utils import init_db, get_session
-from tournament_models import Tournament, Organization, Player, TournamentPlacement
+from database.tournament_models import Tournament, Organization, Player, TournamentPlacement
 from datetime import datetime
 
 # Initialize database

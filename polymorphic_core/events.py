@@ -9,7 +9,6 @@ from .real_bonjour import RealBonjourAnnouncer
 
 # Pure mDNS - no compromises
 announcer = RealBonjourAnnouncer()
-CapabilityAnnouncer = RealBonjourAnnouncer
 
 def announces_capability(service_name: str, *capabilities):
     """Decorator for announcing capabilities via real mDNS only"""
@@ -18,6 +17,6 @@ def announces_capability(service_name: str, *capabilities):
         return obj
     return decorator
 
-__all__ = ['announcer', 'CapabilityAnnouncer', 'announces_capability']
+__all__ = ['announcer', 'announces_capability']
 
 print("🌐 Using PURE mDNS Service Discovery - real network only!")

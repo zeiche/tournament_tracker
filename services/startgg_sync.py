@@ -15,14 +15,13 @@ from dataclasses import dataclass
 from polymorphic_core import announcer
 from utils.database import session_scope
 from utils.database_service import database_service
-from log_manager import LogManager
-
-# Initialize logger
-logger = LogManager().get_logger('startgg_sync')
+from utils.simple_logger import info, warning, error
+from utils.error_handler import handle_errors, handle_exception, ErrorSeverity
+from utils.config_service import get_config
 
 # Announce module capabilities on import
 announcer.announce(
-    "Start.gg Sync Service",
+    "StartGG Sync Service",
     [
         "Sync with just 3 methods: ask(), tell(), do()",
         "Natural language API queries",
@@ -146,9 +145,9 @@ class StartGGSync:
     def __init__(self):
         """Initialize the Start.gg sync service"""
         # Get API token from environment
-        self.api_token = os.getenv("STARTGG_API_TOKEN", "")
+        self.api_token = get_config("startgg api key", "")
         if not self.api_token:
-            logger.warning("STARTGG_API_TOKEN not found in environment")
+            warning("StartGG API token not found in environment")
         
         # API endpoint
         self.api_url = "https://api.start.gg/gql/alpha"
@@ -411,11 +410,13 @@ class StartGGSync:
             else:
                 return {"status": "error", "code": response.status_code}
         except Exception as e:
+            handle_exception(e, {"operation": "api_test", "api_url": self.api_url})
             return {"status": "error", "message": str(e)}
     
+    @handle_errors(severity=ErrorSeverity.HIGH, context={"operation": "fetch_tournaments"})
     def _fetch_tournaments(self, year_filter: bool = True, max_pages: int = 10) -> List[Dict]:
         """Fetch tournaments from start.gg API"""
-        logger.info(f"Fetching tournaments from start.gg")
+        info(f"Fetching tournaments from start.gg")
         announcer.announce("StartGG", ["Fetching tournaments from API"])
         
         all_tournaments = []
@@ -433,8 +434,7 @@ class StartGGSync:
             if year_filter:
                 variables["after"] = self.current_year_start
                 variables["before"] = self.current_year_end
-                if page == 1:
-                    logger.debug(f"Filtering for {self.current_year} tournaments")
+                # Debug info handled by announcer
             
             payload = {
                 "query": SOCAL_TOURNAMENTS_QUERY,
@@ -442,18 +442,21 @@ class StartGGSync:
             }
             
             try:
-                # Make API call
+                # Make API call with timing
+                start_time = time.time()
                 announcer.announce("StartGG API", [f"Fetching page {page}"])
                 response = requests.post(self.api_url, json=payload, headers=self.headers)
+                response_time = time.time() - start_time
                 
-                # Rate limiting
-                time.sleep(1)
+                # Adaptive rate limiting: faster responses = shorter waits
+                adaptive_sleep = max(0.3, min(1.0, response_time * 0.5))
+                time.sleep(adaptive_sleep)
                 
                 response.raise_for_status()
                 data = response.json()
                 
                 if 'errors' in data:
-                    logger.error(f"API error: {data['errors']}")
+                    error(f"API error: {data['errors']}")
                     self.sync_stats['errors'] += 1
                     break
                 
@@ -465,7 +468,7 @@ class StartGGSync:
                 if page == 1:
                     total_pages = page_info.get('totalPages', 1)
                     total_count = page_info.get('total', 0)
-                    logger.info(f"Found {total_count} tournaments across {total_pages} pages")
+                    info(f"Found {total_count} tournaments across {total_pages} pages")
                     announcer.announce("StartGG API", [f"Found {total_count} tournaments"])
                 
                 all_tournaments.extend(tournaments)
@@ -474,20 +477,33 @@ class StartGGSync:
                 # Next page
                 page += 1
                 
+            except requests.RequestException as e:
+                handle_exception(e, {
+                    "operation": "fetch_tournaments_page", 
+                    "page": page, 
+                    "api_url": self.api_url,
+                    "variables": variables
+                })
+                self.sync_stats['errors'] += 1
+                break
             except Exception as e:
-                logger.error(f"Error fetching page {page}: {e}")
+                handle_exception(e, {
+                    "operation": "process_tournament_response", 
+                    "page": page,
+                    "context": "unexpected error during response processing"
+                })
                 self.sync_stats['errors'] += 1
                 break
         
         self.sync_stats['tournaments_fetched'] = len(all_tournaments)
-        logger.info(f"Fetched {len(all_tournaments)} tournaments")
+        info(f"Fetched {len(all_tournaments)} tournaments")
         announcer.announce("StartGG", [f"Fetched {len(all_tournaments)} tournaments"])
         
         return all_tournaments
     
     def _fetch_standings(self, tournament_id: str) -> Optional[List[Dict]]:
         """Fetch standings for a specific tournament"""
-        logger.debug(f"Fetching standings for tournament {tournament_id}")
+        # Debug info handled by announcer
         
         variables = {"tournamentId": tournament_id}
         payload = {
@@ -498,13 +514,14 @@ class StartGGSync:
         try:
             announcer.announce("StartGG API", [f"Fetching standings for {tournament_id}"])
             response = requests.post(self.api_url, json=payload, headers=self.headers)
-            time.sleep(1)  # Rate limiting
+            # Reduced rate limiting for standings (less intensive)
+            time.sleep(0.5)
             
             response.raise_for_status()
             data = response.json()
             
             if 'errors' in data:
-                logger.error(f"Standings error: {data['errors']}")
+                error(f"Standings error: {data['errors']}")
                 return None
             
             tournament_data = data.get('data', {}).get('tournament')
@@ -529,7 +546,7 @@ class StartGGSync:
                     all_standings.append(standing)
             
             self.sync_stats['standings_fetched'] += len(all_standings)
-            logger.debug(f"Fetched {len(all_standings)} standings")
+        # Debug info handled by announcer
             
             return all_standings
             

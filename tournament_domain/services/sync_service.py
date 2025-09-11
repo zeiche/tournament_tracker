@@ -1,15 +1,21 @@
 """
-sync_service.py - Single Source of Truth for Tournament Synchronization
-Consolidates sync_operation.py and sync_operation_v2.py into one Pythonic service
+sync_service.py - Tournament Synchronization Service (3-Method Pattern)
+ask() - Query sync status and history
+tell() - Format sync results for output
+do() - Perform sync operations
 """
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from enum import Enum
 
-from utils.database_service import database_service
-from services.startgg_service import startgg_service, SyncResult
-from utils.log_manager import LogManager
+from utils.simple_logger import info, warning, error
+from polymorphic_core import announcer
+from dynamic_switches import announce_switch
 
 
 class SyncMode(Enum):
@@ -66,7 +72,7 @@ class SyncService:
     def __init__(self):
         """Initialize sync service"""
         if not self._initialized:
-            self.logger = LogManager().get_logger('sync')
+            # Simple logging setup complete
             self.last_sync: Optional[datetime] = None
             self.sync_history: List[SyncStats] = []
             self._initialized = True
@@ -95,7 +101,7 @@ class SyncService:
             mode=mode
         )
         
-        self.logger.info(f"Starting {mode.value} sync")
+        info(f"Starting {mode.value} sync")
         
         try:
             # Use StartGGService for API calls
@@ -125,7 +131,7 @@ class SyncService:
             self.last_sync = datetime.now()
             self.sync_history.append(stats)
             
-            self.logger.info(
+            info(
                 f"Sync completed: {stats.tournaments_created} created, "
                 f"{stats.tournaments_updated} updated, "
                 f"{len(stats.errors)} errors"
@@ -133,7 +139,7 @@ class SyncService:
             
         except Exception as e:
             stats.errors.append(str(e))
-            self.logger.error(f"Sync failed: {e}")
+            error(f"Sync failed: {e}")
         
         return stats
     
@@ -292,8 +298,162 @@ class SyncService:
     def clear_history(self):
         """Clear sync history"""
         self.sync_history.clear()
-        self.logger.info("Sync history cleared")
+        info("Sync history cleared")
+    
+    # 3-Method Pattern Implementation
+    
+    def ask(self, query: str, **kwargs) -> Any:
+        """
+        Query sync information using natural language
+        Examples:
+            ask("last sync")
+            ask("sync history")
+            ask("sync stats")
+            ask("recent syncs")
+        """
+        query = query.lower().strip()
+        
+        if "last sync" in query:
+            if self.last_sync:
+                return f"Last sync: {self.last_sync.strftime('%Y-%m-%d %H:%M:%S')}"
+            return "No previous sync recorded"
+        
+        elif "history" in query or "recent" in query:
+            return self.get_stats()
+        
+        elif "stats" in query:
+            stats = self.get_stats()
+            return stats.get('summary', {})
+        
+        elif "status" in query:
+            if self.sync_history:
+                last_stats = self.sync_history[-1]
+                return f"Status: {last_stats.status}, Tournaments: {last_stats.tournaments_fetched}"
+            return "No sync history available"
+        
+        else:
+            return f"Unknown sync query: {query}"
+    
+    def tell(self, format: str, data: Any = None) -> str:
+        """
+        Format sync information for output
+        """
+        if data is None:
+            data = self.get_stats()
+        
+        if format.lower() in ["json"]:
+            import json
+            return json.dumps(data, default=str, indent=2)
+        
+        elif format.lower() in ["discord", "text"]:
+            if isinstance(data, dict) and 'summary' in data:
+                summary = data['summary']
+                lines = [
+                    f"🔄 **Sync Status**",
+                    f"Last sync: {summary.get('last_sync', 'Never')}",
+                    f"Total syncs: {summary.get('total_syncs', 0)}",
+                    f"Success rate: {summary.get('success_rate', 0)}%"
+                ]
+                return "\n".join(lines)
+            return str(data)
+        
+        else:
+            return str(data)
+    
+    def do(self, action: str, **kwargs) -> Any:
+        """
+        Perform sync actions using natural language
+        Examples:
+            do("sync tournaments")
+            do("sync recent")
+            do("full sync")
+            do("clear history")
+        """
+        action = action.lower().strip()
+        
+        if "sync" in action:
+            if "recent" in action:
+                mode = SyncMode.RECENT
+            elif "full" in action:
+                mode = SyncMode.FULL
+            elif "smart" in action:
+                mode = SyncMode.SMART
+            else:
+                mode = SyncMode.FULL
+            
+            # Perform the sync
+            try:
+                stats = self.sync_tournaments(mode=mode, **kwargs)
+                return f"Sync completed: {stats.tournaments_fetched} tournaments processed"
+            except Exception as e:
+                error(f"Sync failed: {e}")
+                return f"Sync failed: {e}"
+        
+        elif "clear" in action and "history" in action:
+            self.clear_history()
+            return "Sync history cleared"
+        
+        else:
+            return f"Unknown sync action: {action}"
 
+
+# Announce service capabilities
+announcer.announce(
+    "Tournament Sync Service",
+    [
+        "Tournament synchronization with 3-method pattern",
+        "ask('last sync') - Get sync status and history",
+        "tell('discord', stats) - Format sync results",
+        "do('sync tournaments') - Perform sync operations",
+        "Smart sync modes: full, recent, smart"
+    ],
+    [
+        "sync.ask('sync history')",
+        "sync.do('sync recent')",
+        "sync.tell('discord')"
+    ]
+)
 
 # Singleton instance
 sync_service = SyncService()
+
+# Announce our consolidated --sync switch with options
+def start_sync_service(args=None):
+    """Handler for --sync switch with options (replaces --sync and --sync-and-publish)"""
+    import argparse
+    
+    # If args is a Namespace, convert to list for sub-parsing
+    if hasattr(args, '__dict__'):
+        # For now, default to basic sync
+        mode = "recent"
+        publish = False
+    else:
+        # Parse sub-arguments if provided
+        mode = "recent" 
+        publish = False
+    
+    info(f"Starting sync service with mode: {mode}")
+    
+    try:
+        if publish:
+            # Sync and publish to Shopify
+            import subprocess, sys
+            subprocess.run([sys.executable, 'tournament_domain/services/sync_and_publish.py'])
+        else:
+            # Just sync
+            result = sync_service.do(f"sync {mode}")
+            info(f"Sync completed: {result}")
+            return result
+    except Exception as e:
+        error(f"Sync failed: {e}")
+        return None
+
+announce_switch(
+    flag="--sync",
+    help="START tournament sync (options: recent|full|smart) [+publish]",
+    handler=start_sync_service,
+    action="store",  # Change from store_true to store
+    nargs="?",  # Accept optional argument
+    const="recent",  # Default value when no argument provided
+    metavar="MODE"
+)

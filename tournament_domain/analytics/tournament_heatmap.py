@@ -6,6 +6,9 @@ Creates both static images and interactive HTML maps
 
 import json
 import numpy as np
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from utils.database_service import database_service
 from models.tournament_models import Tournament
 from log_manager import LogManager

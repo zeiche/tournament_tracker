@@ -11,6 +11,7 @@ import time
 from typing import List, Dict, Any, Optional, Callable
 from zeroconf import ServiceInfo, Zeroconf, ServiceBrowser, ServiceListener
 import uuid
+# Avoiding circular import with logger
 
 class RealBonjourAnnouncer:
     """
@@ -41,8 +42,13 @@ class RealBonjourAnnouncer:
             # Skip if we already know about this service
             if name in self.announcer.discovered_services:
                 return
-                
-            info = zc.get_service_info(type_, name)
+            
+            # Skip if zeroconf is shutting down
+            try:
+                info = zc.get_service_info(type_, name)
+            except Exception:
+                # Zeroconf is shutting down, ignore this service
+                return
             if info:
                 # Parse service capabilities from TXT records
                 properties = {}
@@ -99,9 +105,12 @@ class RealBonjourAnnouncer:
         """
         examples = examples or []
         
-        # Skip if already announced
+        # Skip if already announced or being announced
         if service_name in self.announced_services:
             return self
+        
+        # Mark as being processed to prevent duplicates
+        self.announced_services[service_name] = None
         
         # Do the announcement in a background thread to avoid blocking
         import threading
@@ -139,8 +148,10 @@ class RealBonjourAnnouncer:
                         value_str = value_str[:200] + "..."
                     txt_properties[key.encode()[:63]] = value_str.encode()[:255]
                 
-                # Create service info
-                service_full_name = f"{service_name}.{self.service_type}"
+                # Create service info with unique suffix to avoid conflicts
+                import time
+                unique_suffix = f"{int(time.time() * 1000) % 10000}"  # Last 4 digits of timestamp
+                service_full_name = f"{service_name}-{unique_suffix}.{self.service_type}"
                 info = ServiceInfo(
                     self.service_type,
                     service_full_name,
@@ -160,17 +171,24 @@ class RealBonjourAnnouncer:
                         break
                     except Exception as e:
                         if attempt == max_retries - 1:  # Last attempt
-                            if "already registered" in str(e).lower():
+                            if "already registered" in str(e).lower() or "nonuniquename" in str(e).lower():
                                 print(f"⚠️  {service_name} already registered (OK)")
+                                # Still mark as successful since service exists
+                                self.announced_services[service_name] = info
+                                break
                             else:
-                                print(f"❌ Failed to announce {service_name} after {max_retries} attempts: {e}")
+                                print(f"❌ Failed to announce {service_name} after {max_retries} attempts: {type(e).__name__}: {e}")
+                                # Remove from announced_services since it failed
+                                self.announced_services.pop(service_name, None)
                         else:
                             # Wait a bit before retry
                             import time
                             time.sleep(0.1 * (attempt + 1))
                 
             except Exception as e:
-                print(f"❌ Failed to announce {service_name}: {e}")
+                print(f"❌ Failed to announce {service_name}: {type(e).__name__}: {e}")
+                # Remove from announced_services since it failed
+                self.announced_services.pop(service_name, None)
         
         # Start background thread
         thread = threading.Thread(target=_announce_background, daemon=True)
@@ -201,7 +219,6 @@ class RealBonjourAnnouncer:
                     break
         return results
     
-    # Backward compatibility methods
     def add_listener(self, listener_func: Callable):
         """Add a listener function that gets called on service discovery"""
         self.listeners.append(listener_func)
@@ -211,7 +228,7 @@ class RealBonjourAnnouncer:
         self.service_registry[service_name] = handler
     
     def send_signal(self, signal_type: str, target_service: str = None, data: dict = None):
-        """Send signals to registered services (local only for now)"""
+        """Send signals to registered services"""
         responses = {}
         
         if target_service:
@@ -238,7 +255,7 @@ class RealBonjourAnnouncer:
         return responses
     
     def get_announcements_for_claude(self) -> str:
-        """Format discovered services for Claude (backward compatibility)"""
+        """Format discovered services for Claude"""
         if not self.discovered_services:
             return "No services discovered on the network yet."
         
@@ -260,13 +277,21 @@ class RealBonjourAnnouncer:
         """Clean shutdown"""
         print("🧹 Shutting down real Bonjour announcer...")
         
+        # Close browser first to stop discovery
+        try:
+            if hasattr(self, 'browser'):
+                self.browser.cancel()
+        except Exception as e:
+            print(f"Error closing browser: {e}")
+        
         # Unregister all our announced services
         for service_name, info in self.announced_services.items():
-            try:
-                self.zeroconf.unregister_service(info)
-                print(f"👋 Unregistered: {service_name}")
-            except Exception as e:
-                print(f"Error unregistering {service_name}: {e}")
+            if info:  # Only unregister if we have valid info
+                try:
+                    self.zeroconf.unregister_service(info)
+                    print(f"👋 Unregistered: {service_name}")
+                except Exception as e:
+                    print(f"Error unregistering {service_name}: {e}")
         
         # Close zeroconf
         try:
@@ -274,23 +299,19 @@ class RealBonjourAnnouncer:
         except Exception as e:
             print(f"Error closing zeroconf: {e}")
 
-# Create global instance (backward compatibility)
-real_announcer = RealBonjourAnnouncer()
-
-# Export for backward compatibility
-announcer = real_announcer
-CapabilityAnnouncer = RealBonjourAnnouncer
+# Global instance
+announcer = RealBonjourAnnouncer()
 
 def announces_capability(service_name: str, *capabilities):
     """Decorator for auto-announcing capabilities"""
     def decorator(obj):
-        real_announcer.announce(service_name, list(capabilities))
+        announcer.announce(service_name, list(capabilities))
         return obj
     return decorator
 
 # Cleanup on exit
 import atexit
-atexit.register(real_announcer.cleanup)
+atexit.register(announcer.cleanup)
 
 if __name__ == "__main__":
     # Test the real announcer

@@ -34,7 +34,7 @@ from query_wrappers import (
 
 # Additional convenience imports
 from database import session_scope
-from models.tournament_models import Player, Tournament, Organization, TournamentPlacement
+from database.tournament_models import Player, Tournament, Organization, TournamentPlacement
 
 __all__ = [
     # Main query functions

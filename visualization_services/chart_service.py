@@ -22,27 +22,9 @@ class ChartService:
     """Chart and graph visualization service"""
     
     def __init__(self):
-        announcer.announce(
-            "Chart Service",
-            [
-                "Player ranking charts and graphs",
-                "Tournament attendance visualizations", 
-                "Organization statistics charts",
-                "Timeline and trend analysis",
-                "Coordinates database → math → graphics for charts",
-                "Polymorphic ask/tell/do interface"
-            ],
-            examples=[
-                "ask('player rankings chart')",
-                "ask('tournament attendance graph')",
-                "ask('organization stats chart')"
-            ]
-        )
-        
-        self._database_service = None
-        self._math_service = None
+        pass
     
-    def ask(self, query: str, data: Any = None, **kwargs) -> Any:
+    def ask(self, query: str, **kwargs) -> Any:
         """Process chart requests"""
         query_lower = query.lower().strip()
         

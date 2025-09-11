@@ -23,25 +23,7 @@ class GeometricMathService:
     """Geometric mathematical operations with ask/tell/do interface"""
     
     def __init__(self):
-        # Announce capabilities via Bonjour
-        announcer.announce(
-            "Geometric Math Service",
-            [
-                "Spatial and geometric mathematical operations",
-                "Distance calculations (Euclidean, Haversine)",
-                "Geographic coordinate transformations",
-                "Proximity and spatial relationship analysis",
-                "Geometric shape calculations",
-                "Tournament location spatial analysis",
-                "Polymorphic ask/tell/do interface"
-            ],
-            examples=[
-                "ask('distance between tournaments')",
-                "ask('nearest venues to point')",
-                "tell('json', distances)",
-                "do('calculate tournament clusters by distance')"
-            ]
-        )
+        pass
     
     def ask(self, query: str, data: Any = None, **kwargs) -> Any:
         """Process geometric queries"""

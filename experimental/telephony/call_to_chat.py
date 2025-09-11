@@ -23,7 +23,7 @@ def process_with_claude(text):
     """Process text through Claude"""
     try:
         # First try polymorphic queries for tournament stuff
-        from polymorphic_queries import query as pq
+        from search.polymorphic_queries import query as pq
         response = pq(text)
         
         if response == "I don't understand that query.":

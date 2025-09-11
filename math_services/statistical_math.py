@@ -22,25 +22,7 @@ class StatisticalMathService:
     """Statistical mathematical operations with ask/tell/do interface"""
     
     def __init__(self):
-        # Announce capabilities via Bonjour
-        announcer.announce(
-            "Statistical Math Service", 
-            [
-                "Advanced statistical mathematical operations",
-                "Gaussian kernel density estimation (KDE)",
-                "Statistical distributions and analysis",
-                "Data clustering algorithms",
-                "Correlation and regression analysis", 
-                "Lazy-loaded heavy dependencies (scipy, numpy)",
-                "Polymorphic ask/tell/do interface"
-            ],
-            examples=[
-                "ask('gaussian kde for heatmap')",
-                "ask('cluster tournament locations')",
-                "tell('numpy', kde_result)",
-                "do('calculate distribution')"
-            ]
-        )
+        pass
     
     def ask(self, query: str, data: Any = None, **kwargs) -> Any:
         """Process statistical queries"""

@@ -2,7 +2,7 @@
 """Test the updated player rankings without min_tournaments filter"""
 
 from database_utils import get_player_rankings, get_session
-from tournament_models import TournamentPlacement
+from database.tournament_models import TournamentPlacement
 from sqlalchemy import func, distinct
 
 # Test that the function works without min_tournaments

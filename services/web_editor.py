@@ -42,7 +42,7 @@ class WebEditorProcessManager(BaseProcessManager):
 
 # Announce module capabilities on import
 announcer.announce(
-    "Web Editor Service (Polymorphic)",
+    "Web Editor Service",
     [
         "Web interface for editing organizations on port 8081",
         "Edit organization names and merge duplicates",

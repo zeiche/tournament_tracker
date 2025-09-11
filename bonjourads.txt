@@ -1,0 +1,887 @@
+🌐 Real Bonjour announcer started (service type: _tournament._tcp.local.)
+🌐 Real Bonjour announcer started (service type: _tournament._tcp.local.)
+🌐 Using PURE mDNS Service Discovery - real network only!
+🔍 Discovered: ProcessManagementGuide-2290 at 64.111.98.139:33405
+🔍 Discovered: NextService_WebEditor-2289 at 64.111.98.139:44165
+🔍 Discovered: Universal Web Editor Service-2286 at 64.111.98.139:60247
+🔍 Discovered: NextService_Discord-2289 at 64.111.98.139:50893
+🔍 Discovered: Enhanced Universal Web Editor-2290 at 64.111.98.139:39819
+🔍 Discovered: Error Handler Service-2289 at 64.111.98.139:60175
+🔍 Discovered: PolymorphicWebEditorProcessManager-2290 at 64.111.98.139:34329
+🔍 Discovered: ValidationCommands-2289 at 64.111.98.139:36109
+🔍 Discovered: PROXY_STARTING-3333 at 64.111.98.139:50927
+🔍 Discovered: ProcessManagementGuide-3324 at 64.111.98.139:36909
+🔍 Discovered: PROXY_RUNNING-3464 at 64.111.98.139:46455
+🔍 Discovered: ValidationCommands-3329 at 64.111.98.139:39923
+🚀 Starting mDNS announcement for ProcessManagementGuide...
+🚀 Starting mDNS announcement for NextService_Discord...
+🔍 Discovered: NextService_Discord-3326 at 64.111.98.139:44123
+🚀 Starting mDNS announcement for NextService_WebEditor...
+🔍 Discovered: NextService_WebEditor-3326 at 64.111.98.139:37963
+🚀 Starting mDNS announcement for ValidationCommands...
+🔍 Current mDNS Service Advertisements
+==================================================
+🔍 Discovered: Polymorphic Encryption Service-3326 at 64.111.98.139:45379
+🔍 Discovered: PROXY_STARTING-3333 at 64.111.98.139:50927
+🔍 Discovered: ProcessManagementGuide-3324 at 64.111.98.139:36909
+🔍 Discovered: PROXY_RUNNING-3464 at 64.111.98.139:46455
+🔍 Discovered: ValidationCommands-3329 at 64.111.98.139:39923
+🔍 Discovered: NextService_Discord-3326 at 64.111.98.139:44123
+🔍 Discovered: NextService_WebEditor-3326 at 64.111.98.139:37963
+🔍 Discovered: Polymorphic Encryption Service-3326 at 64.111.98.139:45379
+🔍 Discovered: ValidationCommands-9950 at 64.111.98.139:51629
+🔍 Discovered: NextService_Discord-9956 at 64.111.98.139:49445
+🔍 Discovered: ProcessManagementGuide-9955 at 64.111.98.139:60135
+🔍 Discovered: ValidationCommands-9950 at 64.111.98.139:51629
+🔍 Discovered: NextService_WebEditor-9952 at 64.111.98.139:50973
+🔍 Discovered: NextService_Discord-9956 at 64.111.98.139:49445
+🔍 Discovered: ProcessManagementGuide-9955 at 64.111.98.139:60135
+🔍 Discovered: NextService_WebEditor-9952 at 64.111.98.139:50973
+🔍 Discovered: GoSwitch__discord_bot-376 at 64.111.98.139:43403
+🔍 Discovered: PolymorphicTTSService-374 at 64.111.98.139:60825
+🔍 Discovered: GoSwitch__discord_bot-376 at 64.111.98.139:43403
+🔍 Discovered: PolymorphicTTSService-374 at 64.111.98.139:60825
+🔍 Discovered: PolymorphicAudioPlayer-359 at 64.111.98.139:48933
+🔍 Discovered: GoSwitch__ai-406 at 64.111.98.139:57005
+🔍 Discovered: PolymorphicTranscription-372 at 64.111.98.139:33597
+🔍 Discovered: GoSwitch__web-395 at 64.111.98.139:43195
+🔍 Discovered: GoSwitch__twilio-407 at 64.111.98.139:35403
+🔍 Discovered: GoSwitch__sync-398 at 64.111.98.139:35395
+🔍 Discovered: GoSwitch__service_status-410 at 64.111.98.139:60771
+🔍 Discovered: PolymorphicAudioRequest-361 at 64.111.98.139:41921
+🔍 Discovered: AUDIO_REQUEST-362 at 64.111.98.139:50375
+🔍 Discovered: PolymorphicAudioPlayer-359 at 64.111.98.139:48933
+🔍 Discovered: Error Handler Service-393 at 64.111.98.139:46277
+🔍 Discovered: GoSwitch__ai-406 at 64.111.98.139:57005
+🔍 Discovered: AudioRequest-373 at 64.111.98.139:60403
+🔍 Discovered: GoSwitch__interactive-403 at 64.111.98.139:50187
+🔍 Discovered: PolymorphicTranscription-372 at 64.111.98.139:33597
+🔍 Discovered: GoSwitch__report-401 at 64.111.98.139:42801
+🔍 Discovered: GoSwitch__web-395 at 64.111.98.139:43195
+🔍 Discovered: PolymorphicWebEditorProcessManager-394 at 64.111.98.139:35175
+🔍 Discovered: GoSwitch__twilio-407 at 64.111.98.139:35403
+🔍 Discovered: Tournament Sync Service-398 at 64.111.98.139:33917
+🔍 Discovered: GoSwitch__bonjour-409 at 64.111.98.139:33543
+🔍 Discovered: GoSwitch__restart_services-410 at 64.111.98.139:45985
+🔍 Discovered: PolymorphicAudioProvider-360 at 64.111.98.139:35579
+🔍 Discovered: Unified Report Service-399 at 64.111.98.139:35121
+🔍 Discovered: GoSwitch__sync-398 at 64.111.98.139:35395
+🔍 Discovered: GoSwitch__service_status-410 at 64.111.98.139:60771
+🔍 Discovered: Unified Bonjour Service-408 at 64.111.98.139:59487
+🔍 Discovered: PolymorphicAudioRequest-361 at 64.111.98.139:41921
+🔍 Discovered: AUDIO_REQUEST-362 at 64.111.98.139:50375
+🔍 Discovered: Error Handler Service-393 at 64.111.98.139:46277
+🔍 Discovered: AudioRequest-373 at 64.111.98.139:60403
+Found 32 services:
+
+📡 ProcessManagementGuide-2290
+   Host: 64.111.98.139:33405
+   Capabilities:
+     • PROVEN PATTERN: Add self-management to existing services
+     • STEP 1: Add imports - polymorphic_core.process_management.BaseProcessManager
+     • STEP 2: Create [ServiceName]ProcessManager(BaseProcessManager) cla...
+
+📡 NextService_WebEditor-2289
+   Host: 64.111.98.139:44165
+   Capabilities:
+     • TARGET: services/web_editor.py (main web editor file)
+     • PROCESSES: ['services/web_editor.py'] (single process)
+     • PORTS: [8081] (from advertisements)
+     • GO_PY_FLAGS: --edit-contacts
+     •  --restart-services
+     • CURREN...
+
+📡 Universal Web Editor Service-2286
+   Host: 64.111.98.139:60247
+   Capabilities:
+     • Universal web interface that adapts to any mDNS service
+     • Discovers services dynamically via Bonjour announcements
+     • Generates UI automatically based on service capabilities
+     • No hardcoded domain knowledge ...
+   Examples:
+     - Visit http://localhost:8081 for universal admin interface
+     - Services appear/disappear automatically as they announce
+     - Forms generated from mDNS capability descriptions
+     - Works with tournaments, players, au...
+
+📡 NextService_Discord-2289
+   Host: 64.111.98.139:50893
+   Capabilities:
+     • TARGET: bonjour_discord.py (main Discord service file)
+     • PROCESSES: ['bonjour_discord.py'] (single process)
+     • PORTS: [] (Discord uses WebSocket
+     •  no specific ports)
+     • GO_PY_FLAGS: --discord-bot
+     •  --restart-se...
+
+📡 Enhanced Universal Web Editor-2290
+   Host: 64.111.98.139:39819
+   Capabilities:
+     • Real-time service discovery with live updates
+     • Interactive testing interface for any discovered service
+     • Dynamic form generation from service capabilities
+     • Integrated health monitoring and error handling...
+   Examples:
+     - Visit http://localhost:8081 for enhanced admin interface
+     - Test any service live with auto-generated forms
+     - Monitor service health and performance in real-time
+     - Search and filter services by capabilities
+
+📡 Error Handler Service-2289
+   Host: 64.111.98.139:60175
+   Capabilities:
+     • Comprehensive error handling with 3-method pattern
+     • ask('error history') - Query error logs and patterns
+     • tell('discord'
+     •  errors) - Format error reports
+     • do('handle exception') - Process and recover from...
+   Examples:
+     - error_handler.ask('recent errors')
+     - error_handler.do('clear history')
+     - error_handler.tell('json', error_data)
+
+📡 PolymorphicWebEditorProcessManager-2290
+   Host: 64.111.98.139:34329
+   Capabilities:
+     • I manage processes: services/polymorphic_web_editor.py
+     • I use ports: 8081
+     • Call cleanup_processes to clean shutdown
+     • I am a PROCESS_MANAGER service
+
+📡 ValidationCommands-2289
+   Host: 64.111.98.139:36109
+   Capabilities:
+     • TEST_ANNOUNCEMENTS: python3 go.py --advertisements | grep ProcessManager
+     • TEST_STARTUP: python3 go.py --[service-flag]
+     • VERIFY_PROCESSES: ps aux | grep [service] | grep -v grep
+     • TEST_CLEANUP: import serv...
+
+📡 PROXY_STARTING-3333
+   Host: 64.111.98.139:50927
+   Capabilities:
+     • SSL proxy on port 8443 → 8087
+
+📡 ProcessManagementGuide-3324
+   Host: 64.111.98.139:36909
+   Capabilities:
+     • PROVEN PATTERN: Add self-management to existing services
+     • STEP 1: Add imports - polymorphic_core.process_management.BaseProcessManager
+     • STEP 2: Create [ServiceName]ProcessManager(BaseProcessManager) cla...
+
+📡 PROXY_RUNNING-3464
+   Host: 64.111.98.139:46455
+   Capabilities:
+     • wss://64.111.98.139:8443/ → ws://localhost:8087/
+
+📡 ValidationCommands-3329
+   Host: 64.111.98.139:39923
+   Capabilities:
+     • TEST_ANNOUNCEMENTS: python3 go.py --advertisements | grep ProcessManager
+     • TEST_STARTUP: python3 go.py --[service-flag]
+     • VERIFY_PROCESSES: ps aux | grep [service] | grep -v grep
+     • TEST_CLEANUP: import serv...
+
+📡 NextService_Discord-3326
+   Host: 64.111.98.139:44123
+   Capabilities:
+     • TARGET: bonjour_discord.py (main Discord service file)
+     • PROCESSES: ['bonjour_discord.py'] (single process)
+     • PORTS: [] (Discord uses WebSocket
+     •  no specific ports)
+     • GO_PY_FLAGS: --discord-bot
+     •  --restart-se...
+
+📡 NextService_WebEditor-3326
+   Host: 64.111.98.139:37963
+   Capabilities:
+     • TARGET: services/web_editor.py (main web editor file)
+     • PROCESSES: ['services/web_editor.py'] (single process)
+     • PORTS: [8081] (from advertisements)
+     • GO_PY_FLAGS: --edit-contacts
+     •  --restart-services
+     • CURREN...
+
+📡 Polymorphic Encryption Service-3326
+   Host: 64.111.98.139:45379
+   Capabilities:
+     • I encrypt ANYTHING - files
+     •  streams
+     •  text
+     •  WebSockets
+     • I provide SSL/TLS termination for secure connections
+     • I can encrypt/decrypt using symmetric and asymmetric keys
+     • I proxy WebSocket connections with ...
+   Examples:
+     - encryption.ask("status") - Get encryption status
+     - encryption.tell("base64", encrypted_data) - Format encrypted data
+     - encryption.do("encrypt file.txt") - Encrypt a file
+     - encryption.do("proxy wss 8443 to w...
+
+📡 ValidationCommands-9950
+   Host: 64.111.98.139:51629
+   Capabilities:
+     • TEST_ANNOUNCEMENTS: python3 go.py --advertisements | grep ProcessManager
+     • TEST_STARTUP: python3 go.py --[service-flag]
+     • VERIFY_PROCESSES: ps aux | grep [service] | grep -v grep
+     • TEST_CLEANUP: import serv...
+
+📡 NextService_Discord-9956
+   Host: 64.111.98.139:49445
+   Capabilities:
+     • TARGET: bonjour_discord.py (main Discord service file)
+     • PROCESSES: ['bonjour_discord.py'] (single process)
+     • PORTS: [] (Discord uses WebSocket
+     •  no specific ports)
+     • GO_PY_FLAGS: --discord-bot
+     •  --restart-se...
+
+📡 ProcessManagementGuide-9955
+   Host: 64.111.98.139:60135
+   Capabilities:
+     • PROVEN PATTERN: Add self-management to existing services
+     • STEP 1: Add imports - polymorphic_core.process_management.BaseProcessManager
+     • STEP 2: Create [ServiceName]ProcessManager(BaseProcessManager) cla...
+
+📡 NextService_WebEditor-9952
+   Host: 64.111.98.139:50973
+   Capabilities:
+     • TARGET: services/web_editor.py (main web editor file)
+     • PROCESSES: ['services/web_editor.py'] (single process)
+     • PORTS: [8081] (from advertisements)
+     • GO_PY_FLAGS: --edit-contacts
+     •  --restart-services
+     • CURREN...
+
+📡 GoSwitch__discord_bot-376
+   Host: 64.111.98.139:43403
+   Capabilities:
+     • Provides go.py flag: --discord-bot
+     • Help: START Discord bot service
+     • Handler: start_discord_bot_service
+
+📡 PolymorphicTTSService-374
+   Host: 64.111.98.139:60825
+   Capabilities:
+     • Stream text-to-speech directly to mixer
+     • No file creation - pure streaming audio
+     • Multiple voice types (normal
+     •  robot
+     •  excited)
+     • Real-time audio synthesis
+     • Integrates with BonjourAudioMixer
+   Examples:
+     - Listens for TEXT_TO_SPEECH announcements
+     - Streams audio directly to mixer via AUDIO_STREAM
+     - Use: announce('TEXT_TO_SPEECH', ['Hello world', 'normal'])
+
+📡 PolymorphicAudioPlayer-359
+   Host: 64.111.98.139:48933
+   Capabilities:
+     • I play ANY audio that's announced as ready
+     • I listen for AUDIO_READY announcements
+     • I play through Discord voice channels
+     • I play through local speakers
+     • I announce AUDIO_PLAYED when complete
+
+📡 GoSwitch__ai-406
+   Host: 64.111.98.139:57005
+   Capabilities:
+     • Provides go.py flag: --ai
+     • Help: START AI chat service (chat|test)
+     • Handler: start_ai_service
+
+📡 PolymorphicTranscription-372
+   Host: 64.111.98.139:33597
+   Capabilities:
+     • I transcribe ANY audio with voice activity detection
+     • I listen for AUDIO_AVAILABLE announcements
+     • I use Vosk (offline) with built-in silence detection
+     • I announce TRANSCRIPTION_COMPLETE only when speech ...
+
+📡 GoSwitch__web-395
+   Host: 64.111.98.139:43195
+   Capabilities:
+     • Provides go.py flag: --web
+     • Help: START universal web editor (adapts to any mDNS service)
+     • Handler: start_web_service
+
+📡 GoSwitch__twilio-407
+   Host: 64.111.98.139:35403
+   Capabilities:
+     • Provides go.py flag: --twilio
+     • Help: START Twilio telephony (bridge|call:PHONE|service|config|voice|transcription|inbound)
+     • Handler: start_twilio_service
+
+📡 GoSwitch__sync-398
+   Host: 64.111.98.139:35395
+   Capabilities:
+     • Provides go.py flag: --sync
+     • Help: START tournament sync (options: recent|full|smart) [+publish]
+     • Handler: start_sync_service
+
+📡 GoSwitch__service_status-410
+   Host: 64.111.98.139:60771
+   Capabilities:
+     • Provides go.py flag: --service-status
+     • Help: Check service status via bonjour signals
+     • Handler: service_status_handler
+
+📡 PolymorphicAudioRequest-361
+   Host: 64.111.98.139:41921
+   Capabilities:
+     • I NEED audio data
+     • I listen for AUDIO_AVAILABLE announcements
+     • I don't care WHERE audio comes from
+     • I process any audio that's announced
+     • Services with audio should announce AUDIO_AVAILABLE
+     • I am the unive...
+
+📡 AUDIO_REQUEST-362
+   Host: 64.111.98.139:50375
+   Capabilities:
+     • REQUESTING: Audio data from ANY source
+     • FORMATS: wav
+     •  pcm
+     •  mp3
+     •  anything
+     • PURPOSE: Transcription and processing
+     • RESPOND: Announce AUDIO_AVAILABLE with your data
+
+📡 Error Handler Service-393
+   Host: 64.111.98.139:46277
+   Capabilities:
+     • Comprehensive error handling with 3-method pattern
+     • ask('error history') - Query error logs and patterns
+     • tell('discord'
+     •  errors) - Format error reports
+     • do('handle exception') - Process and recover from...
+   Examples:
+     - error_handler.ask('recent errors')
+     - error_handler.do('clear history')
+     - error_handler.tell('json', error_data)
+
+📡 AudioRequest-373
+   Host: 64.111.98.139:60403
+   Capabilities:
+     • New audio handler registered. Total: 1
+
+🧹 Shutting down real Bonjour announcer...
+🔍 Discovered: GoSwitch__interactive-403 at 64.111.98.139:50187
+🔍 Discovered: GoSwitch__report-401 at 64.111.98.139:42801
+🌐 Real Bonjour announcer started (service type: _tournament._tcp.local.)
+🌐 Real Bonjour announcer started (service type: _tournament._tcp.local.)
+🌐 Using PURE mDNS Service Discovery - real network only!
+🚀 Starting mDNS announcement for ProcessManagementGuide...
+🚀 Starting mDNS announcement for NextService_Discord...
+🚀 Starting mDNS announcement for NextService_WebEditor...
+🚀 Starting mDNS announcement for ValidationCommands...
+🔍 Discovered: PROXY_STARTING-3333 at 64.111.98.139:50927
+🔍 Discovered: ProcessManagementGuide-3324 at 64.111.98.139:36909
+🔍 Discovered: PROXY_RUNNING-3464 at 64.111.98.139:46455
+🔍 Discovered: ValidationCommands-3329 at 64.111.98.139:39923
+🔍 Discovered: NextService_Discord-3326 at 64.111.98.139:44123
+🔍 Discovered: NextService_WebEditor-3326 at 64.111.98.139:37963
+🔍 Discovered: Polymorphic Encryption Service-3326 at 64.111.98.139:45379
+🔍 Discovered: ProcessManagementGuide-2290 at 64.111.98.139:33405
+🔍 Discovered: NextService_WebEditor-2289 at 64.111.98.139:44165
+🔍 Discovered: Universal Web Editor Service-2286 at 64.111.98.139:60247
+🔍 Discovered: NextService_Discord-2289 at 64.111.98.139:50893
+🔍 Discovered: Enhanced Universal Web Editor-2290 at 64.111.98.139:39819
+🔍 Discovered: Error Handler Service-2289 at 64.111.98.139:60175
+🔍 Discovered: PolymorphicWebEditorProcessManager-2290 at 64.111.98.139:34329
+🔍 Discovered: ValidationCommands-2289 at 64.111.98.139:36109
+🔊 [DEBUG] PolymorphicAudioPlayer initializing...
+🔊 [DEBUG] AudioPlayer announced on network
+🚀 Starting mDNS announcement for PolymorphicAudioPlayer...
+🚀 Starting mDNS announcement for PolymorphicAudioProvider...
+🚀 Starting mDNS announcement for PolymorphicAudioRequest...
+🚀 Starting mDNS announcement for AUDIO_REQUEST...
+🚀 Starting mDNS announcement for PolymorphicOpusDecoder...
+🚀 Starting mDNS announcement for PolymorphicTranscription...
+🚀 Starting mDNS announcement for AudioRequest...
+🔊 [DEBUG] PolymorphicTTSService initializing...
+🔊 [DEBUG] TTS registered listener. Total listeners: 1
+🚀 Starting mDNS announcement for PolymorphicTTSService...
+🚀 Starting mDNS announcement for DiscordProcessManager...
+🚀 Starting mDNS announcement for GoSwitch__discord_bot...
+🚀 Starting mDNS announcement for Error Handler Service...
+🚀 Starting mDNS announcement for PolymorphicWebEditorProcessManager...
+🚀 Starting mDNS announcement for GoSwitch__web...
+🚀 Starting mDNS announcement for Tournament Sync Service...
+🚀 Starting mDNS announcement for GoSwitch__sync...
+🚀 Starting mDNS announcement for Unified Report Service...
+🚀 Starting mDNS announcement for GoSwitch__report...
+🚀 Starting mDNS announcement for GoSwitch__interactive...
+🚀 Starting mDNS announcement for GoSwitch__ai...
+🚀 Starting mDNS announcement for Unified Twilio Service...
+🚀 Starting mDNS announcement for GoSwitch__twilio...
+🚀 Starting mDNS announcement for Unified Bonjour Service...
+🚀 Starting mDNS announcement for GoSwitch__bonjour...
+🚀 Starting mDNS announcement for Essential Process Service...
+🚀 Starting mDNS announcement for GoSwitch__restart_services...
+🚀 Starting mDNS announcement for GoSwitch__service_status...
+[05:09:00] INFO bonjour_service: Starting Bonjour operation: ads
+[05:09:00] INFO bonjour_service: Showing current mDNS advertisements...
+🔍 Discovered: ProcessManagementGuide-2290 at 64.111.98.139:33405
+🔍 Discovered: NextService_WebEditor-2289 at 64.111.98.139:44165
+🔍 Discovered: Universal Web Editor Service-2286 at 64.111.98.139:60247
+🔍 Discovered: NextService_Discord-2289 at 64.111.98.139:50893
+🔍 Discovered: Enhanced Universal Web Editor-2290 at 64.111.98.139:39819
+🔍 Discovered: Error Handler Service-2289 at 64.111.98.139:60175
+🔍 Discovered: PolymorphicWebEditorProcessManager-2290 at 64.111.98.139:34329
+🔍 Discovered: ValidationCommands-2289 at 64.111.98.139:36109
+🔍 Discovered: PROXY_STARTING-3333 at 64.111.98.139:50927
+🔍 Discovered: ProcessManagementGuide-3324 at 64.111.98.139:36909
+🔍 Discovered: PROXY_RUNNING-3464 at 64.111.98.139:46455
+🔍 Discovered: ValidationCommands-3329 at 64.111.98.139:39923
+🔍 Discovered: NextService_Discord-3326 at 64.111.98.139:44123
+🔍 Discovered: NextService_WebEditor-3326 at 64.111.98.139:37963
+🔍 Discovered: Polymorphic Encryption Service-3326 at 64.111.98.139:45379
+🔍 Discovered: ValidationCommands-9950 at 64.111.98.139:51629
+🔍 Discovered: NextService_Discord-9956 at 64.111.98.139:49445
+🔍 Discovered: ValidationCommands-9950 at 64.111.98.139:51629
+🔍 Discovered: NextService_Discord-9956 at 64.111.98.139:49445
+🔍 Discovered: ProcessManagementGuide-9955 at 64.111.98.139:60135
+🔍 Discovered: NextService_WebEditor-9952 at 64.111.98.139:50973
+🔍 Discovered: ProcessManagementGuide-9955 at 64.111.98.139:60135
+🔍 Discovered: NextService_WebEditor-9952 at 64.111.98.139:50973
+🔍 Discovered: GoSwitch__discord_bot-376 at 64.111.98.139:43403
+🔍 Discovered: PolymorphicTTSService-374 at 64.111.98.139:60825
+🔍 Discovered: PolymorphicAudioPlayer-359 at 64.111.98.139:48933
+🔍 Discovered: GoSwitch__discord_bot-376 at 64.111.98.139:43403
+🔍 Discovered: GoSwitch__ai-406 at 64.111.98.139:57005
+🔍 Discovered: PolymorphicTranscription-372 at 64.111.98.139:33597
+📡 Announced: ValidationCommands on 64.111.98.139:51629
+🔍 Discovered: GoSwitch__web-395 at 64.111.98.139:43195
+🔍 Discovered: GoSwitch__twilio-407 at 64.111.98.139:35403
+🔍 Discovered: GoSwitch__sync-398 at 64.111.98.139:35395
+📡 Announced: NextService_Discord on 64.111.98.139:49445
+🔍 Discovered: GoSwitch__service_status-410 at 64.111.98.139:60771
+🔍 Discovered: PolymorphicAudioRequest-361 at 64.111.98.139:41921
+🔍 Discovered: AUDIO_REQUEST-362 at 64.111.98.139:50375
+🔍 Discovered: GoSwitch__report-401 at 64.111.98.139:42801
+🔍 Discovered: PolymorphicWebEditorProcessManager-394 at 64.111.98.139:35175
+📡 Announced: NextService_WebEditor on 64.111.98.139:50973
+📡 Announced: ProcessManagementGuide on 64.111.98.139:60135
+🔍 Discovered: Error Handler Service-393 at 64.111.98.139:46277
+🔍 Discovered: AudioRequest-373 at 64.111.98.139:60403
+🔍 Discovered: Tournament Sync Service-398 at 64.111.98.139:33917
+🔍 Discovered: GoSwitch__bonjour-409 at 64.111.98.139:33543
+🔍 Discovered: GoSwitch__restart_services-410 at 64.111.98.139:45985
+🔍 Discovered: PolymorphicAudioProvider-360 at 64.111.98.139:35579
+🔍 Discovered: GoSwitch__interactive-403 at 64.111.98.139:50187
+🔍 Discovered: Unified Report Service-399 at 64.111.98.139:35121
+🔍 Discovered: Unified Bonjour Service-408 at 64.111.98.139:59487
+🔍 Discovered: PolymorphicOpusDecoder-371 at 64.111.98.139:40939
+🔍 Discovered: PolymorphicTTSService-374 at 64.111.98.139:60825
+No service specified or service not recognized.
+Use --help to see available options.
+🧹 Shutting down real Bonjour announcer...
+🔍 Discovered: Unified Twilio Service-407 at 64.111.98.139:48267
+🌐 Real Bonjour announcer started (service type: _tournament._tcp.local.)
+🔍 Discovered: PROXY_STARTING-3333 at 64.111.98.139:50927
+🌐 Real Bonjour announcer started (service type: _tournament._tcp.local.)
+🌐 Using PURE mDNS Service Discovery - real network only!
+🔍 Discovered: ProcessManagementGuide-3324 at 64.111.98.139:36909
+🔍 Discovered: PROXY_RUNNING-3464 at 64.111.98.139:46455
+🔍 Discovered: ValidationCommands-3329 at 64.111.98.139:39923
+🔍 Discovered: NextService_Discord-3326 at 64.111.98.139:44123
+🔍 Discovered: NextService_WebEditor-3326 at 64.111.98.139:37963
+🔍 Discovered: Polymorphic Encryption Service-3326 at 64.111.98.139:45379
+🔍 Discovered: ProcessManagementGuide-2290 at 64.111.98.139:33405
+🔍 Discovered: NextService_WebEditor-2289 at 64.111.98.139:44165
+🔍 Discovered: Universal Web Editor Service-2286 at 64.111.98.139:60247
+🚀 Starting mDNS announcement for ProcessManagementGuide...
+🔍 Discovered: NextService_Discord-2289 at 64.111.98.139:50893
+🚀 Starting mDNS announcement for NextService_Discord...
+🚀 Starting mDNS announcement for NextService_WebEditor...
+🚀 Starting mDNS announcement for ValidationCommands...
+🔍 Current mDNS Service Advertisements
+==================================================
+🔍 Discovered: Enhanced Universal Web Editor-2290 at 64.111.98.139:39819
+🔍 Discovered: Error Handler Service-2289 at 64.111.98.139:60175
+🔍 Discovered: PolymorphicWebEditorProcessManager-2290 at 64.111.98.139:34329
+🔍 Discovered: ValidationCommands-2289 at 64.111.98.139:36109
+🔍 Discovered: NextService_Discord-8678 at 64.111.98.139:52007
+🔍 Discovered: ValidationCommands-8677 at 64.111.98.139:33643
+🔍 Discovered: NextService_WebEditor-8678 at 64.111.98.139:40597
+🔍 Discovered: ProcessManagementGuide-8678 at 64.111.98.139:50333
+🔍 Discovered: NextService_Discord-8678 at 64.111.98.139:52007
+🔍 Discovered: ValidationCommands-8677 at 64.111.98.139:33643
+🔍 Discovered: ProcessManagementGuide-8678 at 64.111.98.139:50333
+🔍 Discovered: NextService_WebEditor-8678 at 64.111.98.139:40597
+🔍 Discovered: PolymorphicAudioRequest-9069 at 64.111.98.139:39399
+🔍 Discovered: PolymorphicAudioRequest-9069 at 64.111.98.139:39399
+🔍 Discovered: PolymorphicAudioProvider-9068 at 64.111.98.139:44461
+🔍 Discovered: PolymorphicAudioProvider-9068 at 64.111.98.139:44461
+🔍 Discovered: PolymorphicTTSService-9080 at 64.111.98.139:42811
+🔍 Discovered: PolymorphicAudioPlayer-9067 at 64.111.98.139:57227
+🔍 Discovered: GoSwitch__restart_services-9107 at 64.111.98.139:57915
+🔍 Discovered: AUDIO_REQUEST-9069 at 64.111.98.139:59435
+🔍 Discovered: PolymorphicTTSService-9080 at 64.111.98.139:42811
+🔍 Discovered: PolymorphicTranscription-9079 at 64.111.98.139:43295
+🔍 Discovered: GoSwitch__service_status-9107 at 64.111.98.139:49315
+🔍 Discovered: PolymorphicAudioPlayer-9067 at 64.111.98.139:57227
+🔍 Discovered: PolymorphicWebEditorProcessManager-9092 at 64.111.98.139:53713
+🔍 Discovered: GoSwitch__restart_services-9107 at 64.111.98.139:57915
+🔍 Discovered: GoSwitch__ai-9103 at 64.111.98.139:51127
+🔍 Discovered: AUDIO_REQUEST-9069 at 64.111.98.139:59435
+🔍 Discovered: Tournament Sync Service-9096 at 64.111.98.139:55227
+🔍 Discovered: GoSwitch__sync-9096 at 64.111.98.139:54099
+Found 25 services:
+
+📡 PROXY_STARTING-3333
+   Host: 64.111.98.139:50927
+   Capabilities:
+     • SSL proxy on port 8443 → 8087
+
+📡 ProcessManagementGuide-3324
+   Host: 64.111.98.139:36909
+   Capabilities:
+     • PROVEN PATTERN: Add self-management to existing services
+     • STEP 1: Add imports - polymorphic_core.process_management.BaseProcessManager
+     • STEP 2: Create [ServiceName]ProcessManager(BaseProcessManager) cla...
+
+📡 PROXY_RUNNING-3464
+   Host: 64.111.98.139:46455
+   Capabilities:
+     • wss://64.111.98.139:8443/ → ws://localhost:8087/
+
+📡 ValidationCommands-3329
+   Host: 64.111.98.139:39923
+   Capabilities:
+     • TEST_ANNOUNCEMENTS: python3 go.py --advertisements | grep ProcessManager
+     • TEST_STARTUP: python3 go.py --[service-flag]
+     • VERIFY_PROCESSES: ps aux | grep [service] | grep -v grep
+     • TEST_CLEANUP: import serv...
+
+📡 NextService_Discord-3326
+   Host: 64.111.98.139:44123
+   Capabilities:
+     • TARGET: bonjour_discord.py (main Discord service file)
+     • PROCESSES: ['bonjour_discord.py'] (single process)
+     • PORTS: [] (Discord uses WebSocket
+     •  no specific ports)
+     • GO_PY_FLAGS: --discord-bot
+     •  --restart-se...
+
+📡 NextService_WebEditor-3326
+   Host: 64.111.98.139:37963
+   Capabilities:
+     • TARGET: services/web_editor.py (main web editor file)
+     • PROCESSES: ['services/web_editor.py'] (single process)
+     • PORTS: [8081] (from advertisements)
+     • GO_PY_FLAGS: --edit-contacts
+     •  --restart-services
+     • CURREN...
+
+📡 Polymorphic Encryption Service-3326
+   Host: 64.111.98.139:45379
+   Capabilities:
+     • I encrypt ANYTHING - files
+     •  streams
+     •  text
+     •  WebSockets
+     • I provide SSL/TLS termination for secure connections
+     • I can encrypt/decrypt using symmetric and asymmetric keys
+     • I proxy WebSocket connections with ...
+   Examples:
+     - encryption.ask("status") - Get encryption status
+     - encryption.tell("base64", encrypted_data) - Format encrypted data
+     - encryption.do("encrypt file.txt") - Encrypt a file
+     - encryption.do("proxy wss 8443 to w...
+
+📡 ProcessManagementGuide-2290
+   Host: 64.111.98.139:33405
+   Capabilities:
+     • PROVEN PATTERN: Add self-management to existing services
+     • STEP 1: Add imports - polymorphic_core.process_management.BaseProcessManager
+     • STEP 2: Create [ServiceName]ProcessManager(BaseProcessManager) cla...
+
+📡 NextService_WebEditor-2289
+   Host: 64.111.98.139:44165
+   Capabilities:
+     • TARGET: services/web_editor.py (main web editor file)
+     • PROCESSES: ['services/web_editor.py'] (single process)
+     • PORTS: [8081] (from advertisements)
+     • GO_PY_FLAGS: --edit-contacts
+     •  --restart-services
+     • CURREN...
+
+📡 Universal Web Editor Service-2286
+   Host: 64.111.98.139:60247
+   Capabilities:
+     • Universal web interface that adapts to any mDNS service
+     • Discovers services dynamically via Bonjour announcements
+     • Generates UI automatically based on service capabilities
+     • No hardcoded domain knowledge ...
+   Examples:
+     - Visit http://localhost:8081 for universal admin interface
+     - Services appear/disappear automatically as they announce
+     - Forms generated from mDNS capability descriptions
+     - Works with tournaments, players, au...
+
+📡 NextService_Discord-2289
+   Host: 64.111.98.139:50893
+   Capabilities:
+     • TARGET: bonjour_discord.py (main Discord service file)
+     • PROCESSES: ['bonjour_discord.py'] (single process)
+     • PORTS: [] (Discord uses WebSocket
+     •  no specific ports)
+     • GO_PY_FLAGS: --discord-bot
+     •  --restart-se...
+
+📡 Enhanced Universal Web Editor-2290
+   Host: 64.111.98.139:39819
+   Capabilities:
+     • Real-time service discovery with live updates
+     • Interactive testing interface for any discovered service
+     • Dynamic form generation from service capabilities
+     • Integrated health monitoring and error handling...
+   Examples:
+     - Visit http://localhost:8081 for enhanced admin interface
+     - Test any service live with auto-generated forms
+     - Monitor service health and performance in real-time
+     - Search and filter services by capabilities
+
+📡 Error Handler Service-2289
+   Host: 64.111.98.139:60175
+   Capabilities:
+     • Comprehensive error handling with 3-method pattern
+     • ask('error history') - Query error logs and patterns
+     • tell('discord'
+     •  errors) - Format error reports
+     • do('handle exception') - Process and recover from...
+   Examples:
+     - error_handler.ask('recent errors')
+     - error_handler.do('clear history')
+     - error_handler.tell('json', error_data)
+
+📡 PolymorphicWebEditorProcessManager-2290
+   Host: 64.111.98.139:34329
+   Capabilities:
+     • I manage processes: services/polymorphic_web_editor.py
+     • I use ports: 8081
+     • Call cleanup_processes to clean shutdown
+     • I am a PROCESS_MANAGER service
+
+📡 ValidationCommands-2289
+   Host: 64.111.98.139:36109
+   Capabilities:
+     • TEST_ANNOUNCEMENTS: python3 go.py --advertisements | grep ProcessManager
+     • TEST_STARTUP: python3 go.py --[service-flag]
+     • VERIFY_PROCESSES: ps aux | grep [service] | grep -v grep
+     • TEST_CLEANUP: import serv...
+
+📡 NextService_Discord-8678
+   Host: 64.111.98.139:52007
+   Capabilities:
+     • TARGET: bonjour_discord.py (main Discord service file)
+     • PROCESSES: ['bonjour_discord.py'] (single process)
+     • PORTS: [] (Discord uses WebSocket
+     •  no specific ports)
+     • GO_PY_FLAGS: --discord-bot
+     •  --restart-se...
+
+📡 ValidationCommands-8677
+   Host: 64.111.98.139:33643
+   Capabilities:
+     • TEST_ANNOUNCEMENTS: python3 go.py --advertisements | grep ProcessManager
+     • TEST_STARTUP: python3 go.py --[service-flag]
+     • VERIFY_PROCESSES: ps aux | grep [service] | grep -v grep
+     • TEST_CLEANUP: import serv...
+
+📡 ProcessManagementGuide-8678
+   Host: 64.111.98.139:50333
+   Capabilities:
+     • PROVEN PATTERN: Add self-management to existing services
+     • STEP 1: Add imports - polymorphic_core.process_management.BaseProcessManager
+     • STEP 2: Create [ServiceName]ProcessManager(BaseProcessManager) cla...
+
+📡 NextService_WebEditor-8678
+   Host: 64.111.98.139:40597
+   Capabilities:
+     • TARGET: services/web_editor.py (main web editor file)
+     • PROCESSES: ['services/web_editor.py'] (single process)
+     • PORTS: [8081] (from advertisements)
+     • GO_PY_FLAGS: --edit-contacts
+     •  --restart-services
+     • CURREN...
+
+📡 PolymorphicAudioRequest-9069
+   Host: 64.111.98.139:39399
+   Capabilities:
+     • I NEED audio data
+     • I listen for AUDIO_AVAILABLE announcements
+     • I don't care WHERE audio comes from
+     • I process any audio that's announced
+     • Services with audio should announce AUDIO_AVAILABLE
+     • I am the unive...
+
+📡 PolymorphicAudioProvider-9068
+   Host: 64.111.98.139:44461
+   Capabilities:
+     • I HAVE audio data
+     • I listen for AUDIO_REQUEST announcements
+     • I respond with AUDIO_AVAILABLE
+     • I can provide Discord voice audio
+     • I can provide microphone audio
+     • I can provide file audio
+     • I am polymorphic - I...
+
+📡 PolymorphicTTSService-9080
+   Host: 64.111.98.139:42811
+   Capabilities:
+     • Stream text-to-speech directly to mixer
+     • No file creation - pure streaming audio
+     • Multiple voice types (normal
+     •  robot
+     •  excited)
+     • Real-time audio synthesis
+     • Integrates with BonjourAudioMixer
+   Examples:
+     - Listens for TEXT_TO_SPEECH announcements
+     - Streams audio directly to mixer via AUDIO_STREAM
+     - Use: announce('TEXT_TO_SPEECH', ['Hello world', 'normal'])
+
+📡 PolymorphicAudioPlayer-9067
+   Host: 64.111.98.139:57227
+   Capabilities:
+     • I play ANY audio that's announced as ready
+     • I listen for AUDIO_READY announcements
+     • I play through Discord voice channels
+     • I play through local speakers
+     • I announce AUDIO_PLAYED when complete
+
+📡 GoSwitch__restart_services-9107
+   Host: 64.111.98.139:57915
+   Capabilities:
+     • Provides go.py flag: --restart-services
+     • Help: Kill and restart all services
+     • Handler: restart_services_handler
+
+📡 AUDIO_REQUEST-9069
+   Host: 64.111.98.139:59435
+   Capabilities:
+     • REQUESTING: Audio data from ANY source
+     • FORMATS: wav
+     •  pcm
+     •  mp3
+     •  anything
+     • PURPOSE: Transcription and processing
+     • RESPOND: Announce AUDIO_AVAILABLE with your data
+
+🧹 Shutting down real Bonjour announcer...
+🔍 Discovered: Error Handler Service-9091 at 64.111.98.139:55315
+🔍 Discovered: Unified Report Service-9097 at 64.111.98.139:37757
+🔍 Discovered: Unified Twilio Service-9104 at 64.111.98.139:45021
+🌐 Real Bonjour announcer started (service type: _tournament._tcp.local.)
+🌐 Real Bonjour announcer started (service type: _tournament._tcp.local.)
+🌐 Using PURE mDNS Service Discovery - real network only!
+🚀 Starting mDNS announcement for ProcessManagementGuide...
+🚀 Starting mDNS announcement for NextService_Discord...
+🚀 Starting mDNS announcement for NextService_WebEditor...
+🚀 Starting mDNS announcement for ValidationCommands...
+🔍 Discovered: PROXY_STARTING-3333 at 64.111.98.139:50927
+🔍 Discovered: ProcessManagementGuide-3324 at 64.111.98.139:36909
+🔍 Discovered: PROXY_RUNNING-3464 at 64.111.98.139:46455
+🔍 Discovered: ValidationCommands-3329 at 64.111.98.139:39923
+🔍 Discovered: NextService_Discord-3326 at 64.111.98.139:44123
+🔍 Discovered: NextService_WebEditor-3326 at 64.111.98.139:37963
+🔍 Discovered: Polymorphic Encryption Service-3326 at 64.111.98.139:45379
+🔍 Discovered: ProcessManagementGuide-2290 at 64.111.98.139:33405
+🔍 Discovered: NextService_WebEditor-2289 at 64.111.98.139:44165
+🔍 Discovered: Universal Web Editor Service-2286 at 64.111.98.139:60247
+🔍 Discovered: NextService_Discord-2289 at 64.111.98.139:50893
+🔍 Discovered: Enhanced Universal Web Editor-2290 at 64.111.98.139:39819
+🔍 Discovered: Error Handler Service-2289 at 64.111.98.139:60175
+🔍 Discovered: PolymorphicWebEditorProcessManager-2290 at 64.111.98.139:34329
+🔍 Discovered: ValidationCommands-2289 at 64.111.98.139:36109
+🔊 [DEBUG] PolymorphicAudioPlayer initializing...
+🔊 [DEBUG] AudioPlayer announced on network
+🚀 Starting mDNS announcement for PolymorphicAudioPlayer...
+🚀 Starting mDNS announcement for PolymorphicAudioProvider...
+🚀 Starting mDNS announcement for PolymorphicAudioRequest...
+🚀 Starting mDNS announcement for AUDIO_REQUEST...
+🚀 Starting mDNS announcement for PolymorphicOpusDecoder...
+🚀 Starting mDNS announcement for PolymorphicTranscription...
+🚀 Starting mDNS announcement for AudioRequest...
+🔊 [DEBUG] PolymorphicTTSService initializing...
+🔊 [DEBUG] TTS registered listener. Total listeners: 1
+🚀 Starting mDNS announcement for PolymorphicTTSService...
+🚀 Starting mDNS announcement for DiscordProcessManager...
+🚀 Starting mDNS announcement for GoSwitch__discord_bot...
+🚀 Starting mDNS announcement for Error Handler Service...
+🚀 Starting mDNS announcement for PolymorphicWebEditorProcessManager...
+🚀 Starting mDNS announcement for GoSwitch__web...
+🚀 Starting mDNS announcement for Tournament Sync Service...
+🚀 Starting mDNS announcement for GoSwitch__sync...
+🚀 Starting mDNS announcement for Unified Report Service...
+🚀 Starting mDNS announcement for GoSwitch__report...
+🚀 Starting mDNS announcement for GoSwitch__interactive...
+🚀 Starting mDNS announcement for GoSwitch__ai...
+🚀 Starting mDNS announcement for Unified Twilio Service...
+🚀 Starting mDNS announcement for GoSwitch__twilio...
+🚀 Starting mDNS announcement for Unified Bonjour Service...
+🚀 Starting mDNS announcement for GoSwitch__bonjour...
+🚀 Starting mDNS announcement for Essential Process Service...
+🚀 Starting mDNS announcement for GoSwitch__restart_services...
+🚀 Starting mDNS announcement for GoSwitch__service_status...
+[05:09:39] INFO bonjour_service: Starting Bonjour operation: ads
+[05:09:39] INFO bonjour_service: Showing current mDNS advertisements...
+🔍 Discovered: PROXY_STARTING-3333 at 64.111.98.139:50927
+🔍 Discovered: ProcessManagementGuide-3324 at 64.111.98.139:36909
+🔍 Discovered: PROXY_RUNNING-3464 at 64.111.98.139:46455
+🔍 Discovered: ValidationCommands-3329 at 64.111.98.139:39923
+🔍 Discovered: NextService_Discord-3326 at 64.111.98.139:44123
+🔍 Discovered: NextService_WebEditor-3326 at 64.111.98.139:37963
+🔍 Discovered: Polymorphic Encryption Service-3326 at 64.111.98.139:45379
+🔍 Discovered: ProcessManagementGuide-2290 at 64.111.98.139:33405
+🔍 Discovered: NextService_WebEditor-2289 at 64.111.98.139:44165
+🔍 Discovered: Universal Web Editor Service-2286 at 64.111.98.139:60247
+🔍 Discovered: NextService_Discord-2289 at 64.111.98.139:50893
+🔍 Discovered: Enhanced Universal Web Editor-2290 at 64.111.98.139:39819
+🔍 Discovered: Error Handler Service-2289 at 64.111.98.139:60175
+🔍 Discovered: PolymorphicWebEditorProcessManager-2290 at 64.111.98.139:34329
+🔍 Discovered: ValidationCommands-2289 at 64.111.98.139:36109
+🔍 Discovered: NextService_Discord-8678 at 64.111.98.139:52007
+🔍 Discovered: NextService_Discord-8678 at 64.111.98.139:52007
+🔍 Discovered: ValidationCommands-8677 at 64.111.98.139:33643
+🔍 Discovered: ValidationCommands-8677 at 64.111.98.139:33643
+🔍 Discovered: NextService_WebEditor-8678 at 64.111.98.139:40597
+🔍 Discovered: ProcessManagementGuide-8678 at 64.111.98.139:50333
+🔍 Discovered: NextService_WebEditor-8678 at 64.111.98.139:40597
+🔍 Discovered: ProcessManagementGuide-8678 at 64.111.98.139:50333
+🔍 Discovered: PolymorphicAudioRequest-9069 at 64.111.98.139:39399
+🔍 Discovered: PolymorphicAudioProvider-9068 at 64.111.98.139:44461
+🔍 Discovered: PolymorphicTTSService-9080 at 64.111.98.139:42811
+🔍 Discovered: PolymorphicAudioPlayer-9067 at 64.111.98.139:57227
+🔍 Discovered: PolymorphicAudioRequest-9069 at 64.111.98.139:39399
+🔍 Discovered: GoSwitch__restart_services-9107 at 64.111.98.139:57915
+🔍 Discovered: AUDIO_REQUEST-9069 at 64.111.98.139:59435
+🔍 Discovered: PolymorphicTranscription-9079 at 64.111.98.139:43295
+🔍 Discovered: GoSwitch__service_status-9107 at 64.111.98.139:49315
+🔍 Discovered: PolymorphicWebEditorProcessManager-9092 at 64.111.98.139:53713
+🔍 Discovered: GoSwitch__ai-9103 at 64.111.98.139:51127
+🔍 Discovered: Tournament Sync Service-9096 at 64.111.98.139:55227
+🔍 Discovered: GoSwitch__sync-9096 at 64.111.98.139:54099
+📡 Announced: NextService_Discord on 64.111.98.139:52007
+📡 Announced: ValidationCommands on 64.111.98.139:33643
+🔍 Discovered: Error Handler Service-9091 at 64.111.98.139:55315
+📡 Announced: NextService_WebEditor on 64.111.98.139:40597
+🔍 Discovered: Unified Report Service-9097 at 64.111.98.139:37757
+🔍 Discovered: Unified Twilio Service-9104 at 64.111.98.139:45021
+📡 Announced: ProcessManagementGuide on 64.111.98.139:50333
+🔍 Discovered: AudioRequest-9080 at 64.111.98.139:35503
+🔍 Discovered: PolymorphicOpusDecoder-9078 at 64.111.98.139:33023
+🔍 Discovered: DiscordProcessManager-9081 at 64.111.98.139:42905
+🔍 Discovered: Essential Process Service-9106 at 64.111.98.139:44831
+🔍 Discovered: GoSwitch__report-9098 at 64.111.98.139:53919
+🔍 Discovered: PolymorphicAudioProvider-9068 at 64.111.98.139:44461
+🔍 Discovered: GoSwitch__discord_bot-9082 at 64.111.98.139:43071
+🔍 Discovered: GoSwitch__web-9096 at 64.111.98.139:38781
+🔍 Discovered: GoSwitch__interactive-9099 at 64.111.98.139:36961
+No service specified or service not recognized.
+Use --help to see available options.
+🧹 Shutting down real Bonjour announcer...
+🔍 Discovered: Unified Bonjour Service-9105 at 64.111.98.139:41707

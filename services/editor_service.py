@@ -137,7 +137,7 @@ class EditorService:
     async def org_rankings_handler(self, request):
         """Serve organization rankings page"""
         from database_service import database_service
-        from tournament_models import Tournament, Organization
+        from database.tournament_models import Tournament, Organization
         from sqlalchemy import func
         import html as html_module
         
@@ -153,7 +153,7 @@ class EditorService:
             contact_to_org = {}
             
             # Build a map of normalized contacts to organization names
-            from tournament_models import normalize_contact
+            from database.tournament_models import normalize_contact
             for org in organizations:
                 for contact in org.contacts:
                     contact_value = contact.get('value', '')
@@ -345,7 +345,7 @@ class EditorService:
         
         # Get recent tournaments
         from database_service import database_service
-        from tournament_models import Tournament
+        from database.tournament_models import Tournament
         with session_scope() as session:
             recent_tournaments = session.query(Tournament)\
                 .order_by(Tournament.start_at.desc())\
@@ -759,7 +759,7 @@ class EditorService:
     
     async def player_detail_handler(self, request):
         """Serve individual player detail page - Pythonic way!"""
-        from tournament_models import Player
+        from database.tournament_models import Player
         from formatters import PlayerFormatter
         
         player_id = int(request.match_info['player_id'])
@@ -838,7 +838,7 @@ class EditorService:
     
     async def tournament_detail_handler(self, request):
         """Serve individual tournament detail page - Maximum Pythonic Intelligence!"""
-        from tournament_models import Tournament, TournamentPlacement, Player
+        from database.tournament_models import Tournament, TournamentPlacement, Player
         from formatters import TournamentFormatter
         
         tournament_id = int(request.match_info['tournament_id'])
@@ -1141,7 +1141,7 @@ class EditorService:
             
             # For now, return a simplified tournament list
             # We'll enhance this once we understand the model structure better
-            from tournament_models import Tournament
+            from database.tournament_models import Tournament
             with session_scope() as session:
                 tournaments = session.query(Tournament).limit(100).all()
                 
@@ -1180,7 +1180,7 @@ class EditorService:
         player_data = []
         
         try:
-            from tournament_models import Player
+            from database.tournament_models import Player
             
             with session_scope() as session:
                 players = session.query(Player).limit(100).all()
@@ -1255,7 +1255,7 @@ class EditorService:
     
     async def get_organizations(self, request):
         """API endpoint for organizations"""
-        from tournament_models import Organization
+        from database.tournament_models import Organization
         
         with session_scope() as session:
             orgs = database_service.get_all_organizations()
@@ -1280,7 +1280,7 @@ class EditorService:
     
     async def update_organization(self, request):
         """Update organization details"""
-        from tournament_models import Organization, OrganizationContact
+        from database.tournament_models import Organization, OrganizationContact
         
         org_id = int(request.match_info['org_id'])
         data = await request.json()
@@ -1314,7 +1314,7 @@ class EditorService:
     
     async def merge_organizations(self, request):
         """Merge organizations"""
-        from tournament_models import Organization, Tournament
+        from database.tournament_models import Organization, Tournament
         
         data = await request.json()
         source_id = int(data.get('source_id'))
@@ -1351,7 +1351,7 @@ class EditorService:
     
     async def update_contacts(self, request):
         """Update organization contacts"""
-        from tournament_models import Organization
+        from database.tournament_models import Organization
         
         org_id = int(request.match_info['org_id'])
         data = await request.json()
@@ -1470,7 +1470,7 @@ class EditorService:
 
     async def get_attendance_timeline(self, request):
         """API endpoint for attendance over time data"""
-        from tournament_models import Tournament
+        from database.tournament_models import Tournament
         from datetime import datetime, timedelta
         import calendar
         
@@ -1880,7 +1880,7 @@ editor_service = EditorService()
 def get_unnamed_tournaments():
     """Get tournaments that don't have an organization assigned"""
     from database_service import database_service
-    from tournament_models import Tournament
+    from database.tournament_models import Tournament
     
     with session_scope() as session:
         tournaments = session.query(Tournament).filter(
