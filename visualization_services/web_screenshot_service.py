@@ -49,8 +49,10 @@ class WebScreenshotService:
                     "Mobile viewport emulation",
                     "JavaScript execution support",
                     "ask('screenshot of https://example.com')",
+                    "ask('screenshot of https://example.com keep open')",
                     "tell('base64', screenshot_data)",
-                    "do('capture https://example.com')"
+                    "do('capture https://example.com')",
+                    "do('capture https://example.com keep open')"
                 ],
                 [
                     "screenshot.ask('screenshot of https://google.com')",
@@ -90,10 +92,21 @@ class WebScreenshotService:
         
         # Check browser status
         if 'status' in query_lower:
+            open_pages = getattr(self, 'open_pages', {})
             return {
                 'browser_active': self.browser is not None,
                 'playwright_version': '1.55.0',
-                'browser_type': 'chromium'
+                'browser_type': 'chromium',
+                'open_pages': list(open_pages.keys()),
+                'open_page_count': len(open_pages)
+            }
+        
+        # List open pages
+        if 'open pages' in query_lower or 'list pages' in query_lower:
+            open_pages = getattr(self, 'open_pages', {})
+            return {
+                'open_pages': list(open_pages.keys()),
+                'count': len(open_pages)
             }
         
         # Screenshot requests
@@ -107,7 +120,8 @@ class WebScreenshotService:
             options = {
                 'fullpage': 'full' in query_lower or 'entire' in query_lower,
                 'mobile': 'mobile' in query_lower,
-                'wait': kwargs.get('wait', 2)  # Wait time after load
+                'wait': kwargs.get('wait', 2),  # Wait time after load
+                'keep_open': 'keep' in query_lower and 'open' in query_lower
             }
             
             return self._capture_screenshot(url, **options)
@@ -197,6 +211,25 @@ class WebScreenshotService:
         if 'close' in action_lower and 'browser' in action_lower:
             return self._close_browser()
         
+        # Close specific page
+        if 'close page' in action_lower:
+            url = self._extract_url(action)
+            if url and hasattr(self, 'open_pages') and url in self.open_pages:
+                self.open_pages[url].close()
+                del self.open_pages[url]
+                return {'status': f'Closed page {url}'}
+            return {'error': f'Page {url} not found in open pages'}
+        
+        # Close all pages
+        if 'close all pages' in action_lower:
+            if hasattr(self, 'open_pages'):
+                count = len(self.open_pages)
+                for page in self.open_pages.values():
+                    page.close()
+                self.open_pages.clear()
+                return {'status': f'Closed {count} pages'}
+            return {'status': 'No pages were open'}
+        
         # Capture screenshot
         if 'capture' in action_lower or 'screenshot' in action_lower:
             url = self._extract_url(action)
@@ -207,7 +240,8 @@ class WebScreenshotService:
             options = {
                 'fullpage': 'fullpage=true' in action_lower or 'full' in action_lower,
                 'mobile': 'mobile=true' in action_lower or 'mobile' in action_lower,
-                'wait': kwargs.get('wait', 2)
+                'wait': kwargs.get('wait', 2),
+                'keep_open': 'keep' in action_lower and 'open' in action_lower
             }
             
             # Capture screenshot
@@ -249,7 +283,7 @@ class WebScreenshotService:
         return None
     
     def _capture_screenshot(self, url: str, fullpage: bool = False, 
-                          mobile: bool = False, wait: float = 2) -> Dict[str, Any]:
+                          mobile: bool = False, wait: float = 2, keep_open: bool = False) -> Dict[str, Any]:
         """Capture a screenshot of the given URL"""
         try:
             self._ensure_browser()
@@ -279,7 +313,14 @@ class WebScreenshotService:
             title = page.title()
             viewport = page.viewport_size
             
-            page.close()
+            # Only close page if not keeping it open
+            if not keep_open:
+                page.close()
+            else:
+                # Store reference to open page
+                if not hasattr(self, 'open_pages'):
+                    self.open_pages = {}
+                self.open_pages[url] = page
             
             result = {
                 'url': url,

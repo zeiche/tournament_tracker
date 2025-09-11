@@ -22,11 +22,13 @@ from polymorphic_core import announcer
 from .heatmap_service import HeatmapService
 from .chart_service import ChartService
 from .map_service import MapService
+from .web_screenshot_service import WebScreenshotService, screenshot_service
 
 # Create global instances
 heatmap_service = HeatmapService()
 chart_service = ChartService()
 map_service = MapService()
+# screenshot_service already created as singleton in web_screenshot_service
 
 # Announce individual services to avoid duplication
 announcer.announce(
@@ -59,11 +61,15 @@ announcer.announce(
     ]
 )
 
+# Note: WebScreenshotService announces itself in its own module
+
 __all__ = [
     'heatmap_service',
     'chart_service', 
     'map_service',
+    'screenshot_service',
     'HeatmapService',
     'ChartService',
-    'MapService'
+    'MapService',
+    'WebScreenshotService'
 ]
