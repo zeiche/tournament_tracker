@@ -1,0 +1,12 @@
+{
+  "session_name": "web_proof_1757658844",
+  "url": "https://example.com",
+  "start_time": 1757658844.4787796,
+  "duration": 10,
+  "success": true,
+  "files_created": [
+    "recordings/web_sessions/web_proof_1757658844_screenshot.png"
+  ],
+  "end_time": 1757658874.5436351,
+  "actual_duration": 30.064855575561523
+}

@@ -102,7 +102,7 @@ class EnhancedServiceLocator:
             service = self.hybrid_cache.get_service(capability_name, prefer_network)
             
             if service:
-                announcer.announce(
+                local_announcer.announce(
                     f"ServiceLocator-{capability_name}",
                     [f"Retrieved service: {capability_name}"],
                     [f"Service type: {'network' if prefer_network else 'local'}"]
@@ -118,7 +118,7 @@ class EnhancedServiceLocator:
             return self._get_local_service(capability_name)
             
         except Exception as e:
-            announcer.announce(
+            local_announcer.announce(
                 f"ServiceLocator-Error",
                 [f"Failed to get service {capability_name}: {str(e)}"]
             )
@@ -149,13 +149,13 @@ class EnhancedServiceLocator:
             return module
             
         except ImportError as e:
-            announcer.announce(
+            local_announcer.announce(
                 f"ServiceLocator-ImportError",
                 [f"Could not import {module_path}: {str(e)}"]
             )
             return None
         except Exception as e:
-            announcer.announce(
+            local_announcer.announce(
                 f"ServiceLocator-Error",
                 [f"Error loading {capability_name}: {str(e)}"]
             )
@@ -182,7 +182,7 @@ class EnhancedServiceLocator:
             return None
             
         except Exception as e:
-            announcer.announce(
+            local_announcer.announce(
                 f"ServiceLocator-NetworkError",
                 [f"Network discovery failed for {capability_name}: {str(e)}"]
             )
@@ -191,7 +191,7 @@ class EnhancedServiceLocator:
     def register_capability(self, capability_name: str, module_path: str):
         """Register a new capability mapping"""
         self.capability_map[capability_name] = module_path
-        announcer.announce(
+        local_announcer.announce(
             f"ServiceLocator-Registration",
             [f"Registered {capability_name} → {module_path}"]
         )
@@ -199,7 +199,7 @@ class EnhancedServiceLocator:
     def clear_cache(self):
         """Clear all caches"""
         self.hybrid_cache.clear_cache()
-        announcer.announce(
+        local_announcer.announce(
             "ServiceLocator-CacheCleared",
             ["All service caches cleared"]
         )

@@ -5,7 +5,7 @@ Any service that HAS audio can respond to these announcements
 Pure Bonjour - no direct dependencies!
 """
 
-from polymorphic_core import announcer
+from polymorphic_core.local_bonjour import local_announcer
 from polymorphic_core import register_capability
 import time
 from typing import Optional, Callable
@@ -27,7 +27,7 @@ class PolymorphicAudioRequest:
         self._initialized = True
         
         # Announce what we need
-        announcer.announce(
+        local_announcer.announce(
             "PolymorphicAudioRequest",
             [
                 "I NEED audio data",
@@ -44,7 +44,7 @@ class PolymorphicAudioRequest:
     
     def request_audio_continuously(self):
         """Continuously announce that we want audio"""
-        announcer.announce(
+        local_announcer.announce(
             "AUDIO_REQUEST",
             [
                 "REQUESTING: Audio data from ANY source",
@@ -56,7 +56,7 @@ class PolymorphicAudioRequest:
     
     def on_audio_available(self, source: str, audio_data: bytes, metadata: dict):
         """Called when ANY service announces audio is available"""
-        announcer.announce(
+        local_announcer.announce(
             "AUDIO_RECEIVED",
             [
                 f"Received audio from: {source}",
@@ -70,19 +70,19 @@ class PolymorphicAudioRequest:
             try:
                 handler(source, audio_data, metadata)
             except Exception as e:
-                announcer.announce("AudioRequest", [f"Handler error: {e}"])
+                local_announcer.announce("AudioRequest", [f"Handler error: {e}"])
     
     def register_audio_handler(self, handler: Callable):
         """Register a handler for when audio arrives"""
         self.audio_handlers.append(handler)
-        announcer.announce(
+        local_announcer.announce(
             "AudioRequest",
             [f"New audio handler registered. Total: {len(self.audio_handlers)}"]
         )
     
     def request_specific_audio(self, source_type: str):
         """Request audio from a specific type of source"""
-        announcer.announce(
+        local_announcer.announce(
             "TARGETED_AUDIO_REQUEST",
             [
                 f"REQUESTING: Audio from {source_type}",
@@ -101,7 +101,7 @@ def get_audio_requester():
 # Register with capability discovery
 try:
     register_capability("audio_request", get_audio_requester)
-    announcer.announce("PolymorphicAudioRequest", ["Registered as discoverable capability"])
+    local_announcer.announce("PolymorphicAudioRequest", ["Registered as discoverable capability"])
 except ImportError:
     pass
 

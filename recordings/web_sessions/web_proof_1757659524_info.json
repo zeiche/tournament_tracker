@@ -1,0 +1,13 @@
+{
+  "session_name": "web_proof_1757659524",
+  "url": "https://backyardtryhards.com",
+  "start_time": 1757659524.5007455,
+  "duration": 10,
+  "success": true,
+  "files_created": [
+    "recordings/web_sessions/web_proof_1757659524_screenshot.png",
+    "recordings/web_sessions/web_proof_1757659524_video.mp4"
+  ],
+  "end_time": 1757659628.3823469,
+  "actual_duration": 103.88160133361816
+}

@@ -6,6 +6,10 @@ Follows the 3-method pattern: ask(), tell(), do()
 import os
 from typing import Any, Dict, List, Optional, Union
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.config_service")
+
 
 class ConfigService:
     """

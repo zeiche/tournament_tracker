@@ -2,12 +2,18 @@
 """
 inbound_call_handler.py - Enhanced inbound call handler for tournament tracker
 Processes voice input through polymorphic queries and provides tournament info
+Now uses ManagedService for unified service identity.
 """
+
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from flask import Flask, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
 from search.polymorphic_queries import query as pq
-from capability_announcer import announcer
+from polymorphic_core.service_identity import ManagedService
+from polymorphic_core import announcer
 import subprocess
 import re
 
@@ -181,20 +187,51 @@ def status():
     """Simple status endpoint"""
     return "Tournament Tracker Inbound Call Handler Active"
 
+
+class InboundCallHandlerService(ManagedService):
+    """
+    Managed service wrapper for inbound call handler.
+    Provides Twilio webhook endpoint for voice calls.
+    """
+    
+    def __init__(self, port=8083):
+        super().__init__("inbound-call-handler", "tournament-inbound-call-handler")
+        self.port = port
+        
+        # Announce this service
+        announcer.announce(
+            "INBOUND_CALL_HANDLER",
+            [
+                "Tournament tracker inbound call handler starting",
+                f"Webhook endpoint: http://localhost:{port}/inbound-voice",
+                "Supports both speech and DTMF input",
+                "Connected to polymorphic query system"
+            ]
+        )
+    
+    def run(self):
+        """Run the Flask app"""
+        print("🎯 Tournament Tracker Inbound Call Handler")
+        print(f"📞 Configure Twilio webhook to: http://YOUR_SERVER:{self.port}/inbound-voice")
+        print("🎤 Supports speech recognition and DTMF menu")
+        print("🔌 Connected to polymorphic query system")
+        
+        try:
+            app.run(host='0.0.0.0', port=self.port, debug=False)
+        except KeyboardInterrupt:
+            print("\n🛑 Shutting down inbound call handler")
+
+
+def main():
+    """Main function for running as a managed service"""
+    import argparse
+    parser = argparse.ArgumentParser(description='Inbound Call Handler Service')
+    parser.add_argument('--port', type=int, default=8083, help='Port to run on (default: 8083)')
+    args = parser.parse_args()
+    
+    with InboundCallHandlerService(args.port) as service:
+        service.run()
+
+
 if __name__ == "__main__":
-    announcer.announce(
-        "INBOUND_CALL_HANDLER",
-        [
-            "Tournament tracker inbound call handler starting",
-            "Webhook endpoint: /inbound-voice",
-            "Supports both speech and DTMF input",
-            "Connected to polymorphic query system"
-        ]
-    )
-    
-    print("🎯 Tournament Tracker Inbound Call Handler")
-    print("📞 Configure Twilio webhook to: http://YOUR_SERVER:8083/inbound-voice")
-    print("🎤 Supports speech recognition and DTMF menu")
-    print("🔌 Connected to polymorphic query system")
-    
-    app.run(host='0.0.0.0', port=8083, debug=False)
+    main()

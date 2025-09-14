@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Tuple, Dict, Any, Set, Union
 from collections import defaultdict, Counter
 from functools import cached_property
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Index, Float, Boolean, func, desc, asc
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Index, Float, Boolean, func, desc, asc, JSON
 from sqlalchemy.orm import declarative_base, relationship, Query
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.sql import func
@@ -17,7 +17,17 @@ from sqlalchemy.sql import func
 from utils.database import Session, get_session
 from utils.database_service import database_service
 normalize_contact = database_service._normalize_contact if hasattr(database_service, '_normalize_contact') else lambda x: x
-from log_manager import LogManager
+# Try to import LogManager, fallback if not available
+try:
+    from log_manager import LogManager
+    _logger = LogManager().get_logger('models')
+except (ImportError, AttributeError):
+    # Fallback to simple print-based logging
+    class SimpleLogger:
+        def debug(self, msg): pass  # print(f"DEBUG: {msg}")
+        def info(self, msg): pass   # print(f"INFO: {msg}")
+        def error(self, msg): print(f"ERROR: {msg}")
+    _logger = SimpleLogger()
 
 # Import Bonjour announcer mixin
 # Bonjour mixin not yet available
@@ -33,8 +43,7 @@ except ImportError:
     to_list = lambda x: [x] if not isinstance(x, list) else x
     to_ids = lambda x: []
 
-# Get logger for this module
-_logger = LogManager().get_logger('models')
+# Get logger methods
 log_debug = _logger.debug
 log_info = _logger.info
 log_error = _logger.error
@@ -2773,3 +2782,128 @@ try:
 except ImportError:
     # Bonjour not available, continue without announcement
     pass
+
+# ============================================================================
+# SERVICE STATE MODEL - Process Management
+# ============================================================================
+
+class ServiceState(Base, BaseModel, TimestampMixin):
+    """Model to track running service processes"""
+    __tablename__ = 'service_state'
+    
+    id = Column(Integer, primary_key=True)
+    service_name = Column(String, unique=True, index=True, nullable=False)
+    pid = Column(Integer, nullable=True)
+    status = Column(String, default='stopped')  # running, stopped, failed
+    started_at = Column(DateTime, nullable=True)
+    data = Column(JSON, default=dict)  # polymorphic - store anything
+    
+    def __repr__(self):
+        return f"<ServiceState(service_name='{self.service_name}', pid={self.pid}, status='{self.status}')>"
+    
+    @classmethod
+    def register_service(cls, session, service_name: str, pid: int, data: Dict[str, Any] = None):
+        """Register a running service, handling existing entries"""
+        # First try to find existing service
+        existing = session.query(cls).filter_by(service_name=service_name).first()
+        
+        if existing:
+            # Update existing service
+            existing.pid = pid
+            existing.status = 'running'
+            existing.started_at = datetime.utcnow()
+            existing.data = data or {'process_title': f'tournament-{service_name}'}
+            state = existing
+        else:
+            # Create new service
+            state = cls(
+                service_name=service_name,
+                pid=pid,
+                status='running',
+                started_at=datetime.utcnow(),
+                data=data or {'process_title': f'tournament-{service_name}'}
+            )
+            session.add(state)
+        
+        session.commit()
+        return state
+        
+    @classmethod
+    def get_service_pid(cls, session, service_name: str) -> Optional[int]:
+        """Get PID for a service"""
+        state = session.query(cls).filter_by(service_name=service_name, status='running').first()
+        return state.pid if state else None
+        
+    @classmethod
+    def get_service_state(cls, session, service_name: str) -> Optional['ServiceState']:
+        """Get full service state"""
+        return session.query(cls).filter_by(service_name=service_name).first()
+        
+    @classmethod
+    def stop_service(cls, session, service_name: str):
+        """Mark service as stopped"""
+        state = session.query(cls).filter_by(service_name=service_name).first()
+        if state:
+            state.status = 'stopped'
+            state.pid = None
+            session.commit()
+        return state
+    
+    @classmethod
+    def get_all_running_services(cls, session) -> List['ServiceState']:
+        """Get all currently running services"""
+        return session.query(cls).filter_by(status='running').all()
+    
+    @classmethod
+    def cleanup_dead_processes(cls, session):
+        """Remove entries for processes that no longer exist"""
+        import os
+        running_services = cls.get_all_running_services(session)
+        cleaned_count = 0
+        
+        for service in running_services:
+            if service.pid:
+                try:
+                    # Check if process exists
+                    os.kill(service.pid, 0)
+                except ProcessLookupError:
+                    # Process doesn't exist, mark as stopped
+                    service.status = 'stopped'
+                    service.pid = None
+                    cleaned_count += 1
+        
+        if cleaned_count > 0:
+            session.commit()
+        
+        return cleaned_count
+    
+    def is_running(self) -> bool:
+        """Check if this service is currently running"""
+        if self.status != 'running' or not self.pid:
+            return False
+            
+        try:
+            import os
+            os.kill(self.pid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+    
+    def get_uptime(self) -> Optional[timedelta]:
+        """Get service uptime"""
+        if not self.started_at or self.status != 'running':
+            return None
+        return datetime.utcnow() - self.started_at
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            'id': self.id,
+            'service_name': self.service_name,
+            'pid': self.pid,
+            'status': self.status,
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'uptime_seconds': self.get_uptime().total_seconds() if self.get_uptime() else None,
+            'is_running': self.is_running(),
+            'data': self.data or {}
+        }

@@ -29,6 +29,10 @@ from contextlib import contextmanager
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.hybrid_cache_service")
+
 from polymorphic_core import announcer
 from polymorphic_core.service_locator import get_service
 from sqlalchemy import Column, Integer, String, DateTime, Text, create_engine

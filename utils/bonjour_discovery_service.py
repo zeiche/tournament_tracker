@@ -9,6 +9,10 @@ from polymorphic_core import announcer, list_capabilities
 from bonjour_monitor import BonjourMonitor
 from typing import Dict, List, Any, Optional
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.bonjour_discovery_service")
+
 
 class DynamicCommandDiscovery:
     """

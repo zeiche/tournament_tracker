@@ -6,7 +6,7 @@ Allows services to announce and manage their own processes
 
 import time
 from typing import List
-from . import announcer
+from .local_bonjour import local_announcer
 from .process import ProcessManager
 
 class ProcessManagementMixin:
@@ -22,7 +22,7 @@ class ProcessManagementMixin:
             "I am a PROCESS_MANAGER service"
         ]
         
-        announcer.announce(f"{service_name}ProcessManager", capabilities)
+        local_announcer.announce(f"{service_name}ProcessManager", capabilities)
     
     def cleanup_processes(self):
         """Override in subclasses to implement cleanup logic"""
@@ -65,7 +65,7 @@ class BaseProcessManager(ProcessManagementMixin):
             killed_total += killed
         
         if killed_total > 0:
-            announcer.announce(
+            local_announcer.announce(
                 f"{self.SERVICE_NAME}ProcessManager",
                 [f"Cleaned up {killed_total} processes"]
             )
@@ -87,13 +87,13 @@ class BaseProcessManager(ProcessManagementMixin):
                 proc = ProcessManager.start_service_safe(process, check_existing=False)
                 started_pids.append(proc.pid)
             except Exception as e:
-                announcer.announce(
+                local_announcer.announce(
                     f"{self.SERVICE_NAME}ProcessManager",
                     [f"Failed to start {process}: {e}"]
                 )
         
         if started_pids:
-            announcer.announce(
+            local_announcer.announce(
                 f"{self.SERVICE_NAME}ProcessManager", 
                 [f"Started {len(started_pids)} processes: {started_pids}"]
             )

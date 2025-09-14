@@ -10,6 +10,10 @@ from database_service import database_service
 from models.tournament_models import TournamentPlacement
 from log_manager import LogManager
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.normalize_events")
+
 # Initialize logger for this module
 logger = LogManager().get_logger('normalize_events')
 

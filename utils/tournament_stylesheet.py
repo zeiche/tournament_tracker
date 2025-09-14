@@ -4,6 +4,10 @@ tournament_stylesheet.py - Centralized CSS styles for tournament tracker
 Provides consistent styling across all HTML generation
 """
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.tournament_stylesheet")
+
 # Color palette
 COLORS = {
     'primary_gradient': 'linear-gradient(135deg, #667eea, #764ba2)',

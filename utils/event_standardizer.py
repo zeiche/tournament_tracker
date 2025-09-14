@@ -7,6 +7,10 @@ Maps various event names to standardized categories
 import re
 from typing import Optional, Tuple
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.event_standardizer")
+
 class EventStandardizer:
     """Standardize event names to consistent categories"""
     

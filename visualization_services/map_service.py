@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from polymorphic_core import announcer
+from polymorphic_core import announcer, register_capability
 
 
 class MapService:
@@ -38,6 +38,9 @@ class MapService:
                 "ask('venue network map')"
             ]
         )
+        
+        # Register as polymorphic capability
+        register_capability('maps', lambda: self)
         
         self._database_service = None
         self._geometric_math = None

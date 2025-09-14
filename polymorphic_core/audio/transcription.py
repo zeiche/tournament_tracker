@@ -5,7 +5,7 @@ Listens for AUDIO_AVAILABLE announcements and transcribes them
 Pure Bonjour - discovers audio through announcements
 """
 
-from polymorphic_core import announcer
+from polymorphic_core.local_bonjour import local_announcer
 from polymorphic_core import register_capability, discover_capability
 import subprocess
 import tempfile
@@ -27,7 +27,7 @@ class PolymorphicTranscription:
         self._initialized = True
         
         # Announce what we do
-        announcer.announce(
+        local_announcer.announce(
             "PolymorphicTranscription",
             [
                 "I transcribe ANY audio with voice activity detection",
@@ -47,14 +47,14 @@ class PolymorphicTranscription:
         audio_requester = discover_capability('audio_request')
         if audio_requester:
             audio_requester.register_audio_handler(self.transcribe_audio)
-            announcer.announce(
+            local_announcer.announce(
                 "PolymorphicTranscription",
                 ["Registered as audio handler"]
             )
     
     def transcribe_audio(self, source: str, audio_data: bytes, metadata: dict):
         """Transcribe any audio we receive"""
-        announcer.announce(
+        local_announcer.announce(
             "TRANSCRIPTION_START",
             [
                 f"Transcribing audio from: {source}",
@@ -81,7 +81,7 @@ class PolymorphicTranscription:
             return
         
         # No speech detected or transcription failed
-        announcer.announce(
+        local_announcer.announce(
             "NO_SPEECH_DETECTED",
             [
                 f"No speech detected in audio from {source}",
@@ -114,13 +114,13 @@ class PolymorphicTranscription:
                 silence_threshold = 10  # Very low threshold for testing
                 
                 # Debug logging
-                announcer.announce("VoskDebug", [f"RMS: {rms:.1f}, Threshold: {silence_threshold}"])
+                local_announcer.announce("VoskDebug", [f"RMS: {rms:.1f}, Threshold: {silence_threshold}"])
                 
                 if rms < silence_threshold:
-                    announcer.announce("VoskDebug", [f"Silence: RMS {rms:.1f} < {silence_threshold}"])
+                    local_announcer.announce("VoskDebug", [f"Silence: RMS {rms:.1f} < {silence_threshold}"])
                     return None  # Silence detected, don't transcribe
                 else:
-                    announcer.announce("VoskDebug", [f"Speech detected: RMS {rms:.1f} >= {silence_threshold}"])
+                    local_announcer.announce("VoskDebug", [f"Speech detected: RMS {rms:.1f} >= {silence_threshold}"])
                 
                 # Initialize vosk model if not already done
                 if not hasattr(self, '_vosk_model'):
@@ -149,7 +149,7 @@ class PolymorphicTranscription:
                     return partial.get('partial', '').strip()
             
         except Exception as e:
-            announcer.announce("PolymorphicTranscription", [f"Vosk error: {e}"])
+            local_announcer.announce("PolymorphicTranscription", [f"Vosk error: {e}"])
             return None
     
     def pcm_to_wav(self, pcm_data: bytes, metadata: dict) -> bytes:
@@ -179,7 +179,7 @@ class PolymorphicTranscription:
     
     def announce_transcription(self, source: str, text: str):
         """Announce completed transcription"""
-        announcer.announce(
+        local_announcer.announce(
             "TRANSCRIPTION_COMPLETE",
             [
                 f"SOURCE: {source}",
@@ -193,7 +193,7 @@ class PolymorphicTranscription:
         claude = discover_capability('claude')
         if claude:
             response = claude.process(text)
-            announcer.announce(
+            local_announcer.announce(
                 "CLAUDE_RESPONSE",
                 [
                     f"QUESTION: '{text}'",
@@ -218,6 +218,6 @@ def get_transcription_service():
 # Register with capability discovery
 try:
     register_capability("transcription", get_transcription_service)
-    announcer.announce("PolymorphicTranscription", ["Registered as discoverable capability"])
+    local_announcer.announce("PolymorphicTranscription", ["Registered as discoverable capability"])
 except ImportError:
     pass

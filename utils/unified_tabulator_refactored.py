@@ -18,6 +18,10 @@ from sqlalchemy import func, desc, case
 from dataclasses import dataclass, field
 from enum import Enum
 import json
+
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.unified_tabulator_refactored")
 import time
 from polymorphic_core import announcer
 from polymorphic_core.service_locator import get_service

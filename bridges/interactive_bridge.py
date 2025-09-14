@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bridges.base_bridge import BaseBridge, BridgeRegistry
 from polymorphic_core import announcer
-from dynamic_switches import announce_switch
+from utils.dynamic_switches import announce_switch
 
 
 class InteractiveBridge(BaseBridge):

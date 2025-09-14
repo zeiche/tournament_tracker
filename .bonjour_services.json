@@ -1,0 +1,189 @@
+{
+  "GoSwitch__test_logs": {
+    "name": "GoSwitch__test_logs",
+    "capabilities": [
+      "Provides go.py flag: --test-logs",
+      "Help: Add sample log entries (or custom message: --test-logs 'your message')",
+      "Handler: add_test_logs"
+    ],
+    "examples": [],
+    "announced_at": 1757866651.7267797,
+    "pid": 127938093613184
+  },
+  "GoSwitch__discord_bot": {
+    "name": "GoSwitch__discord_bot",
+    "capabilities": [
+      "Provides go.py flag: --discord-bot",
+      "Help: START Discord bot service",
+      "Handler: start_discord_bot_service"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.31592,
+    "pid": 127938093613184
+  },
+  "GoSwitch__web": {
+    "name": "GoSwitch__web",
+    "capabilities": [
+      "Provides go.py flag: --web",
+      "Help: START universal web editor (adapts to any mDNS service)",
+      "Handler: start_web_service"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.3336651,
+    "pid": 127938093613184
+  },
+  "GoSwitch__report": {
+    "name": "GoSwitch__report",
+    "capabilities": [
+      "Provides go.py flag: --report",
+      "Help: START report generation (console|heatmap|stats|all)",
+      "Handler: start_report_service"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.4463227,
+    "pid": 127938093613184
+  },
+  "GoSwitch__interactive": {
+    "name": "GoSwitch__interactive",
+    "capabilities": [
+      "Provides go.py flag: --interactive",
+      "Help: START interactive bridge/repl (auto|lightweight|claude)",
+      "Handler: start_interactive_service"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.4474552,
+    "pid": 127938093613184
+  },
+  "GoSwitch__ai": {
+    "name": "GoSwitch__ai",
+    "capabilities": [
+      "Provides go.py flag: --ai",
+      "Help: START AI chat service (chat|test|service)",
+      "Handler: start_ai_service"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.4514618,
+    "pid": 127938093613184
+  },
+  "GoSwitch__bonjour": {
+    "name": "GoSwitch__bonjour",
+    "capabilities": [
+      "Provides go.py flag: --bonjour",
+      "Help: START Bonjour/mDNS operations (ads|monitor|discover|server|lightweight)",
+      "Handler: start_bonjour_service"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.4536421,
+    "pid": 127938093613184
+  },
+  "GoSwitch__restart_services": {
+    "name": "GoSwitch__restart_services",
+    "capabilities": [
+      "Provides go.py flag: --restart-services",
+      "Help: Kill and restart all services",
+      "Handler: restart_services_handler"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.4552882,
+    "pid": 127938093613184
+  },
+  "GoSwitch__service_status": {
+    "name": "GoSwitch__service_status",
+    "capabilities": [
+      "Provides go.py flag: --service-status",
+      "Help: Check service status via bonjour signals",
+      "Handler: service_status_handler"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.4552965,
+    "pid": 127938093613184
+  },
+  "GoSwitch__service_locator": {
+    "name": "GoSwitch__service_locator",
+    "capabilities": [
+      "Provides go.py flag: --service-locator",
+      "Help: Service locator management (status|test|discover|health|clear|list|benchmark)",
+      "Handler: service_locator_handler"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.507705,
+    "pid": 127938093613184
+  },
+  "GoSwitchweb": {
+    "name": "GoSwitchweb",
+    "capabilities": [
+      "Provides go.py flag: web",
+      "Help: START universal web editor (adapts to any mDNS service)",
+      "Handler: _handle_switch"
+    ],
+    "examples": [],
+    "announced_at": 1757866652.5103352,
+    "pid": 127938093613184
+  },
+  "GoSwitchai": {
+    "name": "GoSwitchai",
+    "capabilities": [
+      "Provides go.py flag: ai",
+      "Help: START AI chat service (chat|test)",
+      "Handler: _handle_switch"
+    ],
+    "examples": [],
+    "announced_at": 1757866655.0897083,
+    "pid": 127938093613184
+  },
+  "GoSwitchinteractive": {
+    "name": "GoSwitchinteractive",
+    "capabilities": [
+      "Provides go.py flag: interactive",
+      "Help: START interactive bridge/repl (auto|lightweight|claude)",
+      "Handler: _handle_switch"
+    ],
+    "examples": [],
+    "announced_at": 1757866662.2777014,
+    "pid": 127938093613184
+  },
+  "GoSwitch__analytics": {
+    "name": "GoSwitch__analytics",
+    "capabilities": [
+      "Provides go.py flag: --analytics",
+      "Help: START analytics generation (heatmap|stats|identify|all)",
+      "Handler: start_analytics_service_refactored"
+    ],
+    "examples": [],
+    "announced_at": 1757866663.0951788,
+    "pid": 127938093613184
+  },
+  "GoSwitch__sync": {
+    "name": "GoSwitch__sync",
+    "capabilities": [
+      "Provides go.py flag: --sync",
+      "Help: START tournament sync (options: recent|full|smart) [+publish]",
+      "Handler: start_sync_service"
+    ],
+    "examples": [],
+    "announced_at": 1757866663.0976741,
+    "pid": 127938093613184
+  },
+  "GoSwitch__webdav_refactored": {
+    "name": "GoSwitch__webdav_refactored",
+    "capabilities": [
+      "Provides go.py flag: --webdav-refactored",
+      "Help: START WebDAV database browser (refactored) (start|status|restart|stop|port:8084)",
+      "Handler: handle_args"
+    ],
+    "examples": [],
+    "announced_at": 1757866663.099134,
+    "pid": 127938093613184
+  },
+  "GoSwitch__webdav_bonjour": {
+    "name": "GoSwitch__webdav_bonjour",
+    "capabilities": [
+      "Provides go.py flag: --webdav-bonjour",
+      "Help: Start WebDAV service using Bonjour discovery [port]",
+      "Handler: webdav_bonjour_handler"
+    ],
+    "examples": [],
+    "announced_at": 1757866663.1025074,
+    "pid": 127938093613184
+  }
+}

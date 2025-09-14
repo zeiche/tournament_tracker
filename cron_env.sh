@@ -1,11 +1,18 @@
 #!/bin/bash
 # Environment variables for cron jobs
 
-# Load API keys from secure .env file
-if [ -f "/home/ubuntu/claude/.env" ]; then
+# Load API keys from secure .env file (try multiple locations)
+if [ -f "/home/ubuntu/.env" ]; then
+    source "/home/ubuntu/.env"
+    echo "Loaded .env from /home/ubuntu/.env"
+elif [ -f "/home/ubuntu/claude/tournament_tracker/.env" ]; then
+    source "/home/ubuntu/claude/tournament_tracker/.env"
+    echo "Loaded .env from tournament_tracker/.env"
+elif [ -f "/home/ubuntu/claude/.env" ]; then
     source "/home/ubuntu/claude/.env"
+    echo "Loaded .env from /home/ubuntu/claude/.env"
 else
-    echo "Error: .env file not found" >&2
+    echo "Error: .env file not found in any expected location" >&2
     exit 1
 fi
 

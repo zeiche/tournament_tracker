@@ -17,6 +17,10 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.database_service_refactored")
+
 from typing import Any, Dict, List, Optional, Union
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -130,6 +134,16 @@ class RefactoredDatabaseService:
                 pass  # Don't fail if logger unavailable
         
         try:
+            # Log queries (for polymorphic log manager)
+            if "log" in query_lower and ("recent" in query_lower or "latest" in query_lower):
+                return self._get_recent_logs(query)
+            elif "log" in query_lower and ("error" in query_lower or "errors" in query_lower):
+                return self._get_error_logs()
+            elif "log" in query_lower and ("warning" in query_lower or "warnings" in query_lower):
+                return self._get_warning_logs()
+            elif "log" in query_lower and ("count" in query_lower or "stats" in query_lower):
+                return self._get_log_stats()
+            
             # Stats queries
             if any(word in query_lower for word in ["stats", "statistics", "summary"]):
                 return self._get_summary_stats()
@@ -274,6 +288,43 @@ class RefactoredDatabaseService:
             return {"error": f"Database action failed: {str(e)}"}
     
     # Private implementation methods (same as original, just using discovered services for logging)
+    
+    def _get_recent_logs(self, query: str):
+        """Get recent log entries"""
+        limit = self._extract_number(query, default=50)
+        with session_scope() as session:
+            from sqlalchemy import text
+            result = session.execute(text(
+                "SELECT * FROM log ORDER BY timestamp DESC LIMIT :limit"
+            ), {"limit": limit})
+            return [dict(row._mapping) for row in result]
+    
+    def _get_error_logs(self):
+        """Get error log entries"""
+        with session_scope() as session:
+            from sqlalchemy import text
+            result = session.execute(text(
+                "SELECT * FROM log WHERE level = 'ERROR' ORDER BY timestamp DESC LIMIT 50"
+            ))
+            return [dict(row._mapping) for row in result]
+    
+    def _get_warning_logs(self):
+        """Get warning log entries"""
+        with session_scope() as session:
+            from sqlalchemy import text
+            result = session.execute(text(
+                "SELECT * FROM log WHERE level = 'WARNING' ORDER BY timestamp DESC LIMIT 50"
+            ))
+            return [dict(row._mapping) for row in result]
+    
+    def _get_log_stats(self):
+        """Get log statistics"""
+        with session_scope() as session:
+            from sqlalchemy import text
+            result = session.execute(text(
+                "SELECT level, COUNT(*) as count FROM log GROUP BY level ORDER BY count DESC"
+            ))
+            return [dict(row._mapping) for row in result]
     
     def _get_summary_stats(self) -> DatabaseStats:
         """Get database statistics"""
@@ -460,13 +511,15 @@ class RefactoredDatabaseService:
             with session_scope() as session:
                 from database.tournament_models import Player
                 
-                players = session.query(Player).limit(100).all()
+                # Get ALL players, no limit
+                players = session.query(Player).all()
                 
                 results = []
                 for player in players:
                     results.append({
                         "gamer_tag": player.gamer_tag,
-                        "tournaments": getattr(player, 'tournament_count', 0)
+                        "tournaments": getattr(player, 'tournament_count', 0),
+                        "points": getattr(player, 'total_points', 0)
                     })
                 
                 return {"players": results, "count": len(results)}
@@ -526,13 +579,20 @@ class RefactoredDatabaseService:
     
     def _extract_player_name(self, text: str) -> str:
         """Extract player name from query"""
-        # Simple extraction - look for text after "player"
-        parts = text.lower().split("player")
-        if len(parts) > 1:
-            name = parts[1].strip()
-            # Remove common words
-            name = re.sub(r'\b(named|called|is|with|tag)\b', '', name).strip()
-            return name
+        text_lower = text.lower()
+        
+        # Check for queries that should return all players
+        if re.search(r'\ball\s+players?\b', text_lower):
+            return ""  # Return empty string to trigger _get_all_players()
+        
+        # Simple extraction - look for text after "player" but not "players"
+        if "player " in text_lower:
+            parts = text_lower.split("player ")
+            if len(parts) > 1:
+                name = parts[1].strip()
+                # Remove common words
+                name = re.sub(r'\b(named|called|is|with|tag)\b', '', name).strip()
+                return name
         return ""
     
     # Format methods (same as original)

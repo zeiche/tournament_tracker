@@ -11,6 +11,10 @@ import subprocess
 from aiohttp import web
 from datetime import datetime
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.editor_service")
+
 from database_service import database_service
 from log_manager import LogManager
 from capability_announcer import announcer

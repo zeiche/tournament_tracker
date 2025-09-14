@@ -7,7 +7,7 @@ Converts text to audio and streams directly to mixer - NO FILE CREATION
 import subprocess
 import io
 from typing import Dict, Any
-from polymorphic_core import announcer
+from polymorphic_core.local_bonjour import local_announcer
 from polymorphic_core import register_capability
 
 class PolymorphicTTSService:
@@ -30,7 +30,7 @@ class PolymorphicTTSService:
         self.start_listening()
         
         # Announce our streaming capabilities
-        announcer.announce(
+        local_announcer.announce(
             "PolymorphicTTSService",
             [
                 "Stream text-to-speech directly to mixer",
@@ -53,9 +53,9 @@ class PolymorphicTTSService:
             if service_name == "TEXT_TO_SPEECH":
                 self.on_tts_request(capabilities)
         
-        # Register as a listener
-        announcer.add_listener(announcement_listener)
-        print(f"🔊 [DEBUG] TTS registered listener. Total listeners: {len(announcer.listeners)}")
+        # Register as a listener for TEXT_TO_SPEECH announcements
+        local_announcer.add_listener("TEXT_TO_SPEECH", announcement_listener)
+        print("🔊 [DEBUG] TTS registered listener for TEXT_TO_SPEECH announcements")
     
     def on_tts_request(self, request_data: list):
         """Process TTS request and stream to mixer"""
@@ -84,7 +84,7 @@ class PolymorphicTTSService:
             
             if audio_stream:
                 # Stream directly to mixer
-                announcer.announce(
+                local_announcer.announce(
                     "AUDIO_STREAM",
                     [
                         f"TEXT: {text}",
@@ -96,7 +96,7 @@ class PolymorphicTTSService:
                 )
                 
                 # Send the actual audio data to mixer
-                announcer.announce(
+                local_announcer.announce(
                     "MIXER_AUDIO_DATA",
                     [
                         f"STREAM_DATA: {audio_stream}",

@@ -12,6 +12,10 @@ import pathlib
 import sys
 import os
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.ssl_proxy_service")
+
 # Bonjour-style announcements
 try:
     from polymorphic_core import announcer

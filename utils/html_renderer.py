@@ -9,6 +9,10 @@ from pathlib import Path
 import html
 import json
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.html_renderer")
+
 
 class HTMLRenderer:
     """Stateful HTML rendering service with theming and templates"""

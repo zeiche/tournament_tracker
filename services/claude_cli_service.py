@@ -4,6 +4,7 @@ claude_cli_service.py - Claude CLI Service with Queue
 SINGLE ENTRY POINT for all Claude interactions using authenticated CLI.
 No API keys needed - uses 'claude' command from logged-in session.
 Implements queuing to prevent overload.
+Now uses ManagedService for unified service identity.
 """
 import os
 import sys
@@ -18,9 +19,18 @@ from queue import Queue, Empty
 from threading import Thread, Lock
 import time
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.claude_cli_service")
+
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# Add path for local imports
+sys.path.append('/home/ubuntu/claude/tournament_tracker')
+
+from polymorphic_core.service_identity import ManagedService
 
 # Add path for local imports
 sys.path.append('/home/ubuntu/claude/tournament_tracker')
@@ -41,7 +51,7 @@ except ImportError:
     ErrorSeverity = None
 
 from polymorphic_core import announcer
-from dynamic_switches import announce_switch
+from utils.dynamic_switches import announce_switch
 
 
 @dataclass
@@ -64,10 +74,11 @@ class ClaudeResponse:
     processing_time: float = 0.0
 
 
-class ClaudeCLIService:
+class ClaudeCLIServiceManaged(ManagedService):
     """
     Claude CLI Service - THE ONLY WAY to interact with Claude
     Uses authenticated 'claude' CLI command, no API keys needed.
+    Now inherits from ManagedService for unified service identity.
     """
     
     _instance = None
@@ -83,8 +94,10 @@ class ClaudeCLIService:
     
     def __init__(self):
         """Initialize the service (only runs once)"""
-        if self._initialized:
+        if hasattr(self, '_initialized') and self._initialized:
             return
+            
+        super().__init__("claude-cli", "tournament-claude-ai")
             
         self.request_queue = Queue()
         self.response_cache = {}
@@ -489,6 +502,25 @@ Always set 'output' variable. Format for Discord with ** for bold."""
             # Treat as a message to ask Claude
             response = self.ask(action)
             return response.response if response.success else response.error
+    
+    def run(self):
+        """
+        Service run method required by ManagedService.
+        For Claude CLI service, this just keeps the service alive for requests.
+        """
+        logger.info("Claude CLI Service is running and ready for requests")
+        
+        try:
+            # Service runs indefinitely to handle requests
+            while True:
+                # Check service health periodically
+                time.sleep(30)
+                if not self.cli_available:
+                    logger.warning("Claude CLI unavailable - please run 'claude /login'")
+        except KeyboardInterrupt:
+            logger.info("Claude CLI Service shutdown requested")
+        except Exception as e:
+            logger.error(f"Claude CLI Service error: {e}")
 
 
 # ============================================================================
@@ -496,7 +528,7 @@ Always set 'output' variable. Format for Discord with ** for bold."""
 # ============================================================================
 
 # Don't create instance at import time - it starts threads that block Discord
-# claude_cli = ClaudeCLIService()
+# claude_cli = ClaudeCLIServiceManaged()
 # Instead, create it lazily when needed:
 _claude_cli = None
 
@@ -504,7 +536,7 @@ def get_claude_cli():
     """Get or create the singleton Claude CLI instance"""
     global _claude_cli
     if _claude_cli is None:
-        _claude_cli = ClaudeCLIService()
+        _claude_cli = ClaudeCLIServiceManaged()
     return _claude_cli
 
 # For backward compatibility
@@ -612,7 +644,7 @@ if __name__ == "__main__":
 # ============================================================================
 
 def start_ai_service(args=None):
-    """Handler for --ai switch"""
+    """Handler for --ai switch - now uses managed service"""
     mode = "chat"  # default
     
     if hasattr(args, 'ai') and args.ai:
@@ -648,6 +680,11 @@ def start_ai_service(args=None):
             response = ask_claude("What is 2+2?")
             print(f"Test response: {response}")
         
+        elif mode == "service":
+            # Run as managed service
+            with ClaudeCLIServiceManaged() as service:
+                service.run()
+        
         else:
             print(f"Unknown AI mode: {mode}. Using chat.")
             start_ai_service(args)  # Fallback to chat
@@ -656,12 +693,22 @@ def start_ai_service(args=None):
         print(f"AI service failed: {e}")
 
 
+def main():
+    """Main function for running as a managed service"""
+    with ClaudeCLIServiceManaged() as service:
+        service.run()
+
+
 announce_switch(
     flag="--ai",
-    help="START AI chat service (chat|test)",
+    help="START AI chat service (chat|test|service)",
     handler=start_ai_service,
     action="store",
     nargs="?",
     const="chat",
     metavar="MODE"
 )
+
+
+if __name__ == "__main__":
+    main()

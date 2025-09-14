@@ -48,6 +48,7 @@ class ServiceLocator:
             "web_editor": "services.polymorphic_web_editor_refactored.web_editor",
             "interactive": "services.interactive_service_refactored.interactive_service",
             "message_handler": "services.message_handler_refactored.message_handler",
+            "formatter": "services.bonjour_formatter_service.formatter_service",
             
             # Legacy core services (fallback)
             "database_legacy": "utils.database_service.database_service",

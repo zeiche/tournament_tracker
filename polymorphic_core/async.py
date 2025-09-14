@@ -26,7 +26,7 @@ class PolymorphicAsync:
         self._initialized = True
         
         # Announce capabilities
-        announcer.announce(
+        local_announcer.announce(
             "PolymorphicAsync",
             [
                 "I provide async capabilities to ANY service",
@@ -45,7 +45,7 @@ class PolymorphicAsync:
         try:
             # Try to get running loop
             loop = asyncio.get_running_loop()
-            announcer.announce("PolymorphicAsync", ["Using existing event loop"])
+            local_announcer.announce("PolymorphicAsync", ["Using existing event loop"])
             return loop
         except RuntimeError:
             # No loop running, try to get the current loop
@@ -54,7 +54,7 @@ class PolymorphicAsync:
                 # Create new loop
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                announcer.announce("PolymorphicAsync", ["Created new event loop"])
+                local_announcer.announce("PolymorphicAsync", ["Created new event loop"])
             return loop
     
     def run(self, coroutine: Coroutine) -> Any:
@@ -67,7 +67,7 @@ class PolymorphicAsync:
         except RuntimeError:
             # Not in async context, run it
             loop = self.get_loop()
-            announcer.announce(
+            local_announcer.announce(
                 "ASYNC_RUN",
                 ["Running coroutine in sync context"]
             )
@@ -79,7 +79,7 @@ class PolymorphicAsync:
             # Try to create task in running loop
             task = asyncio.create_task(coroutine)
             self.tasks.append(task)
-            announcer.announce(
+            local_announcer.announce(
                 "ASYNC_TASK_CREATED",
                 [f"Task created: {task.get_name()}"]
             )
@@ -89,7 +89,7 @@ class PolymorphicAsync:
             loop = self.get_loop()
             task = loop.create_task(coroutine)
             self.tasks.append(task)
-            announcer.announce(
+            local_announcer.announce(
                 "ASYNC_TASK_SCHEDULED",
                 [f"Task scheduled: {task.get_name()}"]
             )
@@ -97,7 +97,7 @@ class PolymorphicAsync:
     
     def gather(self, *coroutines) -> Any:
         """Gather multiple coroutines polymorphically"""
-        announcer.announce(
+        local_announcer.announce(
             "ASYNC_GATHER",
             [f"Gathering {len(coroutines)} coroutines"]
         )
@@ -124,7 +124,7 @@ class PolymorphicAsync:
         """Schedule a callback to run soon"""
         loop = self.get_loop()
         loop.call_soon(callback, *args)
-        announcer.announce(
+        local_announcer.announce(
             "ASYNC_CALLBACK_SCHEDULED",
             [f"Callback {callback.__name__} scheduled"]
         )
@@ -133,7 +133,7 @@ class PolymorphicAsync:
         """Schedule a callback to run after delay"""
         loop = self.get_loop()
         loop.call_later(delay, callback, *args)
-        announcer.announce(
+        local_announcer.announce(
             "ASYNC_DELAYED_CALLBACK",
             [f"Callback {callback.__name__} scheduled in {delay}s"]
         )
@@ -141,7 +141,7 @@ class PolymorphicAsync:
     def run_in_executor(self, func: Callable, *args) -> Any:
         """Run blocking function in executor"""
         loop = self.get_loop()
-        announcer.announce(
+        local_announcer.announce(
             "ASYNC_EXECUTOR",
             [f"Running {func.__name__} in executor"]
         )
@@ -156,7 +156,7 @@ class PolymorphicAsync:
     
     def wait_for(self, coroutine: Coroutine, timeout: float) -> Any:
         """Wait for coroutine with timeout"""
-        announcer.announce(
+        local_announcer.announce(
             "ASYNC_WAIT_FOR",
             [f"Waiting for coroutine with {timeout}s timeout"]
         )
@@ -193,7 +193,7 @@ class PolymorphicAsync:
                 task.cancel()
                 cancelled += 1
         
-        announcer.announce(
+        local_announcer.announce(
             "ASYNC_TASKS_CANCELLED",
             [f"Cancelled {cancelled} tasks"]
         )
@@ -208,7 +208,7 @@ def get_async_service():
 # Register with capability discovery
 try:
     register_capability("async", get_async_service)
-    announcer.announce("PolymorphicAsync", ["Registered as discoverable capability"])
+    local_announcer.announce("PolymorphicAsync", ["Registered as discoverable capability"])
 except ImportError:
     pass
 

@@ -18,6 +18,10 @@ import sys
 import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.simple_logger_refactored")
 import json
 
 from polymorphic_core import announcer

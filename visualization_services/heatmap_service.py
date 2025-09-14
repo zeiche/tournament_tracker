@@ -17,7 +17,7 @@ from typing import Any, List, Dict, Optional, Union
 import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from polymorphic_core import announcer
+from polymorphic_core import announcer, register_capability
 
 
 class HeatmapService:
@@ -26,7 +26,8 @@ class HeatmapService:
     """
     
     def __init__(self):
-        pass
+        # Register as polymorphic capability
+        register_capability('heatmaps', lambda: self)
         
         # Services will be lazy-loaded
         self._database_service = None

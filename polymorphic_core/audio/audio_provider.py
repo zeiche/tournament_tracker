@@ -5,7 +5,7 @@ Listens for AUDIO_REQUEST announcements and responds with audio
 Could be Discord, microphone, file, or ANY audio source
 """
 
-from polymorphic_core import announcer
+from polymorphic_core.local_bonjour import local_announcer
 from polymorphic_core import register_capability, discover_capability
 import os
 from typing import Optional
@@ -26,7 +26,7 @@ class PolymorphicAudioProvider:
         self._initialized = True
         
         # Announce what we can provide
-        announcer.announce(
+        local_announcer.announce(
             "PolymorphicAudioProvider",
             [
                 "I HAVE audio data",
@@ -50,7 +50,7 @@ class PolymorphicAudioProvider:
     
     def provide_discord_audio(self, user_id: int, audio_data: bytes):
         """Provide audio from Discord"""
-        announcer.announce(
+        local_announcer.announce(
             "AUDIO_AVAILABLE",
             [
                 "SOURCE: Discord voice",
@@ -76,7 +76,7 @@ class PolymorphicAudioProvider:
             with open(file_path, 'rb') as f:
                 audio_data = f.read()
             
-            announcer.announce(
+            local_announcer.announce(
                 "AUDIO_AVAILABLE",
                 [
                     "SOURCE: File system",
@@ -97,7 +97,7 @@ class PolymorphicAudioProvider:
     
     def provide_simulated_audio(self, text: str):
         """Provide simulated audio (text as if it were speech)"""
-        announcer.announce(
+        local_announcer.announce(
             "AUDIO_AVAILABLE",
             [
                 "SOURCE: Simulated voice",
@@ -119,7 +119,7 @@ class PolymorphicAudioProvider:
     def buffer_audio(self, source: str, audio_data: bytes):
         """Buffer audio for later provision"""
         self.audio_buffer[source] = audio_data
-        announcer.announce(
+        local_announcer.announce(
             "AUDIO_BUFFERED",
             [
                 f"Buffered audio from: {source}",
@@ -131,7 +131,7 @@ class PolymorphicAudioProvider:
     def provide_buffered_audio(self):
         """Provide all buffered audio"""
         for source, audio_data in self.audio_buffer.items():
-            announcer.announce(
+            local_announcer.announce(
                 "AUDIO_AVAILABLE",
                 [
                     f"SOURCE: {source} (buffered)",
@@ -160,6 +160,6 @@ def get_audio_provider():
 # Register with capability discovery
 try:
     register_capability("audio_provider", get_audio_provider)
-    announcer.announce("PolymorphicAudioProvider", ["Registered as discoverable capability"])
+    local_announcer.announce("PolymorphicAudioProvider", ["Registered as discoverable capability"])
 except ImportError:
     pass

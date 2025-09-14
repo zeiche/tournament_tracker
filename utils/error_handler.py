@@ -14,8 +14,18 @@ from functools import wraps
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.simple_logger import info, warning, error
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.error_handler")
+
+from logging_services.polymorphic_log_manager import PolymorphicLogManager
 from polymorphic_core import announcer
+
+# Initialize logger at module level
+log_manager = PolymorphicLogManager()
+def info(message): log_manager.do(f"log info {message}")
+def warning(message): log_manager.do(f"log warning {message}")
+def error(message): log_manager.do(f"log error {message}")
 
 
 class ErrorSeverity(Enum):

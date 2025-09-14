@@ -9,6 +9,10 @@ sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker')
 from polymorphic_core import announcer
 from intelligence import get_intelligence
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.show_intelligence")
+
 # Initialize intelligence to trigger announcements
 print("Initializing Intelligence Module...")
 try:

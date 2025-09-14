@@ -18,6 +18,10 @@ import os
 from typing import Any, Dict, List, Optional, Union
 import json
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.config_service_refactored")
+
 from polymorphic_core import announcer
 from polymorphic_core.service_locator import get_service
 

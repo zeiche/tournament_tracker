@@ -25,6 +25,10 @@ Usage:
     o("shark").stats()        # Same as organizations("shark").stats()
 """
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.db")
+
 # Import everything from query_wrappers for a clean interface
 from query_wrappers import (
     players, tournaments, organizations,

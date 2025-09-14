@@ -9,6 +9,10 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.migration_guide")
+
 
 # Mapping of old imports to new ones
 IMPORT_MAPPINGS = {

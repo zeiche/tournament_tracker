@@ -276,6 +276,15 @@
                     <a href="/export" class="btn btn-info">Export Options</a>
                 </div>
             </div>
+            
+            <div class="feature-card">
+                <h3><span class="icon">🗂️</span> Database Logs</h3>
+                <p>View system logs, errors, and activity from the polymorphic log manager.</p>
+                <div class="actions">
+                    <a href="/logs" class="btn btn-primary">View Logs</a>
+                    <button onclick="clearLogs()" class="btn btn-secondary">Clear Old Logs</button>
+                </div>
+            </div>
         </div>
         
         <div class="services">
@@ -361,6 +370,19 @@
                     alert(result.message || 'Published successfully');
                 } catch (error) {
                     alert('Failed to publish: ' + error.message);
+                }
+            }
+        }
+        
+        // Clear old logs
+        async function clearLogs() {
+            if (confirm('Clear logs older than 30 days?')) {
+                try {
+                    const response = await fetch('/api/logs/clear', { method: 'POST' });
+                    const result = await response.json();
+                    alert(result.message || 'Old logs cleared successfully');
+                } catch (error) {
+                    alert('Failed to clear logs: ' + error.message);
                 }
             }
         }

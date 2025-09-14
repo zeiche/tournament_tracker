@@ -1,0 +1,31 @@
+
+🎬 WEBSOCKET SESSION PROOF REPORT
+==================================================
+
+Session: proof_test_1757648151
+URL: wss://vpn.zilogo.com:8081/ws/logs
+Protocol: WSS
+Start Time: 2025-09-12T03:35:51.366011
+Duration: 45.0 seconds
+
+RESULTS:
+✅ Connection Success: YES
+📨 Messages Received: 8
+🔗 Connection Stability: STABLE
+❌ Errors: 0
+
+DETAILED TIMELINE:
+2025-09-12T03:35:51.366014: Beginning recording session for 45s
+2025-09-12T03:35:51.366042: Attempting to connect to wss://vpn.zilogo.com:8081/ws/logs
+2025-09-12T03:35:51.553820: WebSocket connection successfully opened
+2025-09-12T03:36:36.366456: Recording duration (45s) completed, closing connection
+2025-09-12T03:36:36.368922: WebSocket closed with code None: None
+
+MESSAGE SAMPLES:
+2025-09-12T03:35:51.554285: received - websocket_data
+2025-09-12T03:36:01.626681: received - websocket_data
+2025-09-12T03:36:06.731623: received - websocket_data
+2025-09-12T03:36:11.838928: received - websocket_data
+2025-09-12T03:36:16.946608: received - websocket_data
+
+OVERALL RESULT: 🎉 SUCCESS - WebSocket working as claimed

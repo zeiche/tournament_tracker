@@ -78,7 +78,7 @@ class PolymorphicStorage:
         self._initialized = True
         
         # Announce capabilities
-        announcer.announce(
+        local_announcer.announce(
             "PolymorphicStorage",
             [
                 "I store ANY type of content polymorphically",
@@ -102,7 +102,7 @@ class PolymorphicStorage:
         """Ensure our storage table exists"""
         from database import engine
         Base.metadata.create_all(bind=engine, tables=[StorageContent.__table__])
-        announcer.announce("PolymorphicStorage", ["Storage table ready"])
+        local_announcer.announce("PolymorphicStorage", ["Storage table ready"])
     
     def store(self, content: Any, content_type: str = None, source: str = None, metadata: Dict = None) -> int:
         """
@@ -121,7 +121,7 @@ class PolymorphicStorage:
                 content_type = "unknown"
         
         # Announce storage event
-        announcer.announce(
+        local_announcer.announce(
             "STORAGE_EVENT",
             [
                 f"STORING: {content_type}",
@@ -147,7 +147,7 @@ class PolymorphicStorage:
                     f.write(content)
                 storage.file_path = file_path
                 
-                announcer.announce(
+                local_announcer.announce(
                     "STORAGE_FILE",
                     [f"Stored as file: {file_path}"]
                 )
@@ -175,7 +175,7 @@ class PolymorphicStorage:
             session.commit()
             storage_id = storage.id
             
-            announcer.announce(
+            local_announcer.announce(
                 "STORAGE_COMPLETE",
                 [
                     f"STORED_ID: {storage_id}",
@@ -228,7 +228,7 @@ class PolymorphicStorage:
             metadata=metadata
         )
         
-        announcer.announce(
+        local_announcer.announce(
             "AUDIO_STORED",
             [
                 f"Audio from user {user_id} stored",
@@ -249,7 +249,7 @@ def get_storage():
 # Register with capability discovery
 try:
     register_capability("storage", get_storage)
-    announcer.announce("PolymorphicStorage", ["Registered as discoverable capability"])
+    local_announcer.announce("PolymorphicStorage", ["Registered as discoverable capability"])
 except ImportError:
     pass
 

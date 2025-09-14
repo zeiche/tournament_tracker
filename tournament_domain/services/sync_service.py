@@ -15,7 +15,7 @@ from enum import Enum
 
 from utils.simple_logger import info, warning, error
 from polymorphic_core import announcer
-from dynamic_switches import announce_switch
+from utils.dynamic_switches import announce_switch
 
 
 class SyncMode(Enum):

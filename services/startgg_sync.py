@@ -2,8 +2,10 @@
 """
 startgg_sync.py - Start.gg sync service with ONLY ask/tell/do methods
 All API operations go through these 3 polymorphic methods.
+Now uses ManagedService for unified service identity.
 """
 import os
+import sys
 import time
 import json
 import requests
@@ -12,11 +14,26 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass
 
+# Add path for imports
+sys.path.append('/home/ubuntu/claude/tournament_tracker')
+
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.startgg_sync")
+
+from polymorphic_core.service_identity import ManagedService
 from polymorphic_core import announcer
 from utils.database import session_scope
+from utils.database_queue import batch_operations
 from utils.database_service import database_service
-from utils.simple_logger import info, warning, error
+from logging_services.polymorphic_log_manager import PolymorphicLogManager
 from utils.error_handler import handle_errors, handle_exception, ErrorSeverity
+
+# Initialize logger at module level
+log_manager = PolymorphicLogManager()
+def info(message): log_manager.do(f"log info {message}")
+def warning(message): log_manager.do(f"log warning {message}")
+def error(message): log_manager.do(f"log error {message}")
 from utils.config_service import get_config
 
 # Announce module capabilities on import
@@ -136,14 +153,16 @@ query TournamentStandings($tournamentId: ID!) {
 """
 
 
-class StartGGSync:
+class StartGGSyncManaged(ManagedService):
     """
     Start.gg sync service with ONLY 3 public methods: ask, tell, do
     Everything else is private implementation.
+    Now inherits from ManagedService for unified service identity.
     """
     
     def __init__(self):
         """Initialize the Start.gg sync service"""
+        super().__init__("startgg-sync", "tournament-startgg-sync")
         # Get API token from environment
         self.api_token = get_config("startgg api key", "")
         if not self.api_token:
@@ -805,10 +824,29 @@ Errors: {stats.get('errors', 0)}"""
                     lines.append(f"{key}: {value}")
             return "\n".join(lines)
         return str(data)
+    
+    def run(self):
+        """
+        Service run method required by ManagedService.
+        For StartGG sync service, this can run periodic syncs or wait for commands.
+        """
+        info("StartGG Sync Service is running")
+        announcer.announce("StartGG Sync", ["Service started and ready for sync operations"])
+        
+        try:
+            # Service runs indefinitely, can be triggered via ask/tell/do methods
+            while True:
+                # Periodic health check or sync operations could go here
+                time.sleep(60)  # Check every minute
+                
+        except KeyboardInterrupt:
+            info("StartGG Sync Service shutdown requested")
+        except Exception as e:
+            error(f"StartGG Sync Service error: {e}")
 
 
 # Global instance
-startgg_sync = StartGGSync()
+startgg_sync = StartGGSyncManaged()
 
 
 # Convenience function for backwards compatibility
@@ -817,3 +855,13 @@ def sync_from_startgg(page_size=250, fetch_standings=False, standings_limit=5):
     return startgg_sync.do("sync tournaments", 
                           fetch_standings=fetch_standings,
                           standings_limit=standings_limit)
+
+
+def main():
+    """Main function for running as a managed service"""
+    with StartGGSyncManaged() as service:
+        service.run()
+
+
+if __name__ == "__main__":
+    main()

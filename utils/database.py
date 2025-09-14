@@ -13,6 +13,10 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # Bonjour announcements will be enabled later to avoid circular imports
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.database")
+
 # ============================================================================
 # SINGLE SOURCE OF TRUTH - Database Configuration
 # ============================================================================

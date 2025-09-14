@@ -21,16 +21,26 @@ class RealBonjourAnnouncer:
     
     def __init__(self, service_type: str = "_tournament._tcp.local."):
         self.service_type = service_type
-        self.zeroconf = Zeroconf()
         self.announced_services = {}  # name -> ServiceInfo
         self.discovered_services = {}  # name -> service_data
         self.listeners = []  # Callback functions
         self.service_registry = {}  # For signals
         
-        # Start discovery browser
-        self.browser = ServiceBrowser(self.zeroconf, self.service_type, self._ServiceListener(self))
-        
-        print(f"🌐 Real Bonjour announcer started (service type: {self.service_type})")
+        # Temporarily disabled real Bonjour - using local-only mode
+        # try:
+        #     # Try to create Zeroconf with error handling for socket issues
+        #     self.zeroconf = Zeroconf(interfaces=None)
+        #     # Start discovery browser
+        #     self.browser = ServiceBrowser(self.zeroconf, self.service_type, self._ServiceListener(self))
+        #     print(f"🌐 Real Bonjour announcer started (service type: {self.service_type})")
+        # except Exception as e:
+        #     print(f"⚠️  Warning: Real Bonjour failed to start ({e}). Falling back to local-only mode.")
+        #     self.zeroconf = None
+        #     self.browser = None
+
+        print("🏠 Real Bonjour disabled - using local-only mode")
+        self.zeroconf = None
+        self.browser = None
     
     class _ServiceListener(ServiceListener):
         """Internal listener for discovered services"""
@@ -41,6 +51,10 @@ class RealBonjourAnnouncer:
         def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
             # Skip if we already know about this service
             if name in self.announcer.discovered_services:
+                return
+            
+            # Skip if zeroconf is None (fallback mode)
+            if not zc or not self.announcer.zeroconf:
                 return
             
             # Skip if zeroconf is shutting down
@@ -104,6 +118,11 @@ class RealBonjourAnnouncer:
             port: Port number (auto-assigned if None)
         """
         examples = examples or []
+        
+        # Skip if zeroconf is None (fallback mode)
+        if not self.zeroconf:
+            print(f"🏠 Local-only: {service_name} (mDNS unavailable)")
+            return self
         
         # Skip if already announced or being announced
         if service_name in self.announced_services:
@@ -277,9 +296,14 @@ class RealBonjourAnnouncer:
         """Clean shutdown"""
         print("🧹 Shutting down real Bonjour announcer...")
         
+        # Skip cleanup if zeroconf is None (fallback mode)
+        if not self.zeroconf:
+            print("🏠 Local-only mode cleanup complete")
+            return
+        
         # Close browser first to stop discovery
         try:
-            if hasattr(self, 'browser'):
+            if hasattr(self, 'browser') and self.browser:
                 self.browser.cancel()
         except Exception as e:
             print(f"Error closing browser: {e}")
@@ -305,7 +329,7 @@ announcer = RealBonjourAnnouncer()
 def announces_capability(service_name: str, *capabilities):
     """Decorator for auto-announcing capabilities"""
     def decorator(obj):
-        announcer.announce(service_name, list(capabilities))
+        local_announcer.announce(service_name, list(capabilities))
         return obj
     return decorator
 
@@ -318,7 +342,7 @@ if __name__ == "__main__":
     print("🧪 Testing Real Bonjour Announcer")
     
     # Announce ourselves
-    real_announcer.announce(
+    real_local_announcer.announce(
         "Test Service", 
         ["Testing real mDNS", "Network service discovery"], 
         ["Try discovering me from another machine"]

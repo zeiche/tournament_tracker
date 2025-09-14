@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Union
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from polymorphic_core.service_locator import ServiceLocator, NetworkServiceClient
-from polymorphic_core import announcer
+from polymorphic_core.local_bonjour import local_announcer
 from utils.cached_service_wrapper import wrap_service_with_cache, service_cache_manager
 
 class CachedServiceLocator(ServiceLocator):
@@ -75,7 +75,7 @@ class CachedServiceLocator(ServiceLocator):
         }
         
         # Announce caching capability
-        announcer.announce(
+        local_announcer.announce(
             "Cached Service Locator",
             [
                 "Service locator with hybrid caching",

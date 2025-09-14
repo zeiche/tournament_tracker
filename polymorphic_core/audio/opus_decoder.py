@@ -5,7 +5,7 @@ Subscribes to OPUS_PACKET announcements
 Announces AUDIO_AVAILABLE with decoded PCM
 """
 
-from polymorphic_core import announcer
+from polymorphic_core.local_bonjour import local_announcer
 from polymorphic_core import register_capability
 import struct
 import io
@@ -35,7 +35,7 @@ class PolymorphicOpusDecoder:
         self._initialized = True
         
         # Announce ourselves
-        announcer.announce(
+        local_announcer.announce(
             "PolymorphicOpusDecoder",
             [
                 "I decode opus packets to PCM",
@@ -52,7 +52,7 @@ class PolymorphicOpusDecoder:
                 # Discord uses 48kHz, 2 channels
                 self.decoder = opuslib.api.decoder.create_state(48000, 2)
                 self.frame_size = 960  # 20ms at 48kHz
-                announcer.announce("PolymorphicOpusDecoder", ["Opus decoder initialized"])
+                local_announcer.announce("PolymorphicOpusDecoder", ["Opus decoder initialized"])
             except Exception as e:
                 print(f"Failed to create opus decoder: {e}")
                 self.decoder = None
@@ -85,7 +85,7 @@ class PolymorphicOpusDecoder:
             
             if pcm_data:
                 # Announce decoded audio
-                announcer.announce(
+                local_announcer.announce(
                     "AUDIO_AVAILABLE",
                     {
                         'source': f'discord_voice_{user_id}',
@@ -102,7 +102,7 @@ class PolymorphicOpusDecoder:
                     }
                 )
                 
-                announcer.announce(
+                local_announcer.announce(
                     "PolymorphicOpusDecoder",
                     [f"Decoded {len(packet)} bytes opus → {len(pcm_data)} bytes PCM"]
                 )
@@ -135,7 +135,7 @@ class PolymorphicOpusDecoder:
                 return b''
                 
         except Exception as e:
-            announcer.announce(
+            local_announcer.announce(
                 "PolymorphicOpusDecoder",
                 [f"Decode error: {e}"]
             )

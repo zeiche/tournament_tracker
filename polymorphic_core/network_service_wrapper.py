@@ -281,7 +281,7 @@ class NetworkServiceWrapper:
         network_service = self.wrapped_services[service_name]
         
         # Announce the service via mDNS
-        announcer.announce(
+        local_announcer.announce(
             service_name,
             network_service.capabilities,
             [

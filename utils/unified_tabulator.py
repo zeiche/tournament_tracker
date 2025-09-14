@@ -16,6 +16,10 @@ from sqlalchemy import func, desc, case
 from dataclasses import dataclass
 from enum import Enum
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.unified_tabulator")
+
 
 class RankingType(Enum):
     """Types of rankings we support"""

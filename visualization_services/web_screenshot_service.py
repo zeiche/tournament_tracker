@@ -10,7 +10,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from playwright.sync_api import sync_playwright
-from polymorphic_core import announcer
+from polymorphic_core import register_capability
 import base64
 from typing import Any, Optional, Dict, Union
 from pathlib import Path
@@ -39,27 +39,8 @@ class WebScreenshotService:
             self.context = None
             self._initialized = True
             
-            # Announce our capabilities
-            announcer.announce(
-                "WebScreenshotService",
-                [
-                    "I can capture screenshots of any web page",
-                    "Headless Chromium browser for reliable rendering",
-                    "Full page or viewport screenshots",
-                    "Mobile viewport emulation",
-                    "JavaScript execution support",
-                    "ask('screenshot of https://example.com')",
-                    "ask('screenshot of https://example.com keep open')",
-                    "tell('base64', screenshot_data)",
-                    "do('capture https://example.com')",
-                    "do('capture https://example.com keep open')"
-                ],
-                [
-                    "screenshot.ask('screenshot of https://google.com')",
-                    "screenshot.do('capture http://localhost:8081 fullpage=true')",
-                    "screenshot.tell('file', screenshot_data, path='/tmp/screenshot.png')"
-                ]
-            )
+            # Register as polymorphic capability
+            register_capability('web_browser', lambda: self)
     
     def _ensure_browser(self):
         """Ensure browser is initialized"""
@@ -72,10 +53,6 @@ class WebScreenshotService:
             self.context = self.browser.new_context(
                 viewport={'width': 1920, 'height': 1080},
                 device_scale_factor=1
-            )
-            announcer.announce(
-                "BROWSER_READY",
-                ["Headless Chromium browser initialized"]
             )
     
     def ask(self, query: str, **kwargs) -> Any:
@@ -296,10 +273,6 @@ class WebScreenshotService:
                 page = self.context.new_page()
             
             # Navigate to URL
-            announcer.announce(
-                "SCREENSHOT_CAPTURE",
-                [f"Navigating to {url}"]
-            )
             
             page.goto(url, wait_until='networkidle', timeout=30000)
             
@@ -332,18 +305,9 @@ class WebScreenshotService:
                 'timestamp': time.time()
             }
             
-            announcer.announce(
-                "SCREENSHOT_SUCCESS",
-                [f"Captured screenshot of {url}", f"Title: {title}"]
-            )
-            
             return result
             
         except Exception as e:
-            announcer.announce(
-                "SCREENSHOT_ERROR",
-                [f"Failed to capture {url}: {str(e)}"]
-            )
             return {'error': str(e), 'url': url}
     
     def _close_browser(self) -> Dict[str, str]:
@@ -356,11 +320,6 @@ class WebScreenshotService:
         if self.playwright:
             self.playwright.stop()
             self.playwright = None
-        
-        announcer.announce(
-            "BROWSER_CLOSED",
-            ["Headless browser closed and cleaned up"]
-        )
         
         return {'status': 'Browser closed'}
 

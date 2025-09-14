@@ -1,0 +1,12 @@
+{
+  "session_name": "web_proof_1757650202",
+  "url": "https://vpn.zilogo.com:8081/",
+  "start_time": 1757650202.745292,
+  "duration": 30,
+  "success": true,
+  "files_created": [
+    "recordings/web_sessions/web_proof_1757650202_screenshot.png"
+  ],
+  "end_time": 1757650203.413751,
+  "actual_duration": 0.6684589385986328
+}

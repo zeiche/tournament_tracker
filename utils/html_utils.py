@@ -8,6 +8,10 @@ import html
 from datetime import datetime, timezone, timedelta
 from log_manager import LogManager
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.html_utils")
+
 # Initialize logger for this module
 logger = LogManager().get_logger('html_utils')
 from tournament_stylesheet import get_themed_style_tag, get_css_stylesheet

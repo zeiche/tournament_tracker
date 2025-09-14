@@ -3,6 +3,7 @@
 interactive_service.py - Central hub for ALL interactive features
 This module has graduated from go_interactive to become the single source
 of truth for all interactive operations in the tournament tracker.
+Now uses ManagedService for unified service identity.
 """
 import sys
 import os
@@ -12,6 +13,13 @@ from typing import Optional, Any
 # Add paths for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, '/home/ubuntu/claude')
+sys.path.append('/home/ubuntu/claude/tournament_tracker')
+
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.interactive_service")
+
+from polymorphic_core.service_identity import ManagedService
 
 # Import database and models
 from database import init_database, get_session
@@ -23,14 +31,16 @@ from claude_chat import start_chat, ask_one_shot
 from claude_cli_service import claude_cli as claude_ai
 
 
-class InteractiveService:
+class InteractiveServiceManaged(ManagedService):
     """
     Central service for ALL interactive features.
     This includes REPL, AI chat, web editors, and any other interactive modes.
+    Now inherits from ManagedService for unified service identity.
     """
     
     def __init__(self, database_url: Optional[str] = None):
         """Initialize the interactive service"""
+        super().__init__("interactive-repl", "tournament-interactive")
         self.database_url = database_url
         self.tracker = None
         self._init_database()
@@ -260,17 +270,24 @@ Examples with Polymorphic Pattern:
     def is_ai_enabled(self) -> bool:
         """Check if Claude AI is enabled"""
         return claude_ai.cli_available
+    
+    def run(self):
+        """
+        Service run method required by ManagedService.
+        Runs the interactive REPL mode.
+        """
+        return self.start_repl()
 
 
 # Singleton instance
 _interactive_service = None
 
 
-def get_interactive_service(database_url: Optional[str] = None) -> InteractiveService:
+def get_interactive_service(database_url: Optional[str] = None) -> InteractiveServiceManaged:
     """Get or create the interactive service singleton"""
     global _interactive_service
     if _interactive_service is None:
-        _interactive_service = InteractiveService(database_url)
+        _interactive_service = InteractiveServiceManaged(database_url)
     return _interactive_service
 
 
@@ -293,6 +310,12 @@ def ask_ai(question: Any) -> Optional[str]:
     return service.ask_ai(question)
 
 
+def main():
+    """Main function for running as a managed service"""
+    with InteractiveServiceManaged() as service:
+        service.run()
+
+
 if __name__ == "__main__":
-    # Default to REPL mode when run directly
-    start_interactive_mode()
+    # Default to REPL mode when run directly as managed service
+    main()

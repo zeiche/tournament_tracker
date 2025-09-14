@@ -1,0 +1,173 @@
+{
+  "session_info": {
+    "name": "proof_test_1757650058",
+    "start_time": 1757650058.1826942,
+    "end_time": 1757650090.5159266,
+    "duration_seconds": 32.333232402801514,
+    "url": "wss://vpn.zilogo.com:8081/ws/logs",
+    "protocol": "wss",
+    "success": true,
+    "total_messages": 5,
+    "connection_attempts": 1
+  },
+  "events": [
+    {
+      "timestamp": 1757650058.182698,
+      "readable_time": "2025-09-12T04:07:38.182698",
+      "event_type": "session_started",
+      "description": "Beginning recording session for 30s",
+      "data": null
+    },
+    {
+      "timestamp": 1757650059.2144246,
+      "readable_time": "2025-09-12T04:07:39.214425",
+      "event_type": "connection_attempt",
+      "description": "Attempting to connect to wss://vpn.zilogo.com:8081/ws/logs",
+      "data": null
+    },
+    {
+      "timestamp": 1757650059.9983046,
+      "readable_time": "2025-09-12T04:07:39.998305",
+      "event_type": "connection_opened",
+      "description": "WebSocket connection successfully opened",
+      "data": null
+    },
+    {
+      "timestamp": 1757650089.702132,
+      "readable_time": "2025-09-12T04:08:09.702132",
+      "event_type": "session_timeout",
+      "description": "Recording duration (30s) completed, closing connection",
+      "data": null
+    },
+    {
+      "timestamp": 1757650089.991106,
+      "readable_time": "2025-09-12T04:08:09.991106",
+      "event_type": "connection_closed",
+      "description": "WebSocket closed with code None: None",
+      "data": {
+        "close_code": null,
+        "close_message": null
+      }
+    }
+  ],
+  "messages": [
+    {
+      "timestamp": 1757650060.2590473,
+      "readable_time": "2025-09-12T04:07:40.259047",
+      "direction": "received",
+      "message_type": "websocket_data",
+      "content": {
+        "type": "logs",
+        "data": [
+          {
+            "timestamp": "2025-09-11T19:00:00",
+            "level": "INFO",
+            "source": "websocket",
+            "message": "WebSocket connection established!",
+            "data": "{}"
+          },
+          {
+            "timestamp": "2025-09-11T19:00:01",
+            "level": "DEBUG",
+            "source": "websocket",
+            "message": "Streaming logs in real-time",
+            "data": "{}"
+          },
+          {
+            "timestamp": "2025-09-11T19:00:02",
+            "level": "SUCCESS",
+            "source": "websocket",
+            "message": "Cool kids are indeed using WebSockets! \ud83d\ude80",
+            "data": "{}"
+          }
+        ]
+      },
+      "raw_content": "{\"type\": \"logs\", \"data\": [{\"timestamp\": \"2025-09-11T19:00:00\", \"level\": \"INFO\", \"source\": \"websocket\", \"message\": \"WebSocket connection established!\", \"data\": \"{}\"}, {\"timestamp\": \"2025-09-11T19:00:01\", \"level\": \"DEBUG\", \"source\": \"websocket\", \"message\": \"Streaming logs in real-time\", \"data\": \"{}\"}, {\"timestamp\": \"2025-09-11T19:00:02\", \"level\": \"SUCCESS\", \"source\": \"websocket\", \"message\": \"Cool kids are indeed using WebSockets! \\ud83d\\ude80\", \"data\": \"{}\"}]}",
+      "size_bytes": 462,
+      "interval_since_last": null
+    },
+    {
+      "timestamp": 1757650070.070067,
+      "readable_time": "2025-09-12T04:07:50.070067",
+      "direction": "received",
+      "message_type": "websocket_data",
+      "content": {
+        "type": "new_log",
+        "data": {
+          "timestamp": "2025-09-12T04:07:50.069004",
+          "level": "INFO",
+          "source": "websocket_demo",
+          "message": "Live update #1 - WebSocket is working!",
+          "data": "{}"
+        }
+      },
+      "raw_content": "{\"type\": \"new_log\", \"data\": {\"timestamp\": \"2025-09-12T04:07:50.069004\", \"level\": \"INFO\", \"source\": \"websocket_demo\", \"message\": \"Live update #1 - WebSocket is working!\", \"data\": \"{}\"}}",
+      "size_bytes": 184,
+      "interval_since_last": 9.811019659042358
+    },
+    {
+      "timestamp": 1757650075.1725845,
+      "readable_time": "2025-09-12T04:07:55.172585",
+      "direction": "received",
+      "message_type": "websocket_data",
+      "content": {
+        "type": "new_log",
+        "data": {
+          "timestamp": "2025-09-12T04:07:55.171855",
+          "level": "INFO",
+          "source": "websocket_demo",
+          "message": "Live update #2 - WebSocket is working!",
+          "data": "{}"
+        }
+      },
+      "raw_content": "{\"type\": \"new_log\", \"data\": {\"timestamp\": \"2025-09-12T04:07:55.171855\", \"level\": \"INFO\", \"source\": \"websocket_demo\", \"message\": \"Live update #2 - WebSocket is working!\", \"data\": \"{}\"}}",
+      "size_bytes": 184,
+      "interval_since_last": 5.102517604827881
+    },
+    {
+      "timestamp": 1757650080.277571,
+      "readable_time": "2025-09-12T04:08:00.277571",
+      "direction": "received",
+      "message_type": "websocket_data",
+      "content": {
+        "type": "new_log",
+        "data": {
+          "timestamp": "2025-09-12T04:08:00.277033",
+          "level": "INFO",
+          "source": "websocket_demo",
+          "message": "Live update #3 - WebSocket is working!",
+          "data": "{}"
+        }
+      },
+      "raw_content": "{\"type\": \"new_log\", \"data\": {\"timestamp\": \"2025-09-12T04:08:00.277033\", \"level\": \"INFO\", \"source\": \"websocket_demo\", \"message\": \"Live update #3 - WebSocket is working!\", \"data\": \"{}\"}}",
+      "size_bytes": 184,
+      "interval_since_last": 5.1049864292144775
+    },
+    {
+      "timestamp": 1757650085.3854034,
+      "readable_time": "2025-09-12T04:08:05.385403",
+      "direction": "received",
+      "message_type": "websocket_data",
+      "content": {
+        "type": "new_log",
+        "data": {
+          "timestamp": "2025-09-12T04:08:05.384983",
+          "level": "INFO",
+          "source": "websocket_demo",
+          "message": "Live update #4 - WebSocket is working!",
+          "data": "{}"
+        }
+      },
+      "raw_content": "{\"type\": \"new_log\", \"data\": {\"timestamp\": \"2025-09-12T04:08:05.384983\", \"level\": \"INFO\", \"source\": \"websocket_demo\", \"message\": \"Live update #4 - WebSocket is working!\", \"data\": \"{}\"}}",
+      "size_bytes": 184,
+      "interval_since_last": 5.107832431793213
+    }
+  ],
+  "errors": [],
+  "connection_health": {
+    "successful_connections": 1,
+    "connection_drops": 1,
+    "reconnection_attempts": 0,
+    "average_message_interval": 6.281589031219482
+  }
+}

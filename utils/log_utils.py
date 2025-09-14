@@ -7,6 +7,13 @@ import sys
 from datetime import datetime
 from enum import Enum
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.log_utils")
+
+# Import PolymorphicLogManager for database logging
+from logging_services.polymorphic_log_manager import PolymorphicLogManager
+
 class LogLevel(Enum):
     DEBUG = 0
     INFO = 1
@@ -14,11 +21,10 @@ class LogLevel(Enum):
     ERROR = 3
 
 class Logger:
-    """Simple logger with file and console output"""
-    
+    """Simple logger with database logging via PolymorphicLogManager"""
+
     def __init__(self, log_file=None, console=True, level=LogLevel.INFO, debug_file="debug.txt"):
-        self.log_file = log_file or os.getenv('LOG_FILE', 'tournament_tracker.log')
-        self.debug_file = debug_file
+        # Keep console logging but eliminate file logging
         self.console = console
         self.level = level
         self.colors = {
@@ -28,14 +34,9 @@ class Logger:
             LogLevel.ERROR: '\033[31m'   # Red
         }
         self.reset_color = '\033[0m'
-        
-        # Clear debug file on initialization
-        if self.debug_file:
-            try:
-                with open(self.debug_file, 'w') as f:
-                    f.write("")  # Clear the file
-            except Exception:
-                pass
+
+        # Initialize database logging
+        self.log_manager = PolymorphicLogManager()
     
     def _should_log(self, level):
         """Check if message should be logged based on level"""
@@ -51,29 +52,18 @@ class Logger:
             return f"{level_str} {message}"
     
     def _write_message(self, level, formatted_message):
-        """Write message to console, log file, and debug file"""
+        """Write message to console and database via PolymorphicLogManager"""
         # Console output with colors
         if self.console:
             color = self.colors.get(level, '')
             print(f"{color}{formatted_message}{self.reset_color}")
-        
-        # Main log file output without colors
-        if self.log_file:
-            try:
-                with open(self.log_file, 'a', encoding='utf-8') as f:
-                    f.write(f"{formatted_message}\n")
-            except Exception:
-                # Don't let logging errors break the application
-                pass
-        
-        # Debug file output without colors (replace mode)
-        if self.debug_file:
-            try:
-                with open(self.debug_file, 'a', encoding='utf-8') as f:
-                    f.write(f"{formatted_message}\n")
-            except Exception:
-                # Don't let logging errors break the application
-                pass
+
+        # Database logging via PolymorphicLogManager
+        try:
+            self.log_manager.do(f"log {level.name} {formatted_message}")
+        except Exception:
+            # Don't let logging errors break the application
+            pass
     
     def debug(self, message, context=None):
         """Log debug message"""

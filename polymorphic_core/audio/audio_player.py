@@ -7,7 +7,7 @@ Listens for AUDIO_READY announcements and plays audio through Discord
 import os
 import asyncio
 from typing import Optional
-from polymorphic_core import announcer
+from polymorphic_core.local_bonjour import local_announcer
 from polymorphic_core import register_capability, discover_capability
 
 class PolymorphicAudioPlayer:
@@ -33,7 +33,7 @@ class PolymorphicAudioPlayer:
     
     def start_listening(self):
         """Start mDNS discovery for audio services"""
-        from polymorphic_core import announcer
+        from polymorphic_core.local_bonjour import local_announcer
         try:
             
             print(f"🔊 [DEBUG] AudioPlayer announced on network")
@@ -79,7 +79,7 @@ class PolymorphicAudioPlayer:
                 request_id = item.replace("ID:", "").strip()
         
         if file_path and os.path.exists(file_path):
-            announcer.announce(
+            local_announcer.announce(
                 "AUDIO_PLAYING",
                 [
                     f"Playing audio: {file_path}",
@@ -103,12 +103,12 @@ class PolymorphicAudioPlayer:
                     bot = self.discord_bot.bot
                     bot.loop.create_task(self._play_discord_async(file_path, text))
                     played = True
-                    announcer.announce(
+                    local_announcer.announce(
                         "AUDIO_DISCORD",
                         [f"Scheduled Discord playback: {file_path}"]
                     )
             except Exception as e:
-                announcer.announce(
+                local_announcer.announce(
                     "AUDIO_DISCORD_ERROR",
                     [f"Discord playback failed: {e}"]
                 )
@@ -126,12 +126,12 @@ class PolymorphicAudioPlayer:
                                 self._play_with_bot_async(bot_instance, file_path)
                             )
                             played = True
-                            announcer.announce(
+                            local_announcer.announce(
                                 "AUDIO_DISCOVERED_BOT",
                                 [f"Playing via discovered bot: {file_path}"]
                             )
             except Exception as e:
-                announcer.announce(
+                local_announcer.announce(
                     "AUDIO_BOT_ERROR",
                     [f"Discovered bot playback failed: {e}"]
                 )
@@ -143,7 +143,7 @@ class PolymorphicAudioPlayer:
         
         # Announce completion
         if played:
-            announcer.announce(
+            local_announcer.announce(
                 "AUDIO_PLAYED",
                 [
                     f"Audio playback complete: {request_id}",
@@ -155,7 +155,7 @@ class PolymorphicAudioPlayer:
             # Clean up the temp file after a delay
             try:
                 os.unlink(file_path)
-                announcer.announce("AUDIO_CLEANUP", [f"Cleaned up: {file_path}"])
+                local_announcer.announce("AUDIO_CLEANUP", [f"Cleaned up: {file_path}"])
             except:
                 pass
     
@@ -181,12 +181,12 @@ class PolymorphicAudioPlayer:
                 while voice_client.is_playing():
                     await asyncio.sleep(0.01)
                 
-                announcer.announce(
+                local_announcer.announce(
                     "DISCORD_PLAYBACK_COMPLETE",
                     [f"Discord played: '{text[:50]}...'"]
                 )
         except Exception as e:
-            announcer.announce(
+            local_announcer.announce(
                 "DISCORD_PLAYBACK_ERROR",
                 [f"Discord async playback error: {e}"]
             )
@@ -207,7 +207,7 @@ class PolymorphicAudioPlayer:
                     while voice_client.is_playing():
                         await asyncio.sleep(0.01)
         except Exception as e:
-            announcer.announce(
+            local_announcer.announce(
                 "BOT_PLAYBACK_ERROR",
                 [f"Bot playback error: {e}"]
             )
@@ -226,7 +226,7 @@ class PolymorphicAudioPlayer:
                                  check=False, 
                                  capture_output=True, 
                                  timeout=10)
-                    announcer.announce(
+                    local_announcer.announce(
                         "LOCAL_AUDIO",
                         [f"Played locally with {player}: {file_path}"]
                     )
@@ -234,13 +234,13 @@ class PolymorphicAudioPlayer:
                 except:
                     continue
             
-            announcer.announce(
+            local_announcer.announce(
                 "LOCAL_AUDIO_FALLBACK",
                 [f"No local audio player available for: {file_path}"]
             )
             
         except Exception as e:
-            announcer.announce(
+            local_announcer.announce(
                 "LOCAL_AUDIO_ERROR",
                 [f"Local audio playback error: {e}"]
             )
@@ -275,7 +275,7 @@ audio_player = PolymorphicAudioPlayer()
 register_capability('audio_player', lambda: audio_player)
 
 # Single announcement for the service
-announcer.announce(
+local_announcer.announce(
     "PolymorphicAudioPlayer",
     [
         "I play ANY audio that's announced as ready",

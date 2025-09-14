@@ -1,0 +1,123 @@
+🏠 Local Bonjour announcer started (process-local only)
+🏠 Using LOCAL Bonjour Service Discovery - process-local only!
+🏠 Local: Tournament Model Service
+🏠 Local: Player Model Service
+🏠 Local: Organization Model Service
+🏠 Local: Database Service
+🏠 Local: Tournament Models (Enhanced OOP)
+🏠 Local: ProcessManagementGuide
+🏠 Local: NextService_Discord
+🏠 Local: NextService_WebEditor
+🏠 Local: ValidationCommands
+🏠 Local: PolymorphicLogManager
+🗂️ Polymorphic Log Manager initialized with database backend
+🏠 Local: GoSwitch__test_logs
+🔧 Registered --test-logs switch
+🔊 [DEBUG] PolymorphicAudioPlayer initializing...
+🔊 [DEBUG] AudioPlayer announced on network
+🏠 Local: PolymorphicAudioPlayer
+🏠 Local: PolymorphicAudioProvider
+🏠 Local: PolymorphicAudioProvider
+🏠 Local: PolymorphicAudioRequest
+🏠 Local: AUDIO_REQUEST
+🏠 Local: PolymorphicAudioRequest
+🏠 Local: PolymorphicOpusDecoder
+🏠 Local: PolymorphicOpusDecoder
+🏠 Local: PolymorphicTranscription
+🏠 Local: AudioRequest
+🏠 Local: PolymorphicTranscription
+🏠 Local: PolymorphicTranscription
+🔊 [DEBUG] PolymorphicTTSService initializing...
+🔊 [DEBUG] TTS registered listener for TEXT_TO_SPEECH announcements
+🏠 Local: PolymorphicTTSService
+🏠 Local: DiscordProcessManager
+🏠 Local: GoSwitch__discord_bot
+🏠 Local: Error Handler Service
+🏠 Local: PolymorphicWebEditorProcessManager
+🏠 Local: GoSwitch__web
+🏠 Local: Database Service
+🏠 Local: Unified Report Service
+🏠 Local: GoSwitch__report
+🏠 Local: GoSwitch__interactive
+🏠 Local: GoSwitch__ai
+🏠 Local: Unified Bonjour Service
+🏠 Local: GoSwitch__bonjour
+🏠 Local: Essential Process Service
+🏠 Local: GoSwitch__restart_services
+🏠 Local: GoSwitch__service_status
+⚠️  Warning: Real Bonjour failed to start (choice must be a list or InterfaceChoice, got None). Falling back to local-only mode.
+🏠 Local: GoSwitch__service_locator
+🏠 Local: Polymorphic Web Editor (Refactored)
+🏠 Local: GoSwitchweb
+🏠 Local: Polymorphic Web Editor (Refactored)
+🏠 Local: GoSwitchweb
+🏠 Local: PolymorphicWebEditor (Refactored)ProcessManager
+🏠 Local: Logger Service (Refactored)
+[06:24:27] INFO services.interactive_service_refactored: Initializing interactive services via service locator
+🏠 Local: Database Service (Refactored)
+[06:24:27] INFO utils.database_service_refactored: Database query: stats
+🏠 Local: Error Handler Service (Refactored)
+[06:24:27] WARN utils.error_handler_refactored: AttributeError in utils.database_service_refactored._get_summary_stats: type object 'Tournament' has no attribute 'tournament_placements'
+[06:24:27] INFO services.interactive_service_refactored: Database service available: <class 'utils.database_service_refactored.DatabaseStats'>
+[06:24:30] INFO services.claude_cli_service_refactored: Claude CLI available
+🏠 Local: Claude CLI Service (Refactored)
+🏠 Local: GoSwitchai
+[06:24:30] INFO services.claude_cli_service_refactored: Claude query: health status
+[06:24:32] INFO services.claude_cli_service_refactored: Claude CLI available
+🏠 Local: Config Service (Refactored)
+🏠 Local: Interactive Service (Refactored)
+🏠 Local: GoSwitchinteractive
+[06:24:32] INFO services.interactive_service_refactored: Initializing interactive services via service locator
+[06:24:32] INFO utils.database_service_refactored: Database query: stats
+[06:24:32] WARN utils.error_handler_refactored: AttributeError in utils.database_service_refactored._get_summary_stats: type object 'Tournament' has no attribute 'tournament_placements'
+[06:24:32] INFO services.interactive_service_refactored: Database service available: <class 'utils.database_service_refactored.DatabaseStats'>
+[06:24:32] INFO services.claude_cli_service_refactored: Claude query: health status
+[06:24:34] INFO services.claude_cli_service_refactored: Claude CLI available
+🏠 Local: Interactive Service (Refactored)
+🏠 Local: GoSwitchinteractive
+🏠 Local: Report Service (Refactored)
+🏠 Local: Process Service (Refactored)
+🏠 Local: Analytics Service (Refactored)
+🏠 Local: GoSwitch__analytics
+🏠 Local: Tournament Sync Service
+🏠 Local: GoSwitch__sync
+usage: go.py [-h] [--test-logs [TEST_LOGS ...]] [--discord-bot] [--web]
+             [--report [TYPE]] [--interactive [BACKEND]] [--ai [MODE]]
+             [--bonjour [CMD]] [--restart-services] [--service-status]
+             [--service-locator [CMD]] [--analytics [TYPE]] [--sync [MODE]]
+
+Service STARTER - Discovers switches via bonjour
+
+positional arguments:
+  web                   START universal web editor (adapts to any mDNS
+                        service)
+  ai                    START AI chat service (chat|test)
+  interactive           START interactive bridge/repl
+                        (auto|lightweight|claude)
+
+options:
+  -h, --help            show this help message and exit
+  --test-logs [TEST_LOGS ...]
+                        Add sample log entries (or custom message: --test-logs
+                        'your message')
+  --discord-bot         START Discord bot service
+  --web                 START universal web editor (adapts to any mDNS
+                        service)
+  --report [TYPE]       START report generation (console|heatmap|stats|all)
+  --interactive [BACKEND]
+                        START interactive bridge/repl
+                        (auto|lightweight|claude)
+  --ai [MODE]           START AI chat service (chat|test|service)
+  --bonjour [CMD]       START Bonjour/mDNS operations
+                        (ads|monitor|discover|server|lightweight)
+  --restart-services    Kill and restart all services
+  --service-status      Check service status via bonjour signals
+  --service-locator [CMD]
+                        Service locator management
+                        (status|test|discover|health|clear|list|benchmark)
+  --analytics [TYPE]    START analytics generation
+                        (heatmap|stats|identify|all)
+  --sync [MODE]         START tournament sync (options: recent|full|smart)
+                        [+publish]
+🧹 Shutting down real Bonjour announcer...
+🏠 Local-only mode cleanup complete

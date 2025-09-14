@@ -14,6 +14,10 @@ import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.web_editor")
+
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.parse
 import json

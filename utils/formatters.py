@@ -5,6 +5,10 @@ The models return data, formatters decide how to present it
 from typing import Dict, Any, Optional
 from datetime import datetime
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.formatters")
+
 
 class PlayerFormatter:
     """Format player data for different output types"""

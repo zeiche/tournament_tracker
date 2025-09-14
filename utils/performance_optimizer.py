@@ -17,6 +17,10 @@ import queue
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.performance_optimizer")
+
 from utils.simple_logger import info, warning, error
 from utils.error_handler import handle_errors, handle_exception, ErrorSeverity
 from polymorphic_core import announcer

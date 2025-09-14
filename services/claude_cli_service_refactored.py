@@ -33,7 +33,7 @@ sys.path.append('/home/ubuntu/claude/tournament_tracker')
 
 from polymorphic_core import announcer
 from polymorphic_core.service_locator import get_service
-from dynamic_switches import announce_switch
+from utils.dynamic_switches import announce_switch
 
 # Fuzzy search (optional dependency)
 try:

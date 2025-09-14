@@ -5,6 +5,14 @@ Uses ask/tell/do pattern to encrypt files, WebSockets, text, whatever.
 Announces capabilities via Bonjour pattern.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.polymorphic_encryption_service")
+
 import asyncio
 import websockets
 import ssl
@@ -216,11 +224,11 @@ class PolymorphicEncryption:
             if proxy_type == "http" or proxy_type == "twilio":
                 task = asyncio.create_task(self._start_http_proxy(listen_port, forward_port))
                 self.proxy_tasks.append(task)
-                return f"Started SSL HTTP proxy: https://www.zilogo.com:{listen_port}/ → http://localhost:{forward_port}/"
+                return f"Started SSL HTTP proxy: https://vpn.zilogo.com:{listen_port}/ → http://localhost:{forward_port}/"
             else:
                 task = asyncio.create_task(self._start_websocket_proxy(listen_port, forward_port))
                 self.proxy_tasks.append(task)
-                return f"Started SSL WebSocket proxy: wss://www.zilogo.com:{listen_port}/ → ws://localhost:{forward_port}/"
+                return f"Started SSL WebSocket proxy: wss://vpn.zilogo.com:{listen_port}/ → ws://localhost:{forward_port}/"
         
         # Generate SSL certificates
         elif "generate" in action_lower and "cert" in action_lower:
@@ -344,7 +352,7 @@ class PolymorphicEncryption:
         ):
             announcer.announce(
                 "PROXY_RUNNING",
-                [f"wss://www.zilogo.com:{listen_port}/ → ws://localhost:{forward_port}/"]
+                [f"wss://vpn.zilogo.com:{listen_port}/ → ws://localhost:{forward_port}/"]
             )
             await asyncio.Future()  # Run forever
     
@@ -423,7 +431,7 @@ class PolymorphicEncryption:
         
         announcer.announce(
             "HTTP_PROXY_RUNNING", 
-            [f"https://www.zilogo.com:{listen_port}/ → http://localhost:{forward_port}/"]
+            [f"https://vpn.zilogo.com:{listen_port}/ → http://localhost:{forward_port}/"]
         )
         
         # Keep running
@@ -440,6 +448,58 @@ class PolymorphicEncryption:
 
 # Global instance for easy access
 encryption = PolymorphicEncryption()
+
+# Register go.py switch
+from utils.dynamic_switches import announce_switch
+
+def encryption_switch_handler(args):
+    """Handle --encryption switch for go.py"""
+    if hasattr(args, 'encryption') and args.encryption:
+        action = args.encryption
+        print(f"🔐 Encryption Service")
+        print("=" * 30)
+
+        if action == 'start' or action == 'proxy':
+            # Start HTTPS proxy for WebDAV
+            import asyncio
+            async def start_proxy():
+                result = encryption.do('proxy https 8444 to http 8443')
+                print(f"✅ {result}")
+
+                # Keep running
+                while True:
+                    await asyncio.sleep(1)
+
+            try:
+                asyncio.run(start_proxy())
+            except KeyboardInterrupt:
+                print("🔐 Encryption proxy stopped")
+
+        elif action == 'status':
+            status = encryption.ask('status')
+            print(encryption.tell('text', status))
+
+        elif action.startswith('proxy'):
+            # Handle proxy commands like "proxy https 8444 to http 8443"
+            result = encryption.do(action)
+            print(f"✅ {result}")
+
+        else:
+            print(f"❌ Unknown action: {action}")
+            print("Available actions: start, status, proxy, 'proxy https 8444 to http 8443'")
+            return False
+
+        return True
+    return False
+
+announce_switch(
+    flag="--encryption",
+    help="START encryption service and HTTPS proxy (start|status|proxy)",
+    handler=encryption_switch_handler,
+    action='store',
+    nargs='?',
+    const='start'
+)
 
 
 async def main():

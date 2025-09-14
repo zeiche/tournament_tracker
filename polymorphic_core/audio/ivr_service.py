@@ -5,7 +5,8 @@ Handles call flow logic independent of telephony platform (Twilio, etc.)
 """
 
 from typing import Dict, Any, Callable, Optional
-from polymorphic_core import announcer, register_capability
+from polymorphic_core import register_capability
+from polymorphic_core.local_bonjour import local_announcer
 import asyncio
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
@@ -230,8 +231,8 @@ class PolymorphicIVR:
         # Register as IVR service
         register_capability('ivr_service', self)
         
-        # Announce our service
-        announcer.announce(
+        # Announce our service locally
+        local_announcer.announce(
             "Polymorphic IVR Service",
             [
                 "I handle Interactive Voice Response logic for any platform",
@@ -248,7 +249,7 @@ class PolymorphicIVR:
         self.script_handlers[script_name] = handler
         
         handler_type = type(handler).__name__
-        announcer.announce(
+        local_announcer.announce(
             f"IVR_SCRIPT_REGISTERED",
             [
                 f"SCRIPT: {script_name}",
@@ -292,7 +293,7 @@ class PolymorphicIVR:
         try:
             response = await handler.start_call(call_id, context)
             
-            announcer.announce(
+            local_announcer.announce(
                 "IVR_CALL_STARTED",
                 [
                     f"CALL_ID: {call_id}",
@@ -376,7 +377,7 @@ class PolymorphicIVR:
             call_info = self.active_calls[call_id]
             del self.active_calls[call_id]
             
-            announcer.announce(
+            local_announcer.announce(
                 "IVR_CALL_ENDED",
                 [
                     f"CALL_ID: {call_id}",

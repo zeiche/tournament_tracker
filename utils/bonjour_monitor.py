@@ -6,6 +6,11 @@ Shows all Bonjour-style announcements happening in the system.
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.bonjour_monitor")
+
 import time
 import json
 from datetime import datetime

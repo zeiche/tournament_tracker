@@ -15,14 +15,15 @@ from typing import Any, Dict, List
 import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from polymorphic_core import announcer
+from polymorphic_core import announcer, register_capability
 
 
 class ChartService:
     """Chart and graph visualization service"""
     
     def __init__(self):
-        pass
+        # Register as polymorphic capability
+        register_capability('charts', lambda: self)
     
     def ask(self, query: str, **kwargs) -> Any:
         """Process chart requests"""

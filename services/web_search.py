@@ -3,6 +3,7 @@
 Web Search Interface for Tournament Tracker
 Simple web UI that provides the same search functionality as Discord bot
 Uses the unified Claude AI service as a bridge
+Now uses ManagedService for unified service identity.
 """
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -15,6 +16,13 @@ from typing import Dict, Any, List, Optional
 
 # Add parent directory to path for claude_ai_service
 sys.path.insert(0, '/home/ubuntu/claude')
+sys.path.append('/home/ubuntu/claude/tournament_tracker')
+
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.web_search")
+
+from polymorphic_core.service_identity import ManagedService
 from claude_ai_service import claude_ai, process_message
 
 # Import database and models
@@ -467,27 +475,52 @@ class SearchWebHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(results, default=str).encode())
 
 
-def run_search_server(port: int = 8083, host: str = '0.0.0.0'):
-    """Run the web search server"""
-    server_address = (host, port)
-    httpd = HTTPServer(server_address, SearchWebHandler)
-    print(f"Starting Tournament Tracker Search Web UI on port {port}")
-    print(f"Access at: http://localhost:{port}")
-    print("This provides the same search functionality as the Discord bot")
-    print("Press Ctrl+C to stop")
+class WebSearchServiceManaged(ManagedService):
+    """
+    Web Search Service with unified service identity.
+    Provides web UI for tournament tracker search functionality.
+    """
     
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nShutting down search server...")
-        httpd.shutdown()
+    def __init__(self, port: int = 8083, host: str = '0.0.0.0'):
+        super().__init__("web-search", "tournament-web-search")
+        self.port = port
+        self.host = host
+        self.server = None
+    
+    def run(self):
+        """Run the web search server"""
+        server_address = (self.host, self.port)
+        self.server = HTTPServer(server_address, SearchWebHandler)
+        
+        print(f"🔍 Starting Tournament Tracker Search Web UI on port {self.port}")
+        print(f"🌐 Access at: http://localhost:{self.port}")
+        print("📋 This provides the same search functionality as the Discord bot")
+        
+        try:
+            self.server.serve_forever()
+        except KeyboardInterrupt:
+            print("\n🛑 Shutting down search server...")
+            if self.server:
+                self.server.shutdown()
 
 
-if __name__ == '__main__':
+def run_search_server(port: int = 8083, host: str = '0.0.0.0'):
+    """Legacy function for backward compatibility"""
+    with WebSearchServiceManaged(port, host) as service:
+        service.run()
+
+
+def main():
+    """Main function for running as a managed service"""
     import argparse
     parser = argparse.ArgumentParser(description='Tournament Tracker Web Search')
     parser.add_argument('--port', type=int, default=8083, help='Port to run on (default: 8083)')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
     args = parser.parse_args()
     
-    run_search_server(args.port, args.host)
+    with WebSearchServiceManaged(args.port, args.host) as service:
+        service.run()
+
+
+if __name__ == '__main__':
+    main()

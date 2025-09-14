@@ -11,6 +11,10 @@ import logging
 if '/home/ubuntu/claude/tournament_tracker' not in sys.path:
     sys.path.append('/home/ubuntu/claude/tournament_tracker')
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.message_handler")
+
 # Simple logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

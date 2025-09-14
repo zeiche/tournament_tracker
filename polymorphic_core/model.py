@@ -35,7 +35,7 @@ class PolymorphicModel:
             org.ask("total attendance")        # Returns sum of all attendance
         """
         # Announce what we're being asked
-        announcer.announce(
+        local_announcer.announce(
             f"{self.__class__.__name__}.ask",
             [f"Being asked: {question}"]
         )
@@ -94,7 +94,7 @@ class PolymorphicModel:
             player.tell("brief")               # Quick summary
         """
         # Announce what format is requested
-        announcer.announce(
+        local_announcer.announce(
             f"{self.__class__.__name__}.tell",
             [f"Format requested: {format}"]
         )
@@ -135,7 +135,7 @@ class PolymorphicModel:
             org.do("add contact", email="...")  # Add contact info
         """
         # Announce what we're being asked to do
-        announcer.announce(
+        local_announcer.announce(
             f"{self.__class__.__name__}.do",
             [f"Action requested: {action}"]
         )
@@ -299,7 +299,7 @@ Examples:
     
     def _do_announce(self) -> bool:
         """Announce capabilities"""
-        announcer.announce(
+        local_announcer.announce(
             f"{self.__class__.__name__} Instance",
             self._ask_capabilities(),
             [f"Object #{getattr(self, 'id', '?')} ready"]

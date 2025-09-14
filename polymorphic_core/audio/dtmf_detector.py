@@ -5,7 +5,7 @@ Processes raw audio streams and detects DTMF keypresses in real-time
 """
 
 import numpy as np
-from polymorphic_core import announcer, register_capability
+from polymorphic_core.local_bonjour import local_announcer, register_capability
 
 class DTMFDetector:
     """Real-time DTMF detection service using Goertzel algorithm"""
@@ -28,7 +28,7 @@ class DTMFDetector:
         register_capability('dtmf_detector', self)
         
         # Announce our service
-        announcer.announce(
+        local_announcer.announce(
             "DTMF Detector",
             [
                 "I detect DTMF key presses in real-time audio streams",
@@ -132,7 +132,7 @@ class DTMFDetector:
     def _announce_detection(self, digit):
         """Announce DTMF detection"""
         import time
-        announcer.announce(
+        local_announcer.announce(
             "DTMF_DETECTED",
             [
                 f"DIGIT: {digit}",

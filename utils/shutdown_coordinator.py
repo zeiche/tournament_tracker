@@ -12,6 +12,10 @@ from typing import Set, Callable
 from capability_announcer import announcer
 from polymorphic_core.discovery import capability_registry
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.shutdown_coordinator")
+
 class ShutdownCoordinator:
     """Coordinates graceful shutdown across all modules"""
     

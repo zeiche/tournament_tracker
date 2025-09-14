@@ -2,6 +2,7 @@
 """
 web_services.py - Unified web services with Bonjour self-announcement
 Consolidates all web serving functionality with the 3-method polymorphic pattern
+Now uses ManagedService for unified service identity.
 
 This module provides:
 - HTML serving for web interfaces
@@ -19,6 +20,13 @@ Uses the polymorphic pattern:
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append('/home/ubuntu/claude/tournament_tracker')
+
+from polymorphic_core.service_identity import ManagedService
+
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("services.web_services")
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.parse
@@ -37,13 +45,15 @@ from utils.error_handler import handle_errors, handle_exception, ErrorSeverity
 from database.tournament_models import Tournament, Organization, Player
 
 
-class WebServices:
+class WebServicesManaged(ManagedService):
     """
     Unified web services with Bonjour announcement and polymorphic pattern.
     Handles all HTTP/web serving needs for the tournament tracker.
+    Now inherits from ManagedService for unified service identity.
     """
     
     def __init__(self, port: int = 8081):
+        super().__init__("web-services", "tournament-web-server")
         self.port = port
         self.server = None
         self.running = False
@@ -533,6 +543,26 @@ class WebServices:
         except Exception as e:
             return {"status": "error", "error": str(e)}
     
+    def run(self):
+        """
+        Service run method required by ManagedService.
+        Starts the web server and keeps it running.
+        """
+        start_result = self._start_server()
+        if start_result.get('status') == 'started':
+            announcer.announce("WebServices", [f"Running on port {self.port}"])
+            try:
+                # Keep the service running
+                while self.running:
+                    import time
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                announcer.announce("WebServices", ["Shutdown requested"])
+            finally:
+                self._stop_server()
+        else:
+            raise Exception(f"Failed to start web server: {start_result}")
+    
     def _handle_update(self, action: str, **kwargs) -> Dict:
         """Handle update actions"""
         try:
@@ -620,7 +650,7 @@ class WebServices:
 
 
 # Create global instance
-web_services = WebServices()
+web_services = WebServicesManaged()
 
 
 # Simple CLI interface for testing

@@ -14,8 +14,8 @@ from pathlib import Path
 sys.path.insert(0, '/home/ubuntu/claude/tournament_tracker')
 
 from polymorphic_core import announcer, register_capability
-from utils.simple_logger import info, warning, error
-from dynamic_switches import announce_switch
+from logging_services.polymorphic_log_manager import log_manager
+from utils.dynamic_switches import announce_switch
 
 try:
     from polymorphic_core.process_management import BaseProcessManager
@@ -39,7 +39,7 @@ class DiscordProcessManager(BaseProcessManager):
     """Process manager for Discord bot"""
     
     SERVICE_NAME = "Discord"
-    PROCESSES = ['bonjour_discord.py']
+    PROCESSES = ['networking/bonjour_discord.py']
     PORTS = []  # Discord uses WebSocket, no specific ports
 
 class BonjourDiscord:
@@ -57,8 +57,13 @@ class BonjourDiscord:
         # Message handlers - anyone can register
         self.message_handlers = []
         
-        # Register with bonjour for status signals
-        announcer.register_service('Discord Bot', self)
+        # Announce with bonjour for status signals
+        announcer.announce('Discord Bot', [
+            "I connect to Discord",
+            "I receive messages and announce them", 
+            "Register handlers with me to process messages",
+            "I don't do business logic - I just forward messages"
+        ])
     
     def handle_signal(self, signal_type: str, data: dict = None):
         """Handle bonjour signals"""
@@ -98,7 +103,7 @@ class BonjourDiscord:
                 "DISCORD_READY",
                 [f"Connected as {self.client.user}"]
             )
-            info(f"Discord connected as {self.client.user}")
+            log_manager.info(f"Discord connected as {self.client.user}")
             
             # Auto-join #general voice channel
             await self.auto_join_voice()
@@ -126,7 +131,7 @@ class BonjourDiscord:
                         await message.channel.send(response)
                         break  # First handler that responds wins
                 except Exception as e:
-                    error(f"Handler error: {e}")
+                    log_manager.error(f"Handler error: {e}", {"handler": handler.__name__, "message": message.content, "error": e})
     
     async def auto_join_voice(self):
         """Polymorphically join any voice channel named general"""
@@ -143,10 +148,10 @@ class BonjourDiscord:
                                 "Ready for voice polymorphism"
                             ]
                         )
-                        info(f"Joined {channel.name} voice")
+                        log_manager.info(f"Joined {channel.name} voice", {"channel": channel.name, "guild": guild.name})
                         return
                     except Exception as e:
-                        warning(f"Could not join {channel.name}: {e}")
+                        log_manager.warning(f"Could not join {channel.name}: {e}", {"channel": channel.name, "error": str(e)})
     
     def register_handler(self, handler):
         """Register a message handler"""
@@ -161,10 +166,65 @@ class BonjourDiscord:
         # Only check token when actually starting
         if not self.token:
             self.token = os.getenv('DISCORD_BOT_TOKEN')
+            log_manager.info(f"Discord token check: {'Found' if self.token else 'NOT FOUND'}", {"token_found": bool(self.token)})
+            if self.token:
+                log_manager.debug(f"Token length: {len(self.token)} chars", {"token_length": len(self.token)})
             if not self.token:
+                log_manager.error("No Discord token found in environment", {"error": "DISCORD_BOT_TOKEN not set"})
                 raise ValueError("No Discord token found in environment! Set DISCORD_BOT_TOKEN")
         
-        await self.client.start(self.token)
+        log_manager.info("Starting Discord client", {"token_available": bool(self.token)})
+        
+        try:
+            # Try connection without timeout first
+            log_manager.info("Attempting Discord connection...", {"step": "connecting"})
+            await self.client.start(self.token)
+            log_manager.info("Discord client start completed", {"step": "started"})
+            
+        except asyncio.TimeoutError:
+            log_manager.error("Discord connection timed out after 30 seconds", {
+                "error_type": "timeout",
+                "timeout_seconds": 30,
+                "step": "connection_timeout"
+            })
+            print("❌ Discord connection timed out after 30 seconds")
+            raise
+            
+        except discord.LoginFailure as e:
+            log_manager.error(f"Discord login failed - invalid token: {e}", {
+                "error_type": "login_failure", 
+                "token_length": len(self.token),
+                "error": str(e)
+            })
+            print(f"❌ Discord login failed - invalid token: {e}")
+            raise
+            
+        except discord.HTTPException as e:
+            log_manager.error(f"Discord HTTP error: {e}", {
+                "error_type": "http_exception",
+                "status": getattr(e, 'status', 'unknown'),
+                "code": getattr(e, 'code', 'unknown'),
+                "error": str(e)
+            })
+            print(f"❌ Discord HTTP error: {e}")
+            raise
+            
+        except ConnectionError as e:
+            log_manager.error(f"Discord connection error: {e}", {
+                "error_type": "connection_error",
+                "error": str(e)
+            })
+            print(f"❌ Discord connection error: {e}")
+            raise
+            
+        except Exception as e:
+            log_manager.error(f"Discord connection failed with unknown error: {e}", {
+                "error_type": type(e).__name__,
+                "token_length": len(self.token) if self.token else 0, 
+                "error": str(e)
+            })
+            print(f"❌ Discord connection failed: {e}")
+            raise
 
 # Global instance
 _discord = None
@@ -187,13 +247,13 @@ if BaseProcessManager != object:  # Only if we have the real class
 def start_discord_bot_service(args=None):
     """Handler for --discord-bot switch"""
     try:
-        info("Starting Discord bot via integrated DiscordProcessManager")
+        log_manager.info("Starting Discord bot via integrated DiscordProcessManager")
         pids = _discord_process_manager.start_services()
-        info(f"Discord bot started with PIDs: {pids}")
+        log_manager.info(f"Discord bot started with PIDs: {pids}", {"pids": pids})
         return pids
     except (ImportError, NameError) as e:
-        warning(f"Integrated DiscordProcessManager not available: {e}")
-        info("Falling back to manual process management")
+        log_manager.warning(f"Integrated DiscordProcessManager not available: {e}", {"error": e})
+        log_manager.info("Falling back to manual process management")
         from polymorphic_core.process import ProcessManager
         ProcessManager.restart_service('bonjour_discord.py')
 
@@ -222,11 +282,11 @@ async def tournament_handler(message):
             if result:
                 return result
     except Exception as e:
-        error(f"Query error: {e}")
+        log_manager.error(f"Query error: {e}", {"query": message.content, "error": e})
         return f"Sorry, I had trouble processing that: {e}"
     return None
 
-# Main entry point
+# Main entry point  
 async def main():
     discord = get_discord()
     discord.register_handler(echo_handler)
@@ -241,4 +301,7 @@ async def main():
     await discord.run()
 
 if __name__ == "__main__":
+    print("🚀 Discord bot starting up...")
+    import sys
+    sys.stdout.flush()
     asyncio.run(main())

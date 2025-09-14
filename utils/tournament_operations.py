@@ -20,6 +20,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from log_manager import LogManager
 from polymorphic_core import announcer
 
+# CRITICAL: Enforce go.py execution - this module CANNOT be run directly
+from polymorphic_core.execution_guard import require_go_py
+require_go_py("utils.tournament_operations")
+
 # Initialize logger for this module
 logger = LogManager().get_logger('tournament_operations')
 
