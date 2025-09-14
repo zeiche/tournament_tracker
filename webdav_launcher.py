@@ -102,9 +102,40 @@ def start_webdav_server(host="0.0.0.0", port=8443):
     
     try:
         app = create_webdav_app()
-        
+
+        """
+        # HTTP server (commented out for HTTPS-only)
         with make_server(host, port, app) as httpd:
             print(f"✅ WebDAV Database Browser running on port {port}")
+            print("Press Ctrl+C to stop...")
+            httpd.serve_forever()
+        """
+
+        # HTTPS-only server
+        import ssl
+        import pathlib
+
+        # Use letsencrypt certificates
+        cert_file = pathlib.Path("/etc/letsencrypt/live/zilogo.com/fullchain.pem")
+        key_file = pathlib.Path("/etc/letsencrypt/live/zilogo.com/privkey.pem")
+
+        if not (cert_file.exists() and key_file.exists()):
+            print("❌ SSL certificates not found - HTTPS-only mode requires certificates")
+            print("⚠️  Cannot start WebDAV server without SSL certificates")
+            return False
+
+        with make_server(host, port, app) as httpd:
+            # Create SSL context
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(cert_file, key_file)
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+            # Wrap server socket with SSL
+            httpd.socket = ssl_context.wrap_socket(httpd.socket, server_side=True)
+
+            print(f"✅ WebDAV Database Browser running on HTTPS port {port}")
+            print("🔒 HTTPS-only mode enabled")
             print("Press Ctrl+C to stop...")
             httpd.serve_forever()
             
@@ -116,7 +147,9 @@ def start_webdav_server(host="0.0.0.0", port=8443):
 
 
 if __name__ == "__main__":
+    # Import the persistent WebDAV service instead
     import sys
-    # ⚠️  CRITICAL: WEBDAV PERMANENTLY USES PORT 8443 - DO NOT CHANGE! ⚠️
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8443
-    start_webdav_server("0.0.0.0", port)
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from persistent_webdav_service import main
+    main()

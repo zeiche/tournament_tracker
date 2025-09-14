@@ -206,4 +206,9 @@ def main():
 
 
 if __name__ == '__main__':
+    # Import the persistent interactive service instead
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from persistent_interactive_service import main
     main()

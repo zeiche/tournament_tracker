@@ -47,6 +47,8 @@ from polymorphic_core.execution_guard import mark_go_py_execution
 mark_go_py_execution()
 import time
 
+# Services announce their own switches - no separate switch files needed
+
 def global_exception_handler(exc_type, exc_value, exc_traceback):
     """Log all unhandled exceptions globally - TURBOCHARGE development debugging!"""
     if exc_type is KeyboardInterrupt:
@@ -101,47 +103,157 @@ for env_file in [home_env, parent_env, local_env]:
                         os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 def show_ram_tree_help():
-    """Ask the live RAM tree objects directly for their switches"""
+    """Ask bonjour for all available switches"""
     try:
         import argparse
 
-        # Import the live bonjour announcer - modules are already loaded in RAM
+        # Discover services via mDNS first, then check local bonjour
         from polymorphic_core.local_bonjour import local_announcer
+        from zeroconf import Zeroconf, ServiceBrowser, ServiceListener
+        import time
 
-        # Get the live services from RAM (no file I/O)
+        mdns_services = {}
+
+        class MDNSServiceListener(ServiceListener):
+            def add_service(self, zeroconf, type, name):
+                info = zeroconf.get_service_info(type, name)
+                if info and info.properties:
+                    switches = info.properties.get(b'switches', b'').decode('utf-8')
+                    if switches:
+                        mdns_services[name] = {
+                            'switches': switches,
+                            'service': info.properties.get(b'service', b'').decode('utf-8'),
+                            'port': info.port
+                        }
+
+        # Scan for mDNS services
+        try:
+            zeroconf = Zeroconf()
+            listener = MDNSServiceListener()
+            browser = ServiceBrowser(zeroconf, "_tournament._tcp.local.", listener)
+            time.sleep(1)  # Give time for discovery
+            zeroconf.close()
+        except:
+            pass
+
+        # Get local bonjour services too
         services = local_announcer.services
 
-        # Filter for switch services and ask each object what it provides
-        switch_services = {name: info for name, info in services.items()
-                          if name.startswith('GoSwitch')}
+        # Filter for services that announce go.py flags
+        switch_services = {}
+        for name, info in services.items():
+            capabilities = info.get('capabilities', [])
 
-        if not switch_services:
+            # Check for GO_PY_FLAGS pattern
+            for cap in capabilities:
+                if 'GO_PY_FLAGS:' in cap:
+                    switch_services[name] = info
+                    break
+
+            # Check for GoSwitch services
+            if name.startswith('GoSwitch'):
+                switch_services[name] = info
+                continue
+
+            # Check for "Provides go.py flag" pattern
+            for cap in capabilities:
+                if 'Provides go.py flag:' in cap:
+                    switch_services[name] = info
+                    break
+
+        if not switch_services and not mdns_services:
             return False
 
         parser = argparse.ArgumentParser(description='Service STARTER')
         added_switches = set()
 
+        # Add switches from mDNS discovered services
+        for service_name, info in mdns_services.items():
+            switches = info['switches'].split(',')
+            for switch in switches:
+                switch = switch.strip()
+                if switch and switch not in added_switches:
+                    added_switches.add(switch)
+                    parser.add_argument(
+                        switch,
+                        help=f"mDNS Service: {info['service']} (port {info['port']})",
+                        nargs='?',
+                        default=None
+                    )
+
         for service_name, info in switch_services.items():
-            # Clean up switch name: GoSwitch__test_logs -> --test-logs
-            switch_name = service_name.replace('GoSwitch__', '--').replace('GoSwitch', '--').replace('_', '-').lower()
-
-            # Skip duplicates
-            if switch_name in added_switches:
-                continue
-            added_switches.add(switch_name)
-
-            # Ask the object in RAM what help it provides
             capabilities = info.get('capabilities', [])
-            help_text = "Unknown service"
+
+            # Handle GO_PY_FLAGS pattern
+            flags_line = None
             for cap in capabilities:
-                if cap.startswith('Help: '):
-                    help_text = cap[6:]  # Remove "Help: " prefix
-                    break
-                elif not cap.startswith('Provides go.py flag: '):
-                    help_text = cap
+                if 'GO_PY_FLAGS:' in cap:
+                    flags_line = cap
                     break
 
-            parser.add_argument(switch_name, help=help_text, nargs='?', default=None)
+            if flags_line:
+                # Extract switches from "GO_PY_FLAGS: --discord-bot, --restart-services"
+                flags_part = flags_line.split('GO_PY_FLAGS:')[1].strip()
+                switches = [flag.strip() for flag in flags_part.split(',')]
+
+                for switch_name in switches:
+                    switch_name = switch_name.strip()
+                    if not switch_name.startswith('--'):
+                        continue
+
+                    # Skip duplicates
+                    if switch_name in added_switches:
+                        continue
+                    added_switches.add(switch_name)
+
+                    # Use service name as help text
+                    help_text = f"Service: {service_name}"
+                    parser.add_argument(switch_name, help=help_text, nargs='?', default=None)
+
+            # Handle GoSwitch services
+            elif service_name.startswith('GoSwitch'):
+                # Convert GoSwitch__web -> --web
+                switch_name = service_name.replace('GoSwitch__', '--').replace('GoSwitch', '--').replace('_', '-').lower()
+
+                # Skip duplicates
+                if switch_name in added_switches:
+                    continue
+                added_switches.add(switch_name)
+
+                # Find help text from capabilities
+                help_text = f"Service: {service_name}"
+                for cap in capabilities:
+                    if cap.startswith('Help: '):
+                        help_text = cap[6:]  # Remove "Help: " prefix
+                        break
+                    elif not cap.startswith('Provides go.py flag: '):
+                        help_text = cap
+                        break
+
+                parser.add_argument(switch_name, help=help_text, nargs='?', default=None)
+
+            # Handle "Provides go.py flag" pattern
+            else:
+                for cap in capabilities:
+                    if 'Provides go.py flag:' in cap:
+                        # Extract flag from "Provides go.py flag: --some-flag"
+                        flag_part = cap.split('Provides go.py flag:')[1].strip()
+                        switch_name = flag_part
+
+                        # Skip duplicates
+                        if switch_name in added_switches:
+                            continue
+                        added_switches.add(switch_name)
+
+                        # Find help text
+                        help_text = f"Service: {service_name}"
+                        for help_cap in capabilities:
+                            if help_cap.startswith('Help: '):
+                                help_text = help_cap[6:]
+                                break
+
+                        parser.add_argument(switch_name, help=help_text, nargs='?', default=None)
+                        break
 
         parser.print_help()
         import sys
@@ -166,19 +278,7 @@ def main():
         if show_ram_tree_help():
             return
 
-    # Import discovery functions only when we actually need them
-    from utils.dynamic_switches import discover_switches, handle_discovered_args
-
-    # Dynamically discover switches from modules via bonjour
-    parser = discover_switches()
-    args = parser.parse_args()
-
-    # Let discovered switches handle their own logic
-    result = handle_discovered_args(args)
-    if result is not None:
-        return result
-    
-    # If no switches were handled, show help
+    # All switches are now announced via bonjour - no separate discovery needed
     print("No service specified or service not recognized.")
     print("Use --help to see available options.")
 

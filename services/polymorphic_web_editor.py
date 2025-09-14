@@ -19,8 +19,10 @@ from polymorphic_core.execution_guard import require_go_py
 require_go_py("services.polymorphic_web_editor")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from http.server import HTTPServer, BaseHTTPRequestHandler
+# from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler
 import ssl
+from socketserver import ThreadingTCPServer
 import html
 import urllib.parse
 import json
@@ -46,7 +48,7 @@ log_manager = PolymorphicLogManager()
 def info(message): log_manager.do(f"log info {message}")
 def warning(message): log_manager.do(f"log warning {message}")
 def error(message): log_manager.do(f"log error {message}")
-from utils.dynamic_switches import announce_switch
+from polymorphic_core import announcer
 
 try:
     from polymorphic_core.process_management import BaseProcessManager
@@ -2663,46 +2665,76 @@ class ManagedWebEditorService(ManagedService):
         self.editor = EnhancedPolymorphicWebEditor()
         self.server = None
     
+    def _advertise_mdns_service(self):
+        """Advertise this service via mDNS with available switches"""
+        try:
+            from zeroconf import ServiceInfo, Zeroconf
+            import socket
+
+            # Create service info with switches in TXT record
+            service_info = ServiceInfo(
+                "_tournament._tcp.local.",
+                "web-editor._tournament._tcp.local.",
+                addresses=[socket.inet_aton("10.0.0.1")],
+                port=8081,
+                properties={
+                    'switches': '--web,--edit-contacts',
+                    'service': 'web-editor',
+                    'description': 'Tournament Web Editor - HTTPS only'
+                }
+            )
+
+            # Register the service
+            zeroconf = Zeroconf()
+            zeroconf.register_service(service_info)
+            info("📡 Service advertised via mDNS: web-editor with switches --web, --edit-contacts")
+
+        except Exception as e:
+            warning(f"Failed to advertise service via mDNS: {e}")
+
     def run(self):
         """Run the web editor server"""
         info("Starting Polymorphic Web Editor on port 8081")
         info("Discovering services via mDNS")
         info("Interface adapts automatically to available services")
-        info("Visit http://10.0.0.1:8081")
-        
-        # Create HTTP server
-        self.server = HTTPServer(('10.0.0.1', 8081), PolymorphicWebRequestHandler)
-        
-        # Add HTTPS support using existing certificates
+
+        # Create HTTPS-only server
         try:
             import ssl
             import pathlib
-            
+
             # Use letsencrypt certificates
             cert_file = pathlib.Path("/etc/letsencrypt/live/zilogo.com/fullchain.pem")
             key_file = pathlib.Path("/etc/letsencrypt/live/zilogo.com/privkey.pem")
-            
+
             if cert_file.exists() and key_file.exists():
+                # Create HTTPS server
+                self.server = ThreadingTCPServer(('10.0.0.1', 8081), PolymorphicWebRequestHandler)
+
                 # Create SSL context
                 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
                 ssl_context.load_cert_chain(cert_file, key_file)
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
-                
+
                 # Wrap server socket with SSL
                 self.server.socket = ssl_context.wrap_socket(self.server.socket, server_side=True)
-                
+
                 info("🔒 HTTPS enabled with LetsEncrypt certificates")
                 info("📍 Visit https://vpn.zilogo.com")
                 info("🔌 WebSocket will use WSS (secure)")
+
+                # Advertise service via mDNS with available switches
+                self._advertise_mdns_service()
             else:
-                info("⚠️  SSL certificates not found - running HTTP only")
-                info("📍 Visit http://vpn.zilogo.com")
-                info("⚠️  WebSocket may not work in modern browsers over HTTP")
-                
+                error("⚠️  SSL certificates not found - HTTPS-only mode requires certificates")
+                error("⚠️  Cannot start server without SSL certificates")
+                return
+
         except Exception as e:
-            warning(f"HTTPS setup failed: {e}")
-            info("📍 Falling back to HTTP: http://vpn.zilogo.com")
+            error(f"HTTPS setup failed: {e}")
+            error("⚠️  Cannot start server in HTTPS-only mode")
+            return
         
         try:
             self.server.serve_forever()
@@ -2738,23 +2770,42 @@ _web_editor_process_manager = PolymorphicWebEditorProcessManager()
 
 # Announce our consolidated --web switch
 def start_web_service(args=None):
-    """Handler for --web switch (replaces --edit-contacts)"""
+    """Handler for --web switch - now starts persistent tournaments.local"""
     try:
-        info("Starting Polymorphic Web Editor via integrated ProcessManager")
-        pids = _web_editor_process_manager.start_services()
-        info(f"Polymorphic Web Editor started with PIDs: {pids}")
-        return pids
-    except (ImportError, NameError) as e:
-        warning(f"Integrated PolymorphicWebEditorProcessManager not available: {e}")
-        info("Falling back to manual process management")
-        from polymorphic_core.process import ProcessManager
-        ProcessManager.restart_service('services/polymorphic_web_editor.py')
+        import subprocess
+        import sys
+        import os
 
-announce_switch(
-    flag="--web",
-    help="START universal web editor (adapts to any mDNS service)", 
-    handler=start_web_service
+        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'persistent_web_service.py')
+        info(f"Starting persistent tournaments.local web service: {script_path}")
+
+        # Start the persistent service in background
+        process = subprocess.Popen([sys.executable, script_path],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+
+        info(f"Persistent web service started with PID: {process.pid}")
+        return [process.pid]
+
+    except Exception as e:
+        warning(f"Failed to start persistent web service: {e}")
+        return []
+
+# Service now advertises switches via mDNS
+announcer.announce(
+    "GoSwitch__web",
+    [
+        "Provides go.py flag: --web",
+        "Help: START universal web editor (adapts to any mDNS service)",
+        "Handler: start_web_service"
+    ],
+    examples=["./go.py --web"]
 )
 
 if __name__ == "__main__":
+    # Import the persistent web service instead
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from persistent_web_service import main
     main()

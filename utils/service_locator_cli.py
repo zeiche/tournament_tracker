@@ -9,7 +9,7 @@ import sys
 import time
 import json
 from typing import Dict, Any, List
-from utils.dynamic_switches import announce_switch
+from polymorphic_core import announcer
 from polymorphic_core.service_locator import get_service, service_locator, list_services
 
 # CRITICAL: Enforce go.py execution - this module CANNOT be run directly
@@ -367,15 +367,19 @@ def benchmark_service_performance():
         print(f"  Slowest service: {slowest['total_ms']:.1f}ms")
 
 
-# Announce the service locator switch
-announce_switch(
-    flag="--service-locator",
-    help="Service locator management (status|test|discover|health|clear|list|benchmark)",
-    handler=service_locator_handler,
-    action="store",
-    nargs="?",
-    const="status",
-    metavar="CMD"
+# Announce the service locator switch via bonjour
+announcer.announce(
+    "GoSwitch__service_locator",
+    [
+        "Provides go.py flag: --service-locator",
+        "Help: Service locator management (status|test|discover|health|clear|list|benchmark)",
+        "Handler: service_locator_handler"
+    ],
+    examples=[
+        "./go.py --service-locator",
+        "./go.py --service-locator test",
+        "./go.py --service-locator health"
+    ]
 )
 
 if __name__ == "__main__":

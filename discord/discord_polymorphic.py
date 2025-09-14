@@ -310,5 +310,9 @@ discord_bridge = DiscordPolymorphic()
 
 
 if __name__ == "__main__":
-    # Run the bridge
-    discord_bridge.run()
+    # Import the persistent Discord service instead
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from persistent_discord_service import main
+    main()

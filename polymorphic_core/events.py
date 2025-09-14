@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-events.py - Local Bonjour Service Discovery
-Process-local service discovery. No network overhead.
-Services discover each other via in-memory announcements.
+events.py - Real mDNS Service Discovery
+Network service discovery via mDNS/Bonjour.
+Services discover each other across the network.
 """
 
-from .local_bonjour import local_announcer
+from .real_bonjour import announcer as real_announcer
 
-# Local bonjour for everything
-announcer = local_announcer
+# Real mDNS bonjour for everything
+announcer = real_announcer
 
 def announces_capability(service_name: str, *capabilities):
-    """Decorator for announcing capabilities via local bonjour only"""
+    """Decorator for announcing capabilities via real mDNS"""
     def decorator(obj):
-        local_announcer.announce(service_name, list(capabilities))
+        real_announcer.announce(service_name, list(capabilities))
         return obj
     return decorator
 
 __all__ = ['announcer', 'announces_capability']
 
-print("🏠 Using LOCAL Bonjour Service Discovery - process-local only!")
+print("🌐 Using REAL mDNS Service Discovery - network broadcasting enabled!")

@@ -286,4 +286,9 @@ def main():
 
 
 if __name__ == "__main__":
+    # Import the persistent Bonjour service instead
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from persistent_bonjour_service import main
     main()

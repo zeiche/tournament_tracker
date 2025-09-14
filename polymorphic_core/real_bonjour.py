@@ -26,21 +26,18 @@ class RealBonjourAnnouncer:
         self.listeners = []  # Callback functions
         self.service_registry = {}  # For signals
         
-        # Temporarily disabled real Bonjour - using local-only mode
-        # try:
-        #     # Try to create Zeroconf with error handling for socket issues
-        #     self.zeroconf = Zeroconf(interfaces=None)
-        #     # Start discovery browser
-        #     self.browser = ServiceBrowser(self.zeroconf, self.service_type, self._ServiceListener(self))
-        #     print(f"🌐 Real Bonjour announcer started (service type: {self.service_type})")
-        # except Exception as e:
-        #     print(f"⚠️  Warning: Real Bonjour failed to start ({e}). Falling back to local-only mode.")
-        #     self.zeroconf = None
-        #     self.browser = None
-
-        print("🏠 Real Bonjour disabled - using local-only mode")
-        self.zeroconf = None
-        self.browser = None
+        # Try to enable real Bonjour for service discovery
+        try:
+            # Create Zeroconf with explicit interface choice to avoid selection errors
+            from zeroconf import InterfaceChoice
+            self.zeroconf = Zeroconf(interfaces=InterfaceChoice.All)
+            # Start discovery browser
+            self.browser = ServiceBrowser(self.zeroconf, self.service_type, self._ServiceListener(self))
+            print(f"🌐 Real Bonjour announcer started (service type: {self.service_type})")
+        except Exception as e:
+            print(f"⚠️  Warning: Real Bonjour failed to start ({e}). Falling back to local-only mode.")
+            self.zeroconf = None
+            self.browser = None
     
     class _ServiceListener(ServiceListener):
         """Internal listener for discovered services"""
@@ -146,9 +143,9 @@ class RealBonjourAnnouncer:
                 
                 # Get local IP (cached to avoid repeated DNS lookups)
                 if not hasattr(self, '_local_ip'):
-                    hostname = socket.gethostname()
-                    self._local_ip = socket.gethostbyname(hostname)
-                    self._hostname = hostname
+                    # Use 10.0.0.1 instead of public IP for security
+                    self._local_ip = "10.0.0.1"
+                    self._hostname = "localhost"
                 
                 # Create TXT record properties
                 properties = {
@@ -342,9 +339,9 @@ if __name__ == "__main__":
     print("🧪 Testing Real Bonjour Announcer")
     
     # Announce ourselves
-    real_local_announcer.announce(
-        "Test Service", 
-        ["Testing real mDNS", "Network service discovery"], 
+    announcer.announce(
+        "Test Service",
+        ["Testing real mDNS", "Network service discovery"],
         ["Try discovering me from another machine"]
     )
     
@@ -354,7 +351,7 @@ if __name__ == "__main__":
     # Show discovered services every 5 seconds
     for i in range(6):
         time.sleep(5)
-        discovered = real_announcer.discover_services()
+        discovered = announcer.discover_services()
         print(f"\n[{i*5}s] Discovered {len(discovered)} services:")
         for service_data in discovered.values():
             print(f"  • {service_data['name']} at {service_data['host']}:{service_data['port']}")
