@@ -26,7 +26,7 @@ from polymorphic_core.network_service_wrapper import NetworkServiceWrapper
 from polymorphic_core import announcer
 
 # All refactored services for testing
-from utils.database_service_refactored import DatabaseService
+from utils.database_service import DatabaseService
 from utils.simple_logger_refactored import LoggerService
 from utils.error_handler_refactored import ErrorHandlerService
 from utils.config_service_refactored import ConfigService

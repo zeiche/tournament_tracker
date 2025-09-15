@@ -142,11 +142,11 @@ def test_service_discovery_performance():
     # Direct import approach (for comparison)
     start_time = time.time()
     try:
-        from utils.database_service_refactored import database_service_refactored
+        from utils.database_service import database_service
         from utils.simple_logger_refactored import logger_service
         from utils.config_service_refactored import config_service
         from utils.error_handler_refactored import error_handler
-        direct_services = [database_service_refactored, logger_service, config_service, error_handler]
+        direct_services = [database_service, logger_service, config_service, error_handler]
     except ImportError as e:
         direct_services = []
         print(f"   ⚠️  Direct import failed: {e}")

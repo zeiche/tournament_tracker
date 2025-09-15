@@ -25,7 +25,7 @@ from polymorphic_core.service_locator import get_service, list_services, service
 from polymorphic_core.network_service_wrapper import wrap_service
 
 # Import refactored services
-from utils.database_service_refactored import RefactoredDatabaseService, database_service_refactored
+from utils.database_service import RefactoredDatabaseService, database_service
 from utils.simple_logger_refactored import RefactoredLoggerService, logger_service, info, warning, error
 from utils.error_handler_refactored import RefactoredErrorHandler, error_handler, handle_exception, ErrorSeverity
 from utils.config_service_refactored import RefactoredConfigService, config_service, get_config
@@ -36,7 +36,7 @@ class TestPhase1Integration(unittest.TestCase):
     def setUp(self):
         """Set up test environment"""
         # Register refactored services in service locator
-        service_locator.register_capability("database", "utils.database_service_refactored.database_service_refactored")
+        service_locator.register_capability("database", "utils.database_service.database_service")
         service_locator.register_capability("logger", "utils.simple_logger_refactored.logger_service")
         service_locator.register_capability("error_handler", "utils.error_handler_refactored.error_handler")
         service_locator.register_capability("config", "utils.config_service_refactored.config_service")
@@ -213,7 +213,7 @@ class TestPhase1Integration(unittest.TestCase):
         # Time direct access
         start = time.time()
         for _ in range(100):
-            db = database_service_refactored
+            db = database_service
             db.ask("stats")
         direct_time = time.time() - start
         

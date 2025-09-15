@@ -50,7 +50,7 @@ def benchmark_import_times(iterations: int = 10) -> Dict[str, List[float]]:
         # Direct import approach
         start_time = time.time()
         try:
-            from utils.database_service_refactored import database_service_refactored
+            from utils.database_service import database_service
             from utils.simple_logger_refactored import logger_service
             from utils.config_service_refactored import config_service
             direct_time = time.time() - start_time
@@ -137,13 +137,13 @@ def benchmark_memory_overhead() -> Dict[str, int]:
     # Direct import memory
     tracemalloc.start()
     try:
-        from utils.database_service_refactored import database_service_refactored
+        from utils.database_service import database_service
         from utils.simple_logger_refactored import logger_service  
         from utils.config_service_refactored import config_service
         from utils.error_handler_refactored import error_handler
         from services.claude_cli_service_refactored import claude_service
         from services.polymorphic_web_editor_refactored import web_editor
-        direct_imports = [database_service_refactored, logger_service, config_service, error_handler, claude_service, web_editor]
+        direct_imports = [database_service, logger_service, config_service, error_handler, claude_service, web_editor]
     except ImportError:
         direct_imports = []
     

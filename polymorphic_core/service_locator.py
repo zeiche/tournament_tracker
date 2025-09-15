@@ -37,15 +37,15 @@ class ServiceLocator:
         self.local_cache = {}  # Cached local services
         self.network_cache = {}  # Cached network service clients
         self.capability_map = {
-            # Phase 1 - REFACTORED Core Services ✅
-            "database": "utils.database_service_refactored.database_service_refactored",
+            # Phase 1 - CONSOLIDATED Core Services ✅
+            "database": "utils.database_service.database_service",
             "logger": "utils.simple_logger_refactored.logger_service",
             "error_handler": "utils.error_handler_refactored.error_handler", 
             "config": "utils.config_service_refactored.config_service",
             
             # Phase 2 - REFACTORED Business Services ✅
             "claude": "services.claude_cli_service_refactored.claude_service",
-            "web_editor": "services.polymorphic_web_editor_refactored.web_editor",
+            "web_editor": "services.web_editor.web_editor",
             "interactive": "services.interactive_service_refactored.interactive_service",
             "message_handler": "services.message_handler_refactored.message_handler",
             "formatter": "services.bonjour_formatter_service.formatter_service",
@@ -58,12 +58,12 @@ class ServiceLocator:
             
             # Legacy business services (fallback)
             "claude_legacy": "services.claude_cli_service.claude_service",
-            "web_editor_legacy": "services.polymorphic_web_editor.web_editor",
+            "web_editor_legacy": "services.web_editor.web_editor",
             "interactive_legacy": "services.interactive_service",
             "message_handler_legacy": "services.message_handler",
             
             # Phase 3+ - Remaining Services (to be refactored)
-            "sync": "services.startgg_sync.startgg_sync",
+            "sync": "services.startgg_sync.startgg_sync_refactored",
             "twilio": "twilio_service.twilio_service",
         }
         

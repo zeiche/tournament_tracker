@@ -18,6 +18,7 @@ import json
 import re
 from datetime import datetime, timedelta
 from polymorphic_core import announcer
+from polymorphic_core.service_locator import get_service
 
 # Use existing SSOT database module
 from utils.database import session_scope
@@ -41,11 +42,14 @@ class DatabaseService:
     
     _instance: Optional['DatabaseService'] = None
     
-    def __new__(cls) -> 'DatabaseService':
-        """Singleton pattern"""
+    def __new__(cls, prefer_network: bool = False) -> 'DatabaseService':
+        """Singleton pattern with service locator support"""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            # Announce ourselves
+            cls._instance.prefer_network = prefer_network
+            cls._instance._logger = None
+            cls._instance._error_handler = None
+            # Announce ourselves AND create HTTPS server
             announcer.announce(
                 "Database Service",
                 [
@@ -59,9 +63,24 @@ class DatabaseService:
                     "db.ask('top 10 players')",
                     "db.tell('discord', stats)",
                     "db.do('merge org 1 into 2')"
-                ]
+                ],
+                service_instance=cls._instance
             )
         return cls._instance
+
+    @property
+    def logger(self):
+        """Get logger via service locator"""
+        if self._logger is None:
+            self._logger = get_service("logger", self.prefer_network)
+        return self._logger
+
+    @property
+    def error_handler(self):
+        """Get error handler via service locator"""
+        if self._error_handler is None:
+            self._error_handler = get_service("error_handler", self.prefer_network)
+        return self._error_handler
     
     def ask(self, query: str, **kwargs) -> Any:
         """

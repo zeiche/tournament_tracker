@@ -104,15 +104,16 @@ class RealBonjourAnnouncer:
             # Handle service updates
             self.add_service(zc, type_, name)
     
-    def announce(self, service_name: str, capabilities: List[str], examples: List[str] = None, port: int = None):
+    def announce(self, service_name: str, capabilities: List[str], examples: List[str] = None, port: int = None, service_instance: Any = None):
         """
         Announce a service on the network using real mDNS - NON-BLOCKING!
-        
+
         Args:
             service_name: Name of the service
             capabilities: List of things this service can do
             examples: Optional examples
             port: Port number (auto-assigned if None)
+            service_instance: Service instance for HTTPS auto-wrapping (ignored by real bonjour)
         """
         examples = examples or []
         

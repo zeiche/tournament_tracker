@@ -319,11 +319,11 @@ rlimit-nproc=3
             # Create a simple DNS resolver that maps .local domains to WireGuard IP
             dns_config = f"""# WireGuard mDNS Bridge DNS Configuration
 # Add to /etc/hosts for static resolution
-{self.wg_ip or '10.0.0.1'}    tournaments.local
-{self.wg_ip or '10.0.0.1'}    webdav.local
-{self.wg_ip or '10.0.0.1'}    bonjour.local
-{self.wg_ip or '10.0.0.1'}    interactive.local
-{self.wg_ip or '10.0.0.1'}    discord.local
+{self.wg_ip or '10.0.0.1'}    tournaments.zilogo.com
+{self.wg_ip or '10.0.0.1'}    webdav.zilogo.com
+{self.wg_ip or '10.0.0.1'}    bonjour.zilogo.com
+{self.wg_ip or '10.0.0.1'}    interactive.zilogo.com
+{self.wg_ip or '10.0.0.1'}    discord.zilogo.com
 """
 
             # Write DNS config
@@ -344,11 +344,11 @@ from typing import Dict
 
 # DNS mappings for WireGuard clients
 DNS_MAPPINGS = {{
-    'tournaments.local': '{self.wg_ip or "10.0.0.1"}',
-    'webdav.local': '{self.wg_ip or "10.0.0.1"}',
-    'bonjour.local': '{self.wg_ip or "10.0.0.1"}',
-    'interactive.local': '{self.wg_ip or "10.0.0.1"}',
-    'discord.local': '{self.wg_ip or "10.0.0.1"}',
+    'tournaments.zilogo.com': '{self.wg_ip or "10.0.0.1"}',
+    'webdav.zilogo.com': '{self.wg_ip or "10.0.0.1"}',
+    'bonjour.zilogo.com': '{self.wg_ip or "10.0.0.1"}',
+    'interactive.zilogo.com': '{self.wg_ip or "10.0.0.1"}',
+    'discord.zilogo.com': '{self.wg_ip or "10.0.0.1"}',
 }}
 
 def handle_dns_query(data, addr, sock):
@@ -391,11 +391,11 @@ if __name__ == '__main__':
                 "hosts_config": dns_config_path,
                 "dns_forwarder": dns_forwarder_path,
                 "mappings": {
-                    "tournaments.local": self.wg_ip or "10.0.0.1",
-                    "webdav.local": self.wg_ip or "10.0.0.1",
-                    "bonjour.local": self.wg_ip or "10.0.0.1",
-                    "interactive.local": self.wg_ip or "10.0.0.1",
-                    "discord.local": self.wg_ip or "10.0.0.1",
+                    "tournaments.zilogo.com": self.wg_ip or "10.0.0.1",
+                    "webdav.zilogo.com": self.wg_ip or "10.0.0.1",
+                    "bonjour.zilogo.com": self.wg_ip or "10.0.0.1",
+                    "interactive.zilogo.com": self.wg_ip or "10.0.0.1",
+                    "discord.zilogo.com": self.wg_ip or "10.0.0.1",
                 }
             }
 

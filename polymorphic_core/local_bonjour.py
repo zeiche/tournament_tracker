@@ -39,15 +39,29 @@ class LocalBonjourAnnouncer:
         import atexit
         atexit.register(self.cleanup)
     
-    def announce(self, service_name: str, capabilities: List[str], examples: List[str] = None):
-        """Announce a service locally within this process"""
+    def announce(self, service_name: str, capabilities: List[str], examples: List[str] = None, service_instance: Any = None):
+        """Announce a service locally within this process AND create HTTPS server"""
+        # Auto-create HTTPS server for every service
+        https_port = None
+        if service_instance and hasattr(service_instance, 'ask'):
+            try:
+                from .network_service_wrapper import wrap_service
+                wrapped = wrap_service(service_instance, service_name, auto_start=True)
+                https_port = wrapped.port
+                if not self._quiet_mode:
+                    print(f"🔐 Auto-created HTTPS server for {service_name} on port {https_port}")
+            except Exception as e:
+                if not self._quiet_mode:
+                    print(f"⚠️  Could not create HTTPS server for {service_name}: {e}")
+
         with self.lock:
             service_info = {
                 'name': service_name,
                 'capabilities': capabilities,
                 'examples': examples or [],
                 'announced_at': time.time(),
-                'pid': threading.current_thread().ident
+                'pid': threading.current_thread().ident,
+                'https_port': https_port
             }
 
             self.services[service_name] = service_info

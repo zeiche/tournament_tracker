@@ -24,14 +24,18 @@ Usage:
 import asyncio
 import json
 import threading
+import ssl
+import os
 from typing import Any, Dict, Optional, Callable
 from dataclasses import dataclass
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .real_bonjour import announcer
+from .local_bonjour import local_announcer
+from .polymorphic_response import create_polymorphic_handler
 
 class ServiceRequest(BaseModel):
     """Request model for service calls"""
@@ -58,6 +62,7 @@ class NetworkService:
     port: int
     app: FastAPI
     capabilities: list
+    polymorphic_handler: Any = None
     server_thread: Optional[threading.Thread] = None
 
 class NetworkServiceWrapper:
@@ -118,13 +123,17 @@ class NetworkServiceWrapper:
             allow_headers=["*"],
         )
         
+        # Create polymorphic response handler
+        polymorphic_handler = create_polymorphic_handler(service_name, capabilities)
+
         # Create the network service wrapper
         network_service = NetworkService(
             service=service,
             name=service_name,
             port=port,
             app=app,
-            capabilities=capabilities
+            capabilities=capabilities,
+            polymorphic_handler=polymorphic_handler
         )
         
         # Add routes to the app
@@ -167,15 +176,33 @@ class NetworkServiceWrapper:
         """Add HTTP routes for the service"""
         
         @app.get("/")
-        async def service_info():
-            """Get service information"""
+        async def service_info(request: Request):
+            """Get service information with polymorphic response"""
             network_service = self.wrapped_services[service_name]
-            return {
+
+            # Prepare service data
+            service_data = {
                 "service_name": service_name,
                 "capabilities": network_service.capabilities,
                 "methods": ["ask", "tell", "do"],
                 "status": "running"
             }
+
+            # Use polymorphic handler to format response based on client type
+            return network_service.polymorphic_handler.format_response(request, service_data)
+
+        # Add WebDAV-specific routes
+        @app.route("/", methods=["PROPFIND", "OPTIONS"])
+        async def webdav_methods(request: Request):
+            """Handle WebDAV methods"""
+            network_service = self.wrapped_services[service_name]
+            service_data = {
+                "service_name": service_name,
+                "capabilities": network_service.capabilities,
+                "methods": ["ask", "tell", "do"],
+                "status": "running"
+            }
+            return network_service.polymorphic_handler.format_response(request, service_data)
         
         @app.post("/ask")
         async def ask_endpoint(request: ServiceRequest):
@@ -280,26 +307,36 @@ class NetworkServiceWrapper:
         
         network_service = self.wrapped_services[service_name]
         
-        # Announce the service via mDNS
+        # Announce the service via mDNS - HTTPS ONLY
+        from .local_bonjour import local_announcer
         local_announcer.announce(
             service_name,
             network_service.capabilities,
             [
-                f"Access via HTTP at http://localhost:{network_service.port}",
+                f"Access via HTTPS at https://tournaments.zilogo.com:{network_service.port}",
                 f"ask: POST /{network_service.port}/ask",
-                f"tell: POST /{network_service.port}/tell", 
+                f"tell: POST /{network_service.port}/tell",
                 f"do: POST /{network_service.port}/do"
-            ],
-            port=network_service.port
+            ]
         )
         
         # Start the server in a background thread
         def run_server():
+            # SSL configuration using wildcard cert - HTTPS ONLY
+            ssl_cert_path = os.path.join(os.path.dirname(__file__), "..", "services", "wildcard_certificate.pem")
+            ssl_key_path = os.path.join(os.path.dirname(__file__), "..", "services", "wildcard_private.key")
+
+            # SSL certs are required - no HTTP fallback
+            if not os.path.exists(ssl_cert_path) or not os.path.exists(ssl_key_path):
+                raise FileNotFoundError(f"SSL certificates required: {ssl_cert_path}, {ssl_key_path}")
+
             uvicorn.run(
                 network_service.app,
                 host="0.0.0.0",
                 port=network_service.port,
-                log_level="warning"  # Reduce log noise
+                log_level="warning",  # Reduce log noise
+                ssl_certfile=ssl_cert_path,
+                ssl_keyfile=ssl_key_path
             )
         
         server_thread = threading.Thread(target=run_server, daemon=True)
